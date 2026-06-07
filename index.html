@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>650 — Build the Greatest Cabinet in British History</title>
+  <meta name="description" content="650 is a free political draft game. Assemble an all-time UK cabinet from every era of British history, contest a general election, and see how many of the 650 seats you can win. Can you go 650-0?" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="650 — Build the Greatest Cabinet in British History" />
+  <meta property="og:description" content="Draft an all-time UK cabinet from every era, fight an election, and chase the impossible: all 650 seats." />
+  <meta property="og:type" content="website" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ===================================================== MASTHEAD === -->
+    <header class="masthead">
+      <p class="kicker">A British Political Draft Game</p>
+      <h1 class="title-650">650</h1>
+      <p class="subtitle">Assemble the greatest cabinet in British history. Then face the country.</p>
+      <div class="rule-meta">
+        <span><b id="metaCount">—</b> politicians</span>
+        <span><b>7</b> eras · <b>1832–today</b></span>
+        <span><b>12</b> seats at the table</span>
+      </div>
+    </header>
+
+    <!-- ======================================================== MENU ==== -->
+    <section id="screen-menu" class="screen active">
+      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and the whole sweep of British political history to staff it with. Spin for a party and an era, draft whoever fortune offers, and fill all twelve seats of the cabinet. Then hold a general election — win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the House.</p>
+
+      <div class="menu-grid">
+        <div>
+          <p class="section-label">1 · Choose your game</p>
+          <div class="choice-row" id="modeRow">
+            <button class="opt sel" data-mode="unity">
+              <h4>Greatest Cabinet</h4>
+              <p>A national-unity ticket. Draft the best of every party and every era. Stands in all 650 seats.</p>
+            </button>
+            <button class="opt" data-mode="dynasty">
+              <h4>Single-Party Dynasty</h4>
+              <p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p>
+            </button>
+          </div>
+          <div class="dynasty-pick" id="dynastyPick"></div>
+        </div>
+
+        <div>
+          <p class="section-label">2 · Choose your difficulty</p>
+          <div class="choice-row" id="hardRow">
+            <button class="opt sel" data-hard="false">
+              <h4>Classic</h4>
+              <p>Stats are on the table. Draft on the numbers and the names.</p>
+            </button>
+            <button class="opt" data-hard="true">
+              <h4>By Reputation Alone</h4>
+              <p>Stats hidden during the draft. Pick on memory and judgement.</p>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="startBtn">Open the dispatch box →</button>
+        <button class="btn btn-ghost" id="aboutBtn">How it works</button>
+      </div>
+    </section>
+
+    <!-- ======================================================= DRAFT ==== -->
+    <section id="screen-draft" class="screen">
+      <div class="progress-bar">
+        <div class="pips" id="pips"></div>
+        <span class="count" id="draftCount">0 / 12 seats filled</span>
+        <span class="count" id="modeTag" style="margin-left:auto"></span>
+      </div>
+
+      <div class="draft-grid">
+        <!-- left: the wheel + pool -->
+        <div class="panel">
+          <p class="section-label">The returning officer's wheel</p>
+          <div class="reels" id="reels">
+            <div class="reel" id="reelParty">
+              <span class="reel-label">Party</span>
+              <span class="reel-value">—</span>
+              <span class="reel-sub">spin to begin</span>
+            </div>
+            <div class="reel" id="reelEra">
+              <span class="reel-label">Era</span>
+              <span class="reel-value">—</span>
+              <span class="reel-sub"></span>
+            </div>
+          </div>
+
+          <div class="spin-row">
+            <button class="btn btn-primary" id="spinBtn" style="flex:1">Spin the wheel</button>
+          </div>
+          <div class="skips">
+            <button class="skip-btn" id="skipEraBtn" disabled>↻ Different era (1 left)</button>
+            <button class="skip-btn" id="skipPartyBtn" disabled>↻ Different party (1 left)</button>
+          </div>
+
+          <div class="pool" id="pool"></div>
+        </div>
+
+        <!-- right: cabinet -->
+        <div class="panel">
+          <p class="section-label">The cabinet table</p>
+          <div class="cabinet-table" id="cabinet"></div>
+          <div class="strength-readout">
+            <span>Cabinet strength</span>
+            <span class="big" id="strengthVal">0</span>
+          </div>
+          <div class="btn-row" style="margin-top:16px">
+            <button class="btn btn-primary" id="holdBtn" style="flex:1" disabled>Hold the election</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================== RESULT ==== -->
+    <section id="screen-result" class="screen">
+      <div class="result-head">
+        <div class="govt-banner" id="govtBanner">—</div>
+        <div class="seat-number" id="seatNumber">0<span class="of"> / 650</span></div>
+        <div class="tier-name" id="tierName">—</div>
+        <div class="majority-line" id="majorityLine"></div>
+      </div>
+
+      <div class="commons">
+        <div class="fill" id="commonsFill" style="width:0%"></div>
+        <div class="maj-mark" id="majMark"></div>
+      </div>
+      <div class="commons-key">
+        <span>0</span><span id="majKeyLabel">326 needed</span><span>650</span>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <p class="section-label">The odds you were facing</p>
+        <div class="odds-grid">
+          <div class="odd"><div class="pc" id="oddMaj">—</div><div class="lb">Majority</div></div>
+          <div class="odd"><div class="pc" id="oddLand">—</div><div class="lb">Landslide 400+</div></div>
+          <div class="odd"><div class="pc" id="oddSuper">—</div><div class="lb">Supermajority</div></div>
+          <div class="odd"><div class="pc" id="oddSweep">—</div><div class="lb">Clean sweep</div></div>
+        </div>
+        <p class="range-note" id="rangeNote"></p>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <p class="section-label">Your front bench</p>
+        <div class="cabinet-roll" id="cabinetRoll"></div>
+      </div>
+
+      <p class="pb-note" id="pbNote"></p>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
+        <button class="btn btn-ghost" id="copyBtn">Copy result</button>
+        <button class="btn btn-ghost" id="againBtn">Run it again</button>
+        <button class="btn btn-ghost" id="menuBtn">Change game</button>
+      </div>
+    </section>
+
+    <!-- ======================================================= ABOUT ==== -->
+    <section id="screen-about" class="screen">
+      <div class="panel prose" id="aboutBody"></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="aboutBackBtn">← Back</button></div>
+    </section>
+
+    <!-- ====================================================== FOOTER ==== -->
+    <footer class="foot">
+      <div>650 · a draft game · inspired by the 82-0 and 38-0 sports games</div>
+      <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied equally to every party and are not a judgement of any individual. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
+    </footer>
+  </div>
+
+  <canvas id="shareCanvas" width="1200" height="630"></canvas>
+
+  <!-- scripts: order matters (no build step, plain globals) -->
+  <script src="js/data.js"></script>
+  <script src="js/election.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
