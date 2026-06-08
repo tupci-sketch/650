@@ -2,13 +2,13 @@
 <html lang="en-GB">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>650 — Build the Greatest Cabinet in British History</title>
-  <meta name="description" content="650 is a free political draft game. Assemble an all-time UK cabinet from every era of British history, contest a general election, and see how many of the 650 seats you can win. Can you go 650-0?" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>650 — Build the Greatest Cabinet, Then Fight the Election</title>
+  <meta name="description" content="650 is a free political draft game. Assemble an all-time UK cabinet from every era — or a wildcard cabinet from across history and the globe — then fight a constituency-by-constituency general election. Can you go 650-0?" />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="650 — Build the Greatest Cabinet in British History" />
-  <meta property="og:description" content="Draft an all-time UK cabinet from every era, fight an election, and chase the impossible: all 650 seats." />
+  <meta property="og:title" content="650 — A British Political Draft Game" />
+  <meta property="og:description" content="Draft an all-time cabinet, fight a seat-by-seat election, and chase the impossible: all 650 seats." />
   <meta property="og:type" content="website" />
 
   <!-- Fonts -->
@@ -24,52 +24,84 @@
     <!-- ===================================================== MASTHEAD === -->
     <header class="masthead">
       <p class="kicker">A British Political Draft Game</p>
-      <h1 class="title-650">650</h1>
-      <p class="subtitle">Assemble the greatest cabinet in British history. Then face the country.</p>
+      <button class="title-650" id="homeLink" title="Back to the start" aria-label="650 — back to the start">650</button>
+      <p class="subtitle">Assemble a cabinet from the whole sweep of history. Then fight the country, seat by seat.</p>
       <div class="rule-meta">
-        <span><b id="metaCount">—</b> politicians</span>
-        <span><b>7</b> eras · <b>1832–today</b></span>
-        <span><b>12</b> seats at the table</span>
+        <span><b id="metaCount">—</b> figures</span>
+        <span><b id="metaEras">7</b> eras · <b>1832–today</b></span>
+        <span><b>650</b> seats · <b>12</b> at the table</span>
       </div>
     </header>
 
-    <!-- ======================================================== MENU ==== -->
+    <!-- ======================================================== SETUP === -->
     <section id="screen-menu" class="screen active">
-      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and the whole sweep of British political history to staff it with. Spin for a party and an era, draft whoever fortune offers, and fill all twelve seats of the cabinet. Then hold a general election — win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the House.</p>
+      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Spin for a party and an era, draft whoever fortune offers, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the House.</p>
 
       <div class="menu-grid">
-        <div>
+        <div class="span-2">
           <p class="section-label">1 · Choose your game</p>
-          <div class="choice-row" id="modeRow">
+          <div class="choice-row triple" id="modeRow">
             <button class="opt sel" data-mode="unity">
               <h4>Greatest Cabinet</h4>
-              <p>A national-unity ticket. Draft the best of every party and every era. Stands in all 650 seats.</p>
+              <p>A national-unity ticket. Draft the best of every party and era. Stands in all 650 seats.</p>
             </button>
             <button class="opt" data-mode="dynasty">
               <h4>Single-Party Dynasty</h4>
               <p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p>
             </button>
+            <button class="opt" data-mode="wildcard">
+              <h4>Wildcard ⚡</h4>
+              <p>The whole globe and all of history walk in — presidents, founders, despots. For political nerds only.</p>
+            </button>
           </div>
           <div class="dynasty-pick" id="dynastyPick"></div>
+          <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
         </div>
 
         <div>
-          <p class="section-label">2 · Choose your difficulty</p>
+          <p class="section-label">2 · Eras in play</p>
+          <p class="mini-help">Tap to leave an era out of the draft.</p>
+          <div class="era-toggles" id="eraToggles"></div>
+        </div>
+
+        <div>
+          <p class="section-label">3 · Election difficulty</p>
+          <div class="choice-row" id="diffRow">
+            <button class="opt" data-diff="easy"><h4>Easy</h4><p>Kinder swing. A majority comes more readily.</p></button>
+            <button class="opt sel" data-diff="normal"><h4>Normal</h4><p>A fair fight on a realistic curve.</p></button>
+            <button class="opt" data-diff="hard"><h4>Hard</h4><p>Brutal marginals. Every seat is a war.</p></button>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-label">4 · Draft information</p>
           <div class="choice-row" id="hardRow">
-            <button class="opt sel" data-hard="false">
-              <h4>Classic</h4>
-              <p>Stats are on the table. Draft on the numbers and the names.</p>
-            </button>
-            <button class="opt" data-hard="true">
-              <h4>By Reputation Alone</h4>
-              <p>Stats hidden during the draft. Pick on memory and judgement.</p>
-            </button>
+            <button class="opt sel" data-hard="false"><h4>Classic</h4><p>Full ratings, fits and notes on the table.</p></button>
+            <button class="opt" data-hard="true"><h4>By Reputation Alone</h4><p>Ratings hidden. Pick on memory and judgement.</p></button>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-label">5 · After the cabinet</p>
+          <div class="choice-row" id="governRow">
+            <button class="opt sel" data-govern="false"><h4>Simulate the election</h4><p>Just the seat result and the odds.</p></button>
+            <button class="opt" data-govern="true"><h4>Win &amp; govern</h4><p>Win, and get a verdict on your term in office.</p></button>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-label">6 · The count</p>
+          <div class="choice-row" id="watchRow">
+            <button class="opt sel" data-watch="true"><h4>Watch live</h4><p>A seat-by-seat declaration night with a results map.</p></button>
+            <button class="opt" data-watch="false"><h4>Instant result</h4><p>Skip the night. Straight to the verdict.</p></button>
           </div>
         </div>
       </div>
 
+      <p class="setup-hint" id="setupHint"></p>
       <div class="btn-row">
         <button class="btn btn-primary" id="startBtn">Open the dispatch box →</button>
+        <button class="btn btn-ghost" id="exploreBtn">Explore the map</button>
         <button class="btn btn-ghost" id="aboutBtn">How it works</button>
       </div>
     </section>
@@ -83,7 +115,6 @@
       </div>
 
       <div class="draft-grid">
-        <!-- left: the wheel + pool -->
         <div class="panel">
           <p class="section-label">The returning officer's wheel</p>
           <div class="reels" id="reels">
@@ -110,7 +141,6 @@
           <div class="pool" id="pool"></div>
         </div>
 
-        <!-- right: cabinet -->
         <div class="panel">
           <p class="section-label">The cabinet table</p>
           <div class="cabinet-table" id="cabinet"></div>
@@ -122,6 +152,29 @@
             <button class="btn btn-primary" id="holdBtn" style="flex:1" disabled>Hold the election</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- =================================================== WATCH-ALONG == -->
+    <section id="screen-watch" class="screen">
+      <div class="watch-head">
+        <div class="watch-tally">
+          <span class="wt-label" id="watchTicketName">Your seats</span>
+          <span class="wt-num" id="watchSeats">0</span>
+          <span class="wt-sub"><b id="watchDeclared">0</b> of 650 declared · <b id="watchMaj">326</b> for a majority</span>
+        </div>
+        <div class="watch-feed" id="watchFeed"></div>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <p class="section-label">The results map <span class="board-note">650 seats · hover to explore</span></p>
+        <div class="hexmap" id="mapWatch"></div>
+        <div class="board-key" id="mapWatchLegend"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="skipCountBtn">Skip to the result →</button>
+        <button class="btn btn-primary" id="toResultBtn" style="display:none">See the full result →</button>
       </div>
     </section>
 
@@ -140,6 +193,21 @@
       </div>
       <div class="commons-key">
         <span>0</span><span id="majKeyLabel">326 needed</span><span>650</span>
+      </div>
+
+      <div class="panel" id="governPanel" style="margin-top:24px; display:none">
+        <p class="section-label">Your term in office</p>
+        <div class="govern-readout">
+          <div class="gov-meter"><div class="gov-fill" id="govFill"></div><span class="gov-pct" id="govPct">—</span></div>
+          <p class="gov-line" id="govLine"></p>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <p class="section-label">The results map <span class="board-note">650 seats · hover to explore</span></p>
+        <div class="hexmap" id="mapResult"></div>
+        <div class="board-key" id="mapResultLegend"></div>
+        <div class="region-summary" id="regionSummary"></div>
       </div>
 
       <div class="panel" style="margin-top:24px">
@@ -174,10 +242,22 @@
       <div class="btn-row"><button class="btn btn-ghost" id="aboutBackBtn">← Back</button></div>
     </section>
 
+    <!-- ===================================================== EXPLORE ==== -->
+    <section id="screen-explore" class="screen">
+      <p class="section-label">The 2024 House of Commons — every seat, every MP</p>
+      <p class="mini-help">An interactive hex cartogram of all 650 constituencies on the current boundaries. Hover or tap any seat to see the constituency and the MP who holds it.</p>
+      <div class="panel">
+        <div class="hexmap big" id="mapExplore"></div>
+        <div class="board-key" id="exploreLegend"></div>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" id="exploreBackBtn">← Back</button></div>
+    </section>
+
     <!-- ====================================================== FOOTER ==== -->
     <footer class="foot">
-      <div>650 · a draft game · inspired by the 82-0 and 38-0 sports games</div>
-      <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied equally to every party and are not a judgement of any individual. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
+      <div class="credit">650 · a draft game · with thanks to the sports games that inspired it: <b>82-0</b> (NBA, all-time teams) and <b>38-0</b> (the Premier League season). 650 borrows their constrained-draft, chase-the-perfect-record idea and points it at Westminster.</div>
+      <div class="credit">Constituency hex map by <b>Open Innovations</b> &amp; contributors (open-innovations.org). Sitting-MP data from <b>mySociety / parlparse</b>. Both used under open licences.</div>
+      <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied by the same logic to every party and are not a judgement of any individual. Wildcard mode is satire, not endorsement. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
     </footer>
   </div>
 
@@ -185,6 +265,8 @@
 
   <!-- scripts: order matters (no build step, plain globals) -->
   <script src="js/data.js"></script>
+  <script src="js/hexmap.js"></script>
+  <script src="js/data.mps.js"></script>
   <script src="js/election.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/ui.js"></script>
