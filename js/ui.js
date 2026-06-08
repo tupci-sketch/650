@@ -9,7 +9,7 @@ G.UI = {};
 
 var $ = function (id) { return document.getElementById(id); };
 
-var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-explore"];
+var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-explore", "screen-govern", "screen-legacy"];
 
 G.UI.show = function (screenId) {
   SCREENS.forEach(function (s) {
@@ -295,6 +295,107 @@ G.UI.renderExplore = function () {
   }).join("") + '<span class="bk muted-k">hover / tap a hex</span>';
   G.UI.show("screen-explore");
 };
+G.UI.filterExplore = function (term) {
+  term = (term || "").trim().toLowerCase();
+  var polys = document.querySelectorAll("#mapExplore polygon"), n = 0;
+  for (var i = 0; i < polys.length; i++) {
+    var nm = (polys[i].getAttribute("data-name") || "").toLowerCase();
+    var hit = !term || nm.indexOf(term) !== -1;
+    polys[i].style.opacity = hit ? "1" : "0.12";
+    if (term && hit) n++;
+  }
+  var hint = $("exploreSearchHint");
+  if (hint) hint.textContent = term ? (n + " seat" + (n === 1 ? "" : "s") + " match") : "";
+};
+
+/* ============================================================== GOVERN === */
+G.UI.setMeter = function (id, value) {
+  var el = $(id); if (!el) return;
+  var fill = el.querySelector(".meter-fill"), num = el.querySelector(".meter-num");
+  var col = value < 34 ? "var(--oxblood,#862231)" : value < 55 ? "var(--brass,#b3862f)" : "var(--green,#2f5d3a)";
+  if (fill) { fill.style.width = Math.max(0, Math.min(100, value)) + "%"; fill.style.background = col; }
+  if (num) num.textContent = Math.round(value);
+};
+G.UI.updateGovSeats = function () {
+  var t = G.term, maj = t.seats - G.CONFIG.majority;
+  $("govSeats").textContent = t.seats;
+  $("govSeatsSub").textContent = maj >= 0 ? "(majority of " + maj + ")" : "(minority — " + Math.abs(maj) + " short)";
+};
+G.UI.showEvent = function (ev) {
+  $("eventIcon").textContent = ev.icon || "◆";
+  $("eventTitle").textContent = ev.title;
+  $("eventText").textContent = ev.text;
+  var box = $("eventChoices"); box.innerHTML = "";
+  ev.choices.forEach(function (c, i) {
+    var b = document.createElement("button");
+    b.className = "choice"; b.setAttribute("data-idx", i);
+    b.innerHTML = '<span class="choice-label">' + c.label + '</span>' +
+                  '<span class="choice-sub">' + (c.text || "") + '</span>';
+    box.appendChild(b);
+  });
+};
+G.UI.renderGovern = function () {
+  var t = G.term;
+  $("govSession").textContent = "· session " + t.session + " of " + t.length;
+  var modeLabel = t.mode === "dynasty" ? (G.state.lineage + " government")
+                : t.mode === "wildcard" ? "Wildcard government" : "Cabinet of all the talents";
+  $("govModeTag").textContent = modeLabel + " · " + (t.difficulty || "normal");
+  G.UI.setMeter("meterApproval", t.meters.approval);
+  G.UI.setMeter("meterEconomy", t.meters.economy);
+  G.UI.setMeter("meterUnity", t.meters.unity);
+  G.UI.updateGovSeats();
+  $("govLog").innerHTML = '<div class="feed-line muted">You enter office. The work begins…</div>';
+  G.UI.showEvent(t.current);
+  G.UI.show("screen-govern");
+};
+G.UI.pushGovLog = function (lines) {
+  var feed = $("govLog");
+  (Array.isArray(lines) ? lines : [lines]).slice().reverse().forEach(function (ln) {
+    var d = document.createElement("div");
+    d.className = "feed-line" + (ln.cls ? " gl-" + ln.cls : "");
+    d.textContent = ln.text;
+    feed.insertBefore(d, feed.firstChild);
+  });
+  while (feed.children.length > 9) feed.removeChild(feed.lastChild);
+};
+G.UI.afterChoice = function () {
+  var t = G.term;
+  G.UI.setMeter("meterApproval", t.meters.approval);
+  G.UI.setMeter("meterEconomy", t.meters.economy);
+  G.UI.setMeter("meterUnity", t.meters.unity);
+  G.UI.updateGovSeats();
+  $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
+  if (!t.over) G.UI.showEvent(t.current);
+};
+G.UI.legacyText = function (v) {
+  var verb = v.outcome === "collapsed"
+    ? "My government fell after " + v.sessionsServed + " sessions"
+    : "I governed for a full term";
+  return "650 — " + verb + ". Legacy score " + v.legacy + "/100: \u201c" + v.tier.label + "\u201d. " +
+         "Build a cabinet and govern at 650-0.co.uk";
+};
+G.UI.renderLegacy = function (v) {
+  var b = $("legacyBanner");
+  b.className = "legacy-banner " + (v.outcome === "collapsed" ? "fell"
+                  : (v.tier.key === "great" || v.tier.key === "good") ? "win" : "mixed");
+  b.textContent = v.tier.label;
+  $("legacyLine").textContent = v.tier.line;
+  G.UI.setMeter("legApproval", v.meters.approval);
+  G.UI.setMeter("legEconomy", v.meters.economy);
+  G.UI.setMeter("legUnity", v.meters.unity);
+  $("legSeats").innerHTML = "<b>" + v.seats + "</b> seats · " + v.sessionsServed + " of " + v.length +
+    " sessions served" + (v.caretakers ? " · " + v.caretakers + " caretaker department" + (v.caretakers > 1 ? "s" : "") : "");
+  var box = $("termReview"); box.innerHTML = "";
+  v.history.forEach(function (h) {
+    var row = document.createElement("div"); row.className = "tr-row";
+    row.innerHTML = '<span class="tr-s">S' + h.session + '</span>' +
+                    '<span class="tr-t">' + h.title + '</span>' +
+                    '<span class="tr-c">' + h.choice + '</span>';
+    box.appendChild(row);
+  });
+  G.UI.show("screen-legacy");
+  G.UI.countTo($("legacyNum"), v.legacy);
+};
 
 /* =========================================================== WATCH-ALONG = */
 G.UI.renderWatch = function (res) {
@@ -349,14 +450,15 @@ G.UI.renderResult = function (res) {
     ml += " &nbsp;·&nbsp; this ticket could only contest <b>" + res.contestable + "</b> seats.";
   $("majorityLine").innerHTML = ml;
 
-  /* governing verdict */
+  /* governing — only if you actually formed a government */
   var gp = $("governPanel");
-  if (res.govern) {
+  if (res.govern && res.tier.govt) {
     gp.style.display = "";
     var gv = res.governVerdict;
-    $("govPct").textContent = res.tier.govt ? gv.stability + "%" : "—";
-    $("govLine").textContent = gv.line;
-    setTimeout(function () { $("govFill").style.width = (res.tier.govt ? gv.stability : 0) + "%"; }, 90);
+    var word = gv.stability >= 66 ? "commanding" : gv.stability >= 50 ? "workable" : gv.stability >= 38 ? "precarious" : "fragile";
+    $("govPct").textContent = gv.stability + "%";
+    $("govLine").textContent = "Your opening position looks " + word + ". Now govern through a full parliament — steer approval, the economy and your own party, survive the crises, and chase a lasting legacy.";
+    setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
   } else {
     gp.style.display = "none";
   }
@@ -486,6 +588,8 @@ G.UI.renderAbout = function () {
     '<p>Your cabinet\'s total strength maps to a projected national vote share, nudged by your chosen difficulty. That share sets a national per-seat win probability through a responsiveness curve inspired by the historic "cube law" of British elections. Then every one of the 650 constituencies is fought as its own contest: a regional lean, a shared regional swing, and a dose of per-seat luck decide each winner. That is the cruelty of first-past-the-post — a small move in the vote can swing a great many seats. Run many campaigns and you get the odds you were really facing.</p>' +
     '<h3>Modes, eras &amp; difficulty</h3>' +
     '<p>A <b>unity ticket</b> drafts across all parties and can contest all 650 seats. A <b>single-party dynasty</b> only wins where that party\'s geography allows — an SNP dynasty can sweep Scotland but never form a UK majority. <b>Wildcard</b> throws open the whole globe and all of history. You can leave eras out before you start, choose Easy/Normal/Hard, hide the ratings to draft on reputation alone, watch the count seat by seat or skip to the verdict, and simply simulate or play on to govern.</p>' +
+    '<h3>Govern: a term in office</h3>' +
+    '<p>Win, and the game doesn\'t stop at a score — you take office. A term is played as a parliament of crisis cards across health, the economy, foreign affairs, the unions, your own backbenches and more. You juggle three meters — <b>Approval</b>, the <b>Economy</b> and <b>Party Unity</b> — plus the seats you hold, which can fall in by-elections. Crucially, the ministers you drafted now matter: many choices are gambles resolved by the relevant minister\'s stats, so a brilliant Chancellor lands a risky Budget where a weak one wrecks it. Let unity collapse and the benches revolt; let approval and your majority slide and you face a confidence vote that can end your government early. Reach polling day intact and your record is graded into a <b>legacy score</b> and a place in history.</p>' +
     '<h3>The map is real</h3>' +
     '<p>The results map is a hex cartogram of all 650 Westminster constituencies on the 2024 boundaries — the same style of map the BBC and others use on election night. Each hexagon is one seat; hover or tap any of them to see the constituency, and in the explorer, the actual sitting MP and their party. The hex layout is by <b>Open Innovations</b> (open-innovations.org) and contributors, used under an open licence.</p>' +
     '<h3>The current Parliament is in the game</h3>' +

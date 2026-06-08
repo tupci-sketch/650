@@ -12,10 +12,11 @@
 
   /* setup selections (defaults match the .sel buttons in the markup) */
   var choice = { mode: "unity", lineage: null, eras: [], difficulty: "normal",
-                 hard: false, govern: false, watch: true };
+                 hard: false, govern: true, watch: true };
 
   var lastResult = null;   // kept for re-run / download / copy
   var watch = null;        // live-count animation state
+  var currentVerdict = null; // last governing verdict (for sharing)
 
   /* ---------------------------------------------------------------- boot -- */
   function boot() {
@@ -28,9 +29,15 @@
     wireWatch();
     wireResult();
     wireAbout();
+    wireGovern();
+    wireExplore();
+    renderRecords();
     sel("homeLink").onclick = goMenu;
     if (G.buildGeo) G.buildGeo();
-    sel("exploreBtn").onclick = function () { G.UI.renderExplore(); };
+    sel("exploreBtn").onclick = function () {
+      var s = sel("exploreSearch"); if (s) s.value = "";
+      G.UI.renderExplore(); G.UI.filterExplore("");
+    };
     updateHint();
     G.UI.show("screen-menu");
   }
@@ -344,6 +351,66 @@
     } else {
       note.innerHTML = "Your personal best is <b>" + prev + "</b> seats.";
     }
+  }
+
+  /* --------------------------------------------------------- governing ---- */
+  function wireGovern() {
+    sel("governBtn").onclick = function () {
+      if (!lastResult || !lastResult.tier.govt) return;
+      G.startTerm(lastResult);
+      G.UI.renderGovern();
+    };
+    sel("eventChoices").addEventListener("click", function (e) {
+      var n = e.target;
+      while (n && n !== this && !(n.classList && n.classList.contains("choice"))) n = n.parentNode;
+      if (!n || !n.classList || !n.classList.contains("choice")) return;
+      if (!G.term || G.term.over) return;
+      var idx = parseInt(n.getAttribute("data-idx"), 10);
+      var r = G.govChoose(idx);
+      G.UI.pushGovLog(r.log);
+      G.UI.afterChoice();
+      if (r.over) endTerm();
+    });
+    sel("legacyAgainBtn").onclick = function () {
+      cancelWatch();
+      lastResult = G.hold();
+      if (G.state.watch) startWatch(lastResult); else showResult(lastResult);
+    };
+    sel("legacyShareBtn").onclick = function () {
+      if (!currentVerdict) return;
+      var text = G.UI.legacyText(currentVerdict);
+      var done = function () { flashButton(sel("legacyShareBtn"), "Copied ✓"); };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(text).then(done).catch(function () { legacyCopy(text, done); });
+      else legacyCopy(text, done);
+    };
+    sel("legacyMenuBtn").onclick = goMenu;
+  }
+  function endTerm() {
+    currentVerdict = G.govVerdict();
+    G.UI.renderLegacy(currentVerdict);
+    recordLegacy(currentVerdict);
+  }
+
+  /* --------------------------------------------------------- explorer ----- */
+  function wireExplore() {
+    var s = sel("exploreSearch");
+    if (s) s.addEventListener("input", function () { G.UI.filterExplore(s.value); });
+  }
+
+  /* ----------------------------------------------------------- records ---- */
+  var LEG_KEY = "650.bestLegacy";
+  function readLeg() { try { var v = window.localStorage.getItem(LEG_KEY); return v === null ? null : parseInt(v, 10); } catch (e) { return null; } }
+  function recordLegacy(v) {
+    try { var prev = readLeg(); if (prev === null || v.legacy > prev) window.localStorage.setItem(LEG_KEY, String(v.legacy)); } catch (e) {}
+    renderRecords();
+  }
+  function renderRecords() {
+    var el = sel("recordsLine"); if (!el) return;
+    var seats = readPB(), leg = readLeg(), bits = [];
+    if (seats !== null) bits.push("best <b>" + seats + "</b> seats");
+    if (leg !== null) bits.push("best legacy <b>" + leg + "</b>");
+    el.innerHTML = bits.length ? ("Your records: " + bits.join(" · ")) : "";
   }
 
   /* --------------------------------------------------------- the about ---- */

@@ -35,6 +35,7 @@
 
     <!-- ======================================================== SETUP === -->
     <section id="screen-menu" class="screen active">
+      <p class="records" id="recordsLine"></p>
       <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Spin for a party and an era, draft whoever fortune offers, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the House.</p>
 
       <div class="menu-grid">
@@ -84,8 +85,8 @@
         <div>
           <p class="section-label">5 · After the cabinet</p>
           <div class="choice-row" id="governRow">
-            <button class="opt sel" data-govern="false"><h4>Simulate the election</h4><p>Just the seat result and the odds.</p></button>
-            <button class="opt" data-govern="true"><h4>Win &amp; govern</h4><p>Win, and get a verdict on your term in office.</p></button>
+            <button class="opt" data-govern="false"><h4>Just the election</h4><p>The seat result and the odds, then stop.</p></button>
+            <button class="opt sel" data-govern="true"><h4>Win &amp; govern</h4><p>Then steer a full term in office through its crises.</p></button>
           </div>
         </div>
 
@@ -196,11 +197,12 @@
       </div>
 
       <div class="panel" id="governPanel" style="margin-top:24px; display:none">
-        <p class="section-label">Your term in office</p>
+        <p class="section-label">Take office</p>
         <div class="govern-readout">
           <div class="gov-meter"><div class="gov-fill" id="govFill"></div><span class="gov-pct" id="govPct">—</span></div>
           <p class="gov-line" id="govLine"></p>
         </div>
+        <div class="btn-row" style="margin-top:8px"><button class="btn btn-primary" id="governBtn">Enter Downing Street →</button></div>
       </div>
 
       <div class="panel" style="margin-top:24px">
@@ -242,10 +244,56 @@
       <div class="btn-row"><button class="btn btn-ghost" id="aboutBackBtn">← Back</button></div>
     </section>
 
+    <!-- ====================================================== GOVERN === -->
+    <section id="screen-govern" class="screen">
+      <div class="gov-top">
+        <p class="section-label" style="margin:0">In government <span class="gov-session" id="govSession"></span></p>
+        <span class="gov-modetag" id="govModeTag"></span>
+      </div>
+      <div class="panel gov-meters">
+        <div class="meter" id="meterApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="meterUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="gov-seats"><b id="govSeats">0</b> seats held <span class="gov-seats-sub" id="govSeatsSub"></span></div>
+      </div>
+      <div class="panel event-card" id="eventCard">
+        <div class="event-head"><span class="event-icon" id="eventIcon"></span><span class="event-title" id="eventTitle"></span></div>
+        <p class="event-text" id="eventText"></p>
+        <div class="event-choices" id="eventChoices"></div>
+      </div>
+      <div class="panel">
+        <p class="section-label">Despatches</p>
+        <div class="gov-log" id="govLog"></div>
+      </div>
+    </section>
+
+    <!-- ====================================================== LEGACY === -->
+    <section id="screen-legacy" class="screen">
+      <div class="legacy-banner" id="legacyBanner"></div>
+      <div class="legacy-score"><span class="legacy-num" id="legacyNum">0</span><span class="legacy-cap">legacy score · out of 100</span></div>
+      <p class="legacy-line" id="legacyLine"></p>
+      <div class="panel gov-meters">
+        <div class="meter" id="legApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="legEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="legUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="gov-seats" id="legSeats"></div>
+      </div>
+      <div class="panel"><p class="section-label">Term in review</p><div class="term-review" id="termReview"></div></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
+        <button class="btn btn-ghost" id="legacyShareBtn">Copy result</button>
+        <button class="btn btn-ghost" id="legacyMenuBtn">Main menu</button>
+      </div>
+    </section>
+
     <!-- ===================================================== EXPLORE ==== -->
     <section id="screen-explore" class="screen">
       <p class="section-label">The 2024 House of Commons — every seat, every MP</p>
       <p class="mini-help">An interactive hex cartogram of all 650 constituencies on the current boundaries. Hover or tap any seat to see the constituency and the MP who holds it.</p>
+      <div class="explore-search">
+        <input type="text" id="exploreSearch" placeholder="Find a constituency…" autocomplete="off" spellcheck="false" />
+        <span class="mini-help" id="exploreSearchHint"></span>
+      </div>
       <div class="panel">
         <div class="hexmap big" id="mapExplore"></div>
         <div class="board-key" id="exploreLegend"></div>
@@ -269,6 +317,7 @@
   <script src="js/data.mps.js"></script>
   <script src="js/election.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/govern.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>
