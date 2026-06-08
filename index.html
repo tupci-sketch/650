@@ -80,6 +80,22 @@
             <button class="opt sel" data-hard="false"><h4>Classic</h4><p>Full ratings, fits and notes on the table.</p></button>
             <button class="opt" data-hard="true"><h4>By Reputation Alone</h4><p>Ratings hidden. Pick on memory and judgement.</p></button>
           </div>
+          <p class="sub-label">Do-overs — re-spins for a different party or era</p>
+          <div class="choice-row triple" id="redoRow">
+            <button class="opt" data-redos="0"><h4>Tight</h4><p>None. Live with the wheel.</p></button>
+            <button class="opt sel" data-redos="1"><h4>Standard</h4><p>One re-spin of each.</p></button>
+            <button class="opt" data-redos="3"><h4>Generous</h4><p>Three of each.</p></button>
+          </div>
+          <p class="sub-label">Cabinet size</p>
+          <div class="choice-row" id="sizeRow">
+            <button class="opt sel" data-size="standard"><h4>Standard</h4><p>The twelve great offices of state.</p></button>
+            <button class="opt" data-size="expanded"><h4>Expanded</h4><p>Sixteen seats — more posts to fill.</p></button>
+          </div>
+          <p class="sub-label">Policy phase</p>
+          <div class="choice-row" id="policyRow">
+            <button class="opt sel" data-policy="false"><h4>Off</h4><p>Just build the cabinet and fight the election.</p></button>
+            <button class="opt" data-policy="true"><h4>On</h4><p>Write a manifesto before the vote, a programme in office.</p></button>
+          </div>
         </div>
 
         <div>
@@ -179,6 +195,11 @@
         <div class="board-key" id="mapWatchLegend"></div>
       </div>
 
+      <div class="panel" style="margin-top:18px">
+        <p class="section-label">Projected House <span class="board-note">updating live</span></p>
+        <div class="standings" id="watchStandings"></div>
+      </div>
+
       <div class="btn-row">
         <button class="btn btn-ghost" id="skipCountBtn">Skip to the result →</button>
         <button class="btn btn-primary" id="toResultBtn" style="display:none">See the full result →</button>
@@ -200,6 +221,23 @@
       </div>
       <div class="commons-key">
         <span>0</span><span id="majKeyLabel">326 needed</span><span>650</span>
+      </div>
+
+      <div class="panel" id="breakdownPanel" style="margin-top:24px">
+        <p class="section-label">The new House of Commons</p>
+        <div class="standings" id="seatBreakdown"></div>
+      </div>
+
+      <div class="panel" id="coalitionPanel" style="margin-top:24px; display:none">
+        <p class="section-label">Hung parliament — your move</p>
+        <p class="coalition-intro" id="coalitionIntro"></p>
+        <div class="coalition-options" id="coalitionOptions"></div>
+      </div>
+
+      <div class="panel" id="oppositionPanel" style="margin-top:24px; display:none">
+        <p class="section-label">Into opposition</p>
+        <p class="gov-line" id="oppositionLine"></p>
+        <div class="btn-row" style="margin-top:8px"><button class="btn btn-primary" id="oppositionBtn">Lead the Opposition →</button></div>
       </div>
 
       <div class="panel" id="governPanel" style="margin-top:24px; display:none">
@@ -238,6 +276,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
+        <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
         <button class="btn btn-ghost" id="againBtn">Run it again</button>
         <button class="btn btn-ghost" id="menuBtn">Change game</button>
@@ -251,9 +290,19 @@
     </section>
 
     <!-- ====================================================== GOVERN === -->
+    <!-- ====================================================== POLICY ==== -->
+    <section id="screen-policy" class="screen">
+      <div class="result-head">
+        <div class="govt-banner" id="policyTitle">Your manifesto</div>
+        <p class="policy-intro" id="policyIntro"></p>
+      </div>
+      <div class="panel"><div class="policy-axes" id="policyAxes"></div></div>
+      <div class="btn-row"><button class="btn btn-primary" id="policyConfirm">Adopt this manifesto →</button></div>
+    </section>
+
     <section id="screen-govern" class="screen">
       <div class="gov-top">
-        <p class="section-label" style="margin:0">In government <span class="gov-session" id="govSession"></span></p>
+        <p class="section-label" style="margin:0"><span id="govHeading">In government</span> <span class="gov-session" id="govSession"></span></p>
         <span class="gov-modetag" id="govModeTag"></span>
       </div>
       <div class="panel gov-meters">
@@ -287,6 +336,7 @@
       <div class="panel"><p class="section-label">Term in review</p><div class="term-review" id="termReview"></div></div>
       <div class="btn-row">
         <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
+        <button class="btn btn-ghost" id="legacyXBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="legacyShareBtn">Copy result</button>
         <button class="btn btn-ghost" id="legacyMenuBtn">Main menu</button>
       </div>
@@ -311,6 +361,10 @@
     <footer class="foot">
       <div class="credit">650 · a draft game · with thanks to the sports games that inspired it: <b>82-0</b> (NBA, all-time teams) and <b>38-0</b> (the Premier League season). 650 borrows their constrained-draft, chase-the-perfect-record idea and points it at Westminster.</div>
       <div class="credit">Constituency hex map by <b>Open Innovations</b> &amp; contributors (open-innovations.org). Sitting-MP data from <b>mySociety / parlparse</b>. Both used under open licences.</div>
+      <div class="foot-links">
+        <a class="foot-link coffee" href="https://buymeacoffee.com/650game" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a>
+        <a class="foot-link x" href="https://x.com/650game" target="_blank" rel="noopener noreferrer">𝕏 @650game</a>
+      </div>
       <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied by the same logic to every party and are not a judgement of any individual. Wildcard mode is satire, not endorsement. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
     </footer>
   </div>
