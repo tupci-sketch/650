@@ -542,3 +542,67 @@ body::before {
 /* sub-label for the declaration-speed picker */
 .sub-label { font-family:var(--mono,monospace); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
   color:var(--ink-soft,#6b6256); margin:14px 0 8px; }
+
+/* ============================== footer links + X share =================== */
+.foot-links { display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 4px; }
+.foot-link { display:inline-flex; align-items:center; gap:6px; text-decoration:none; font-family:var(--mono,monospace);
+  font-size:13px; padding:7px 13px; border-radius:999px; border:1px solid rgba(80,74,60,.3);
+  color:var(--ink,#241f17); background:rgba(255,255,255,.5); transition:transform .08s ease, background .15s ease, border-color .15s ease; }
+.foot-link:hover { background:#fff; border-color:var(--oxblood,#862231); transform:translateY(-1px); }
+.foot-link.coffee { background:#ffdd00; border-color:#e3c400; color:#1a1a1a; font-weight:600; }
+.foot-link.coffee:hover { background:#ffe53a; }
+.foot-link.x { background:#15171a; border-color:#15171a; color:#fff; }
+.foot-link.x:hover { background:#000; }
+
+/* ============================== tier spin + reshuffle ==================== */
+.tier-opt { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+  border:1px solid rgba(80,74,60,.3); background:rgba(255,255,255,.55); border-radius:12px; padding:14px 16px; margin-bottom:10px;
+  font:inherit; color:inherit; transition:border-color .15s ease, transform .08s ease, background .15s ease; }
+.tier-opt:hover { border-color:var(--oxblood,#862231); background:#fff; transform:translateY(-1px); }
+.tier-name { font-family:var(--display,'Fraunces',serif); font-size:18px; font-weight:700; color:var(--ink,#241f17); }
+.tier-count { font-family:var(--mono,monospace); font-size:12px; color:var(--ink-soft,#6b6256); white-space:nowrap; }
+.tier-opt.tier-a .tier-name, .tier-opt.tier-b .tier-name { color:var(--oxblood,#862231); }
+.reshuffle-btn { width:100%; margin-top:8px; cursor:pointer; border:1px dashed rgba(80,74,60,.4); background:transparent;
+  border-radius:10px; padding:9px; font-family:var(--mono,monospace); font-size:12px; color:var(--ink-soft,#6b6256); transition:color .15s, border-color .15s; }
+.reshuffle-btn:hover { border-color:var(--oxblood,#862231); color:var(--oxblood,#862231); }
+
+/* ============================== seat standings / breakdown =============== */
+.standings { display:flex; flex-direction:column; gap:7px; }
+.st-row { display:grid; grid-template-columns: 150px 1fr 42px; align-items:center; gap:10px; font-size:13px; }
+.st-row.you .st-name { font-weight:700; }
+.st-name { display:flex; align-items:center; gap:7px; color:var(--ink,#241f17); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.st-sw { width:11px; height:11px; border-radius:3px; flex:none; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
+.st-you { font-family:var(--mono,monospace); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--parchment,#f3ecda); background:var(--oxblood,#862231); padding:1px 6px; border-radius:999px; }
+.st-bar { height:13px; background:rgba(80,74,60,.12); border-radius:7px; overflow:hidden; }
+.st-fill { display:block; height:100%; border-radius:7px; transition:width .4s ease; }
+.st-seats { font-family:var(--mono,monospace); font-weight:600; text-align:right; color:var(--ink,#241f17); }
+
+/* coalition options */
+.coalition-intro { font-size:14px; color:var(--ink,#241f17); margin:0 0 12px; }
+.coalition-options { display:flex; flex-direction:column; gap:10px; }
+.coal-opt { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
+  border:1px solid rgba(80,74,60,.3); background:rgba(255,255,255,.55); border-radius:12px; padding:13px 15px; font:inherit; color:inherit;
+  transition:border-color .15s ease, transform .08s ease, background .15s ease; }
+.coal-opt:hover { border-color:var(--oxblood,#862231); background:#fff; transform:translateY(-1px); }
+.coal-opt.minority { border-style:dashed; }
+.coal-opt.opp { border-style:dashed; opacity:.9; }
+.coal-main { display:flex; align-items:center; gap:8px; font-weight:600; color:var(--ink,#241f17); flex-wrap:wrap; }
+.coal-sw { width:11px; height:11px; border-radius:3px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
+.coal-sub { font-family:var(--mono,monospace); font-size:12px; color:var(--ink-soft,#6b6256); white-space:nowrap; }
+.coal-tag { font-family:var(--mono,monospace); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:999px; }
+.coal-tag.natural { background:rgba(47,93,58,.16); color:var(--green,#2f5d3a); }
+.coal-tag.unlikely { background:rgba(134,34,49,.13); color:var(--oxblood,#862231); }
+@media (max-width:560px){ .st-row { grid-template-columns: 110px 1fr 34px; } }
+
+/* ============================== policy / manifesto ====================== */
+.policy-intro { font-size:14px; color:var(--ink-soft,#6b6256); max-width:60ch; margin:8px auto 0; }
+.policy-axes { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.policy-axis-title { font-family:var(--mono,monospace); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--oxblood,#862231); margin:0 0 8px; }
+.policy-opts { display:flex; flex-direction:column; gap:8px; }
+.policy-opt { text-align:left; cursor:pointer; border:1px solid rgba(80,74,60,.28); background:rgba(255,255,255,.5); border-radius:10px;
+  padding:10px 12px; font:inherit; color:inherit; transition:border-color .12s ease, background .12s ease, transform .07s ease; }
+.policy-opt:hover { border-color:var(--oxblood,#862231); transform:translateY(-1px); }
+.policy-opt.sel { border-color:var(--green,#2f5d3a); background:#fff; box-shadow:inset 0 0 0 1px var(--green,#2f5d3a); }
+.po-label { display:block; font-weight:700; color:var(--ink,#241f17); }
+.po-blurb { display:block; font-size:12px; color:var(--ink-soft,#6b6256); margin-top:2px; }
+@media (max-width:640px){ .policy-axes { grid-template-columns:1fr; } }
