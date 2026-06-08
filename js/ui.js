@@ -9,7 +9,7 @@ G.UI = {};
 
 var $ = function (id) { return document.getElementById(id); };
 
-var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-explore", "screen-govern", "screen-legacy"];
+var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-explore", "screen-govern", "screen-legacy", "screen-policy"];
 
 G.UI.show = function (screenId) {
   SCREENS.forEach(function (s) {
@@ -63,7 +63,9 @@ G.UI.renderReels = function () {
   var party = G.PARTIES[sp.party];
   var era = G.ERA_BY_ID[sp.era];
   pv.innerHTML = '<span class="party-dot" style="background:' + (party ? party.colour : "#999") + '"></span>' + (party ? party.label : sp.party);
-  ps.textContent = sp.candidates.length + " available";
+  if (sp.stage === "tier") ps.textContent = sp.full.length + " in play — spin for a tier";
+  else if (sp.tier) ps.textContent = sp.tier.label + " · " + sp.candidates.length + " shortlisted";
+  else ps.textContent = sp.candidates.length + " available";
   ev.textContent = era ? era.label : sp.era;
   es.textContent = era ? era.years : "";
 };
@@ -89,8 +91,25 @@ G.UI.renderPool = function () {
   var sp = G.state.spin;
   if (!sp) { return; }
 
-  if (sp.candidates.length === 0) {
-    pool.innerHTML = '<p class="pool-empty">No one left from this party and era. Spin again or use a skip.</p>';
+  /* TIER STAGE — too many in this party+era: spin for a tier first */
+  if (sp.stage === "tier") {
+    var tnote = document.createElement("p");
+    tnote.className = "assign-note"; tnote.style.color = "var(--ink-soft)";
+    tnote.textContent = "A deep bench — " + sp.full.length + " in play. Spin for a calibre, then pick from a shortlist:";
+    pool.appendChild(tnote);
+    sp.tiers.forEach(function (t) {
+      var b = document.createElement("button");
+      b.className = "tier-opt tier-" + t.key;
+      b.innerHTML = '<span class="tier-name">' + t.label + '</span>' +
+                    '<span class="tier-count">' + t.count + ' to choose from</span>';
+      b.onclick = function () { G.ctrl.spinTier(t.key); };
+      pool.appendChild(b);
+    });
+    return;
+  }
+
+  if (!sp.candidates || sp.candidates.length === 0) {
+    pool.innerHTML = '<p class="pool-empty">No one left from this party and era. Spin again or use a do-over.</p>';
     return;
   }
 
@@ -100,7 +119,7 @@ G.UI.renderPool = function () {
     note.textContent = "▶ " + G.state.pendingPick.name + " chosen — now click an open seat on the right →";
   } else {
     note.style.color = "var(--ink-soft)";
-    note.textContent = "Pick one to bring into your cabinet:";
+    note.textContent = sp.tier ? ("The " + sp.tier.label.toLowerCase() + " shortlist — pick one:") : "Pick one to bring into your cabinet:";
   }
   pool.appendChild(note);
 
@@ -108,12 +127,11 @@ G.UI.renderPool = function () {
     var b = document.createElement("button");
     var isSel = G.state.pendingPick && G.state.pendingPick.name === p.name;
     b.className = "cand" + (isSel ? " sel" : "");
-    var fitNames = p.fits.map(function (k) { return G.PORTFOLIO_BY_KEY[k].name.split(" ")[0]; }).slice(0, 3).join(" · ");
+    var fitNames = p.fits.map(function (k) { return (G.PORTFOLIO_BY_KEY[k] ? G.PORTFOLIO_BY_KEY[k].name.split(" ")[0] : k); }).slice(0, 3).join(" · ");
 
     var html = '<span class="who">' +
         '<span class="nm">' + p.name + '</span>' +
         '<span class="meta">fits: ' + (fitNames || "—") + '</span>';
-    /* Classic mode shows more than blind: ratings + the editorial note */
     if (!G.state.hard) {
       if (p.scope === "wild") html += '<span class="wild-tag">wildcard</span>';
       if (p.note) html += '<span class="cand-note">' + p.note + '</span>';
@@ -134,6 +152,14 @@ G.UI.renderPool = function () {
     b.onclick = function () { G.ctrl.chooseCandidate(p.name); };
     pool.appendChild(b);
   });
+
+  if (G.poolRemainder && G.poolRemainder() > 0) {
+    var rb = document.createElement("button");
+    rb.className = "reshuffle-btn";
+    rb.textContent = "↻ Show me different names (" + G.poolRemainder() + " more)";
+    rb.onclick = function () { G.ctrl.reshuffle(); };
+    pool.appendChild(rb);
+  }
 };
 
 /* ------------------------------------------------------ draft: cabinet -- */
@@ -336,17 +362,29 @@ G.UI.showEvent = function (ev) {
     box.appendChild(b);
   });
 };
+G.UI._meterLabel = function (meterId, text) {
+  var el = $(meterId); if (!el) return;
+  var l = el.querySelector(".meter-label"); if (l) l.textContent = text;
+};
 G.UI.renderGovern = function () {
-  var t = G.term;
+  var t = G.term, opp = t.kind === "opp";
+  if ($("govHeading")) $("govHeading").textContent = opp ? "In opposition" : "In government";
   $("govSession").textContent = "· session " + t.session + " of " + t.length;
-  var modeLabel = t.mode === "dynasty" ? (G.state.lineage + " government")
-                : t.mode === "wildcard" ? "Wildcard government" : "Cabinet of all the talents";
+  var modeLabel = opp
+    ? (t.mode === "dynasty" ? (G.state.lineage + " opposition") : t.mode === "wildcard" ? "Wildcard opposition" : "Opposition front bench")
+    : (t.mode === "dynasty" ? (G.state.lineage + " government") : t.mode === "wildcard" ? "Wildcard government" : "Cabinet of all the talents");
+  if (t.coalition) modeLabel += " · coalition";
+  else if (t.minority) modeLabel += " · minority";
   $("govModeTag").textContent = modeLabel + " · " + (t.difficulty || "normal");
+  G.UI._meterLabel("meterApproval", opp ? "Public support" : "Approval");
+  G.UI._meterLabel("meterEconomy", opp ? "Momentum" : "Economy");
+  G.UI._meterLabel("meterUnity", "Party unity");
   G.UI.setMeter("meterApproval", t.meters.approval);
   G.UI.setMeter("meterEconomy", t.meters.economy);
   G.UI.setMeter("meterUnity", t.meters.unity);
   G.UI.updateGovSeats();
-  $("govLog").innerHTML = '<div class="feed-line muted">You enter office. The work begins…</div>';
+  $("govLog").innerHTML = '<div class="feed-line muted">' +
+    (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
   G.UI.showEvent(t.current);
   G.UI.show("screen-govern");
 };
@@ -370,6 +408,13 @@ G.UI.afterChoice = function () {
   if (!t.over) G.UI.showEvent(t.current);
 };
 G.UI.legacyText = function (v) {
+  if (v.kind === "opp") {
+    var ov = v.outcome === "ousted" ? "I was deposed as Leader of the Opposition"
+      : v.outcome === "forced" ? "I forced the government to an early election"
+      : "I led the Opposition for a full parliament";
+    return "650 — " + ov + ". Opposition score " + v.legacy + "/100: \u201c" + v.tier.label + "\u201d. " +
+           "Build a cabinet and play at 650-0.co.uk";
+  }
   var verb = v.outcome === "collapsed"
     ? "My government fell after " + v.sessionsServed + " sessions"
     : "I governed for a full term";
@@ -377,11 +422,16 @@ G.UI.legacyText = function (v) {
          "Build a cabinet and govern at 650-0.co.uk";
 };
 G.UI.renderLegacy = function (v) {
+  var opp = v.kind === "opp";
   var b = $("legacyBanner");
-  b.className = "legacy-banner " + (v.outcome === "collapsed" ? "fell"
-                  : (v.tier.key === "great" || v.tier.key === "good") ? "win" : "mixed");
+  var fell = v.outcome === "collapsed" || v.outcome === "ousted";
+  var win = ["great", "good", "swept", "forced"].indexOf(v.tier.key) !== -1;
+  b.className = "legacy-banner " + (fell ? "fell" : win ? "win" : "mixed");
   b.textContent = v.tier.label;
   $("legacyLine").textContent = v.tier.line;
+  G.UI._meterLabel("legApproval", opp ? "Public support" : "Approval");
+  G.UI._meterLabel("legEconomy", opp ? "Momentum" : "Economy");
+  G.UI._meterLabel("legUnity", "Party unity");
   G.UI.setMeter("legApproval", v.meters.approval);
   G.UI.setMeter("legEconomy", v.meters.economy);
   G.UI.setMeter("legUnity", v.meters.unity);
@@ -452,18 +502,11 @@ G.UI.renderResult = function (res) {
     ml += " &nbsp;·&nbsp; this ticket could only contest <b>" + res.contestable + "</b> seats.";
   $("majorityLine").innerHTML = ml;
 
-  /* governing — only if you actually formed a government */
-  var gp = $("governPanel");
-  if (res.govern && res.tier.govt) {
-    gp.style.display = "";
-    var gv = res.governVerdict;
-    var word = gv.stability >= 66 ? "commanding" : gv.stability >= 50 ? "workable" : gv.stability >= 38 ? "precarious" : "fragile";
-    $("govPct").textContent = gv.stability + "%";
-    $("govLine").textContent = "Your opening position looks " + word + ". Now govern through a full parliament — steer approval, the economy and your own party, survive the crises, and chase a lasting legacy.";
-    setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
-  } else {
-    gp.style.display = "none";
-  }
+  /* post-election: solo government, coalition, or opposition */
+  G.UI.renderPostElection(res);
+
+  /* the full House breakdown */
+  G.UI.renderStandings("seatBreakdown", res.breakdown);
 
   /* results map (fully declared) + a per-region summary */
   var colour = G.UI.ticketColour(G.state);
@@ -514,6 +557,105 @@ G.UI.countTo = function (el, target) {
 };
 
 /* ------------------------------------------------- shareable result card */
+G.UI._policySel = {};
+G.UI._policyMode = "manifesto";
+G.UI.renderPolicy = function (mode) {
+  G.UI._policyMode = mode;
+  var isProg = mode === "programme";
+  $("policyTitle").textContent = isProg ? "Your programme for government" : "Your manifesto";
+  $("policyIntro").textContent = isProg
+    ? "What you will actually do in office. Match your manifesto to keep faith with the voters — diverge, and your own party may cry betrayal."
+    : "What you promise to win votes. Each stance helps or hurts you at the ballot box; choose the platform you'll run on.";
+  $("policyConfirm").textContent = isProg ? "Take office with this programme →" : "Adopt this manifesto →";
+
+  var base = isProg ? ((G.state && G.state.policy) || {}) : {};
+  G.UI._policySel = {};
+  G.POLICY_AXES.forEach(function (ax) { G.UI._policySel[ax.key] = base[ax.key] || ax.options[0].key; });
+
+  var box = $("policyAxes"); box.innerHTML = "";
+  G.POLICY_AXES.forEach(function (ax) {
+    var group = document.createElement("div"); group.className = "policy-axis";
+    var h = document.createElement("p"); h.className = "policy-axis-title"; h.textContent = ax.title; group.appendChild(h);
+    var opts = document.createElement("div"); opts.className = "policy-opts";
+    ax.options.forEach(function (o) {
+      var b = document.createElement("button");
+      b.className = "policy-opt" + (G.UI._policySel[ax.key] === o.key ? " sel" : "");
+      b.setAttribute("data-axis", ax.key); b.setAttribute("data-opt", o.key);
+      b.innerHTML = '<span class="po-label">' + o.label + '</span><span class="po-blurb">' + o.blurb + '</span>';
+      b.onclick = function () {
+        G.UI._policySel[ax.key] = o.key;
+        var sibs = opts.querySelectorAll(".policy-opt");
+        for (var i = 0; i < sibs.length; i++) sibs[i].classList.toggle("sel", sibs[i].getAttribute("data-opt") === o.key);
+      };
+      opts.appendChild(b);
+    });
+    group.appendChild(opts); box.appendChild(group);
+  });
+  G.UI.show("screen-policy");
+};
+
+G.UI.renderPostElection = function (res) {
+  var gp = $("governPanel"), cp = $("coalitionPanel"), op = $("oppositionPanel"), C = G.CONFIG;
+  gp.style.display = "none"; cp.style.display = "none"; op.style.display = "none";
+  if (!res.govern) return;                       // player chose "just the election"
+  var co = res.coalition;
+
+  if (co.soloMajority) {
+    gp.style.display = "";
+    var gv = res.governVerdict;
+    var word = gv.stability >= 66 ? "commanding" : gv.stability >= 50 ? "workable" : gv.stability >= 38 ? "precarious" : "fragile";
+    $("govPct").textContent = gv.stability + "%";
+    $("govLine").textContent = "Your opening position looks " + word + ". Take office and govern through a full parliament — steer approval, the economy and your party, survive the crises, and chase a lasting legacy.";
+    setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    return;
+  }
+
+  if (co.deals.length > 0 || co.canMinority) {
+    cp.style.display = "";
+    $("coalitionIntro").innerHTML = "No party has a majority — you hold <b>" + res.seats + "</b> seats and need <b>" + C.majority +
+      "</b>. " + (co.largest ? "As the largest party you get first go at forming a government." : "You could still try to assemble a majority of others.");
+    var box = $("coalitionOptions"); box.innerHTML = "";
+    co.deals.forEach(function (d, i) {
+      var names = d.parties.map(function (p) { return p.party; }).join(" + ");
+      var sw = d.parties.map(function (p) { return '<span class="coal-sw" style="background:' + p.colour + '"></span>'; }).join("");
+      var b = document.createElement("button");
+      b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+                    '<span class="coal-sub">' + d.combined + ' seats</span>' +
+                    '<span class="coal-tag ' + (d.natural ? "natural" : "unlikely") + '">' + (d.natural ? "natural" : "unlikely") + '</span>';
+      box.appendChild(b);
+    });
+    if (co.canMinority) {
+      var m = document.createElement("button");
+      m.className = "coal-opt minority"; m.setAttribute("data-act", "minority");
+      m.innerHTML = '<span class="coal-main">Govern alone as a minority</span><span class="coal-sub">' + res.seats + ' seats · confidence on a knife-edge</span>';
+      box.appendChild(m);
+    }
+    var o = document.createElement("button");
+    o.className = "coal-opt opp"; o.setAttribute("data-act", "opposition");
+    o.innerHTML = '<span class="coal-main">Decline — go into opposition</span><span class="coal-sub">let others try to govern</span>';
+    box.appendChild(o);
+    return;
+  }
+
+  op.style.display = "";
+  $("oppositionLine").textContent = "You came up short and cannot form a government. Lead the Opposition: hold the government to account, win the by-elections, build public support and try to force them out before the next election.";
+};
+
+G.UI.renderStandings = function (containerId, breakdown, opts) {
+  opts = opts || {};
+  var box = $(containerId); if (!box) return;
+  var max = 1; breakdown.forEach(function (b) { if (b.seats > max) max = b.seats; });
+  box.innerHTML = breakdown.map(function (b) {
+    var pct = Math.round(b.seats / max * 100);
+    return '<div class="st-row' + (b.isYou ? " you" : "") + '">' +
+      '<span class="st-name"><span class="st-sw" style="background:' + b.colour + '"></span>' +
+        b.party + (b.isYou ? ' <span class="st-you">you</span>' : '') + '</span>' +
+      '<span class="st-bar"><span class="st-fill" style="width:' + pct + '%;background:' + b.colour + '"></span></span>' +
+      '<span class="st-seats">' + b.seats + '</span>' +
+    '</div>';
+  }).join("");
+};
 G.UI.drawShareCard = function (res) {
   var cv = $("shareCanvas"), x = cv.getContext("2d");
   var W = cv.width, H = cv.height;
@@ -584,6 +726,14 @@ G.UI.drawShareCard = function (res) {
 
   return cv.toDataURL("image/png");
 };
+G.UI.shareCardBlob = function (res) {
+  G.UI.drawShareCard(res);
+  var cv = $("shareCanvas");
+  return new Promise(function (resolve, reject) {
+    if (cv.toBlob) cv.toBlob(function (b) { b ? resolve(b) : reject(new Error("no blob")); }, "image/png");
+    else reject(new Error("toBlob unsupported"));
+  });
+};
 
 G.UI.resultText = function (res) {
   var pm = G.state.cabinet["pm"], ch = G.state.cabinet["chancellor"];
@@ -602,17 +752,19 @@ G.UI.resultText = function (res) {
 G.UI.renderAbout = function () {
   $("aboutBody").innerHTML =
     '<h3>The idea</h3>' +
-    '<p>Spin a wheel that lands on a party and an era, draft whichever politician fortune offers you, and fill all twelve seats of the cabinet. Then hold a general election. Win a majority of the 650 seats and you govern; fall short and you become the Shadow Cabinet. The white whale is the impossible one — every seat in the House, a 650-0 clean sweep.</p>' +
+    '<p>Spin a wheel that lands on a party and an era, draft whichever politician fortune offers you, and fill every seat of the cabinet. Then hold a general election. Win a majority of the 650 seats and you govern; fall short and you can try to build a coalition, govern as a minority, or cross to the Opposition. The white whale is the impossible one — every seat in the House, a 650-0 clean sweep.</p>' +
     '<h3>With thanks</h3>' +
     '<p>650 is an unaffiliated homage to two brilliant sports-draft games: <b>82-0</b>, which has you draft an all-time NBA roster and chase a perfect 82–0 season, and <b>38-0</b>, the Premier League version over a 38-game season. 650 borrows their core loop — a constrained, luck-of-the-draw draft against the dream of a flawless record — and points it at Westminster.</p>' +
     '<h3>How a seat is scored</h3>' +
     '<p>Every politician carries five ratings: <code>appeal</code>, <code>experience</code>, <code>oratory</code>, <code>statecraft</code> and <code>party management</code>. Each cabinet seat weights those five differently — a Chancellor leans on statecraft and experience, the Leader of the House on oratory. Sit someone in a job they actually held and they earn a <b>fit</b> bonus. Sit them in a closely related one — a Leader of the House, Deputy or great-office holder as Prime Minister, say, or a Chancellor at Business — and they\'re marked <b>capable</b>: no bonus, but no penalty either, so your "could-have-been-PMs" don\'t suffer for it. Play someone truly out of position and they take the <b>stretch</b> penalty.</p>' +
     '<h3>How the election works — seat by seat</h3>' +
-    '<p>Your cabinet\'s total strength maps to a projected national vote share, nudged by your chosen difficulty. That share sets a national per-seat win probability through a responsiveness curve inspired by the historic "cube law" of British elections. Then every one of the 650 constituencies is fought as its own contest: a regional lean, a shared regional swing, and a dose of per-seat luck decide each winner. That is the cruelty of first-past-the-post — a small move in the vote can swing a great many seats. Run many campaigns and you get the odds you were really facing.</p>' +
+    '<p>Your cabinet\'s total strength maps to a projected national vote share, nudged by your chosen difficulty. That share sets a national per-seat win probability through a responsiveness curve inspired by the historic "cube law" of British elections. Then every one of the 650 constituencies is fought as its own contest: a regional lean, a shared regional swing, and a dose of per-seat luck decide each winner. That is the cruelty of first-past-the-post — a small move in the vote can swing a great many seats. Run many campaigns and you get the odds you were really facing. Every seat is awarded to a party, so the whole House is shown — your bench against all the rest — and the make-up of the other parties reflects the current (2026) landscape, with Reform and the Greens as the serious forces they have become.</p>' +
     '<h3>Modes, eras &amp; difficulty</h3>' +
-    '<p>A <b>unity ticket</b> drafts across all parties and can contest all 650 seats. A <b>single-party dynasty</b> only wins where that party\'s geography allows — an SNP dynasty can sweep Scotland but never form a UK majority. Even the insurgent traditions can now field a full twelve: a <b>Reform</b> bench drawing on UKIP and Brexit Party heritage, or a <b>Green</b> one spanning Westminster, Holyrood and the European Parliament. <b>Wildcard</b> throws open the whole globe and all of history. Before you start you can leave eras out, choose Easy/Normal/Hard, hide the ratings to draft on reputation alone, set the count to declare slow, normal or fast, watch it seat by seat or skip to the verdict, and simply simulate or play on to govern.</p>' +
+    '<p>A <b>unity ticket</b> drafts across all parties and can contest all 650 seats. A <b>single-party dynasty</b> only wins where that party\'s geography allows — an SNP dynasty can sweep Scotland but never form a UK majority. Even the insurgent traditions can now field a full twelve: a <b>Reform</b> bench drawing on UKIP and Brexit Party heritage, or a <b>Green</b> one spanning Westminster, Holyrood and the European Parliament. <b>Wildcard</b> throws open the whole globe and all of history. Before you start you can leave eras out, choose Easy/Normal/Hard, hide the ratings to draft on reputation alone, set the count to declare slow, normal or fast, watch it seat by seat or skip to the verdict, and simply simulate or play on to govern. When a party offers a deep bench — Labour after 2010 fields hundreds — you first spin for a <b>tier</b> (front rank down to the new intake, ranked by prominence) and then pick from a short, randomised shortlist, so you never scroll a list of four hundred. You can also choose how many <b>do-overs</b> you get, take a standard twelve-seat or an <b>expanded</b> sixteen-seat cabinet, and switch on a <b>policy phase</b>: a manifesto before the vote that shifts your support, and a programme in office — where keeping your promises steadies the party and breaking them invites a backlash.</p>' +
     '<h3>Govern: a term in office</h3>' +
     '<p>Win, and the game doesn\'t stop at a score — you take office. A term is played as a parliament of crisis cards across health, the economy, foreign affairs, the unions, your own backbenches and more. You juggle three meters — <b>Approval</b>, the <b>Economy</b> and <b>Party Unity</b> — plus the seats you hold, which can fall in by-elections. Crucially, the ministers you drafted now matter: many choices are gambles resolved by the relevant minister\'s stats, so a brilliant Chancellor lands a risky Budget where a weak one wrecks it. Let unity collapse and the benches revolt; let approval and your majority slide and you face a confidence vote that can end your government early. Reach polling day intact and your record is graded into a <b>legacy score</b> and a place in history.</p>' +
+    '<h3>Coalitions &amp; opposition</h3>' +
+    '<p>No overall majority? If another party — or two — can carry you over the line, you can strike a <b>coalition</b> (a natural partner is far easier to hold together than an awkward one), or try to govern as a <b>minority</b> on a knife-edge. Decline, and you cross to the <b>Opposition</b>: a parallel term where you steer <b>Public support</b>, <b>Momentum</b> against the government and your own <b>Party unity</b>, fight by-elections, and try to force an early election and sweep into power — or be deposed by your own side first.</p>' +
     '<h3>The map is real</h3>' +
     '<p>The results map is a hex cartogram of all 650 Westminster constituencies on the 2024 boundaries — the same style of map the BBC and others use on election night. Each hexagon is one seat; hover or tap any of them to see the constituency, and in the explorer, the actual sitting MP and their party. The hex layout is by <b>Open Innovations</b> (open-innovations.org) and contributors, used under an open licence.</p>' +
     '<h3>The current Parliament is in the game</h3>' +

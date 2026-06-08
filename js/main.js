@@ -12,7 +12,8 @@
 
   /* setup selections (defaults match the .sel buttons in the markup) */
   var choice = { mode: "unity", lineage: null, eras: [], difficulty: "normal",
-                 hard: false, govern: true, watch: true, speed: "normal" };
+                 hard: false, govern: true, watch: true, speed: "normal",
+                 redos: 1, cabinetSize: "standard", policy: false };
 
   var lastResult = null;   // kept for re-run / download / copy
   var watch = null;        // live-count animation state
@@ -30,6 +31,8 @@
     wireResult();
     wireAbout();
     wireGovern();
+    wireCoalition();
+    wirePolicy();
     wireExplore();
     renderRecords();
     sel("homeLink").onclick = goMenu;
@@ -76,7 +79,9 @@
   /* --------------------------------------------------- setup: dynasties -- */
   function buildDynastyChips() {
     var box = sel("dynastyPick"); box.innerHTML = "";
-    var lineages = G.eligibleDynastyLineages(choice.eras);
+    var need = choice.cabinetSize === "expanded"
+      ? (G.PORTFOLIOS_BASE.length + G.PORTFOLIOS_EXTRA.length) : G.PORTFOLIOS_BASE.length;
+    var lineages = G.eligibleDynastyLineages(choice.eras, need);
     if (choice.lineage && lineages.indexOf(choice.lineage) === -1) choice.lineage = null;
     if (!choice.lineage) choice.lineage = lineages[0] || null;
     if (lineages.length === 0) {
@@ -144,6 +149,9 @@
     bindRow("governRow", "data-govern", function (v) { choice.govern = v === "true"; });
     bindRow("watchRow",  "data-watch",  function (v) { choice.watch  = v === "true"; });
     bindRow("speedRow",  "data-speed",  function (v) { choice.speed  = v; });
+    bindRow("redoRow",   "data-redos",  function (v) { choice.redos = parseInt(v, 10); });
+    bindRow("sizeRow",   "data-size",   function (v) { choice.cabinetSize = v; buildDynastyChips(); updateHint(); });
+    bindRow("policyRow", "data-policy", function (v) { choice.policy = (v === "true"); });
 
     sel("startBtn").onclick = function () {
       if (sel("startBtn").disabled) return;
@@ -154,7 +162,10 @@
         eras: choice.eras.slice(),
         difficulty: choice.difficulty,
         govern: choice.govern,
-        watch: choice.watch
+        watch: choice.watch,
+        redos: choice.redos,
+        cabinetSize: choice.cabinetSize,
+        policyOn: choice.policy
       });
       G.UI.show("screen-draft");
       G.UI.renderDraft();
@@ -183,6 +194,8 @@
 
   G.ctrl = {
     spin:     function () { spinFlourish(function () { G.spin(); }); },
+    spinTier: function (key) { spinFlourish(function () { G.spinTier(key); }); },
+    reshuffle:function () { if (G.reshufflePool()) { G.UI.renderPool(); G.UI.renderReels(); } },
     skipEra:  function () { if (G.state.spin && G.state.skips.era > 0) spinFlourish(function () { G.skipEra(); }); },
     skipParty:function () { if (G.state.spin && G.state.skips.party > 0) spinFlourish(function () { G.skipParty(); }); },
     chooseCandidate: function (name) {
@@ -203,6 +216,10 @@
   /* ------------------------------------------------------- the election --- */
   function runElectionFlow() {
     if (!G.isComplete()) return;
+    if (G.state.policyOn && !G.state.policy) { G.UI.renderPolicy("manifesto"); return; }
+    proceedElection();
+  }
+  function proceedElection() {
     lastResult = G.hold();
     if (G.state.watch) startWatch(lastResult);
     else showResult(lastResult);
@@ -235,10 +252,19 @@
       res: res, byId: setup.byId, colour: setup.colour, results: res.campaign.results,
       bounds: regionBounds(res.campaign.results), i: 0, won: 0, regIdx: 0, regWon: 0,
       cancelled: false, done: false, raf: null,
-      sps: revealRate(), acc: 0, lastT: null
+      sps: revealRate(), acc: 0, lastT: null,
+      tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour
     };
     G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
     frame();
+  }
+
+  function liveBreakdown(w) {
+    return Object.keys(w.tally).map(function (label) {
+      return { party: label, seats: w.tally[label],
+        colour: label === w.blocLabel ? w.blocColour : ((G.PARTIES[label] || {}).colour || "#6b6b6b"),
+        isYou: label === w.blocLabel };
+    }).sort(function (a, b) { return b.seats - a.seats; });
   }
 
   function reveal(n) {
@@ -254,10 +280,12 @@
       var res = w.results[w.i];
       G.UI.flipSeat(w.byId[res.id], res.won, w.colour);
       if (res.won) { w.won++; w.regWon++; }
+      w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
       last = res; w.i++;
     }
-    if (last) G.UI.pushFeed(last.name + (last.won ? " — won" : " — lost"), last.won ? "win" : "");
+    if (last) G.UI.pushFeed(last.name + (last.won ? " — won" : " — lost (" + last.winner + ")"), last.won ? "win" : "");
     G.UI.setWatchTally(w.won, w.i);
+    G.UI.renderStandings("watchStandings", liveBreakdown(w));
   }
 
   function frame() {
@@ -326,6 +354,11 @@
       else legacyCopy(text, done);
     };
 
+    sel("xShareBtn").onclick = function () {
+      if (!lastResult) return;
+      postToX(G.UI.resultText(lastResult) + " #650game", function () { return G.UI.shareCardBlob(lastResult); });
+    };
+
     sel("againBtn").onclick = function () {
       cancelWatch();
       lastResult = G.hold();
@@ -333,6 +366,32 @@
       else showResult(lastResult);
     };
     sel("menuBtn").onclick = goMenu;
+  }
+
+  /* ------------------------------------------------------ share to X ------ */
+  function openXIntent(text, url) {
+    var href = "https://x.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url);
+    try { window.open(href, "_blank", "noopener"); } catch (e) {}
+  }
+  function postToX(text, getBlob) {
+    var url = "https://650-0.co.uk";
+    // On phones that support it, share the actual result image to the X app.
+    if (getBlob && typeof navigator !== "undefined" && navigator.canShare) {
+      try {
+        getBlob().then(function (blob) {
+          try {
+            var file = new File([blob], "650-result.png", { type: "image/png" });
+            if (navigator.canShare({ files: [file] }) && navigator.share) {
+              navigator.share({ files: [file], text: text }).catch(function () { openXIntent(text, url); });
+              return;
+            }
+          } catch (e) {}
+          openXIntent(text, url);
+        }).catch(function () { openXIntent(text, url); });
+        return;
+      } catch (e) {}
+    }
+    openXIntent(text, url);
   }
 
   function goMenu() { cancelWatch(); G.UI.show("screen-menu"); }
@@ -367,11 +426,56 @@
   }
 
   /* --------------------------------------------------------- governing ---- */
+  function enterGovernment(res, opts) {
+    G.startTerm(res, opts || {});
+    if (G.state.policyOn) G.UI.renderPolicy("programme");
+    else G.UI.renderGovern();
+  }
+  function startCoalitionGovern(res, deal, minority) {
+    enterGovernment(res, { coalition: deal || null, minority: !!minority });
+  }
+  function startOpposition(res) {
+    G.startOpposition(res);
+    G.UI.renderGovern();
+  }
+
+  function wireCoalition() {
+    sel("coalitionOptions").addEventListener("click", function (e) {
+      var n = e.target;
+      while (n && n !== this && !(n.classList && n.classList.contains("coal-opt"))) n = n.parentNode;
+      if (!n || !n.classList || !n.classList.contains("coal-opt")) return;
+      if (!lastResult || !lastResult.coalition) return;
+      var act = n.getAttribute("data-act");
+      if (act === "deal") {
+        var i = parseInt(n.getAttribute("data-i"), 10);
+        startCoalitionGovern(lastResult, lastResult.coalition.deals[i], false);
+      } else if (act === "minority") {
+        startCoalitionGovern(lastResult, null, true);
+      } else if (act === "opposition") {
+        startOpposition(lastResult);
+      }
+    });
+    sel("oppositionBtn").onclick = function () { if (lastResult) startOpposition(lastResult); };
+  }
+
+  function wirePolicy() {
+    sel("policyConfirm").onclick = function () {
+      var sel2 = {};
+      G.POLICY_AXES.forEach(function (ax) { sel2[ax.key] = G.UI._policySel[ax.key]; });
+      if (G.UI._policyMode === "manifesto") {
+        G.state.policy = sel2;
+        proceedElection();
+      } else {
+        G.applyProgramme(sel2);
+        G.UI.renderGovern();
+      }
+    };
+  }
+
   function wireGovern() {
     sel("governBtn").onclick = function () {
-      if (!lastResult || !lastResult.tier.govt) return;
-      G.startTerm(lastResult);
-      G.UI.renderGovern();
+      if (!lastResult || !lastResult.coalition || !lastResult.coalition.soloMajority) return;
+      enterGovernment(lastResult);
     };
     sel("eventChoices").addEventListener("click", function (e) {
       var n = e.target;
@@ -379,7 +483,7 @@
       if (!n || !n.classList || !n.classList.contains("choice")) return;
       if (!G.term || G.term.over) return;
       var idx = parseInt(n.getAttribute("data-idx"), 10);
-      var r = G.govChoose(idx);
+      var r = (G.term.kind === "opp") ? G.oppChoose(idx) : G.govChoose(idx);
       G.UI.pushGovLog(r.log);
       G.UI.afterChoice();
       if (r.over) endTerm();
@@ -398,6 +502,10 @@
       else legacyCopy(text, done);
     };
     sel("legacyMenuBtn").onclick = goMenu;
+    sel("legacyXBtn").onclick = function () {
+      if (!currentVerdict) return;
+      postToX(G.UI.legacyText(currentVerdict) + " #650game", null);
+    };
   }
   function endTerm() {
     currentVerdict = G.govVerdict();

@@ -99,7 +99,7 @@ G.LEANS = {
 };
 
 /* ------------------------------------------------------------ PORTFOLIOS -- */
-G.PORTFOLIOS = [
+G.PORTFOLIOS_BASE = [
   { key: "pm",         name: "Prime Minister",               w: { appeal: .30, oratory: .25, statecraft: .30, experience: .15, partyMgmt: 0 } },
   { key: "chancellor", name: "Chancellor of the Exchequer",  w: { appeal: .15, oratory: .20, statecraft: .35, experience: .30, partyMgmt: 0 } },
   { key: "foreign",    name: "Foreign Secretary",            w: { appeal: .15, oratory: .20, statecraft: .40, experience: .25, partyMgmt: 0 } },
@@ -113,7 +113,23 @@ G.PORTFOLIOS = [
   { key: "whip",       name: "Chief Whip",                   w: { appeal: 0,   oratory: 0,   statecraft: .15, experience: .25, partyMgmt: .60 } },
   { key: "leader",     name: "Leader of the House",          w: { appeal: 0,   oratory: .40, statecraft: 0,   experience: .30, partyMgmt: .30 } }
 ];
-G.PORTFOLIO_BY_KEY = Object.fromEntries(G.PORTFOLIOS.map(function (p) { return [p.key, p]; }));
+/* optional extra seats for an Expanded cabinet */
+G.PORTFOLIOS_EXTRA = [
+  { key: "work",        name: "Work & Pensions Secretary",   w: { appeal: .15, oratory: .10, statecraft: .40, experience: .35, partyMgmt: 0 } },
+  { key: "transport",   name: "Transport Secretary",         w: { appeal: .10, oratory: .10, statecraft: .40, experience: .40, partyMgmt: 0 } },
+  { key: "environment", name: "Environment Secretary",       w: { appeal: .20, oratory: .15, statecraft: .35, experience: .30, partyMgmt: 0 } },
+  { key: "culture",     name: "Culture Secretary",           w: { appeal: .30, oratory: .25, statecraft: .20, experience: .25, partyMgmt: 0 } }
+];
+G.PORTFOLIOS = G.PORTFOLIOS_BASE.slice();
+G.PORTFOLIO_BY_KEY = Object.fromEntries(
+  G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA).map(function (p) { return [p.key, p]; })
+);
+G.setCabinetSize = function (size) {
+  G.PORTFOLIOS = (size === "expanded")
+    ? G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA)
+    : G.PORTFOLIOS_BASE.slice();
+  return G.PORTFOLIOS;
+};
 
 /* ----------------------------------------------------------- POLITICIANS -- */
 function P(name, party, era, fits, s, note, scope) {
@@ -307,6 +323,33 @@ G.POLITICIANS = [
   P("Muammar Gaddafi",    "Dictators",     "e5", ["leader"],               [48,62,54,34,70], "Ruled Libya for four decades until his overthrow.", "wild"),
   P("Saddam Hussein",     "Dictators",     "e5", ["defence","leader"],      [46,58,52,32,72], "Dictator of Iraq; toppled in the 2003 invasion.", "wild"),
   P("Kim Jong-un",        "Dictators",     "e7", ["leader","defence"],      [40,46,44,38,82], "Supreme Leader of North Korea.", "wild"),
+  P("Joseph Goebbels",    "Dictators",     "e3", ["leader"],               [38,44,70,30,60], "Nazi propaganda minister; a principal architect of Holocaust-era propaganda.", "wild"),
+  P("Heinrich Himmler",   "Dictators",     "e3", ["home"],                 [28,46,32,34,64], "Head of the SS; chief organiser of the Holocaust.", "wild"),
+  P("Hermann Göring",     "Dictators",     "e3", ["defence","deputy"],     [44,48,46,32,56], "Leading Nazi; founded the Gestapo and directed the Luftwaffe.", "wild"),
+  P("Reinhard Heydrich",  "Dictators",     "e3", ["home"],                 [26,42,30,36,58], "SS leader; a chief planner of the Holocaust.", "wild"),
+  P("Pol Pot",            "Dictators",     "e4", ["leader"],               [24,34,30,24,58], "Khmer Rouge leader responsible for the Cambodian genocide.", "wild"),
+  P("Augusto Pinochet",   "Dictators",     "e4", ["defence","leader"],     [34,50,36,40,60], "Seized power in Chile in a 1973 coup; rule marked by killings and torture.", "wild"),
+  P("Idi Amin",           "Dictators",     "e4", ["defence"],              [40,30,42,22,54], "Dictator of Uganda; mass atrocities in the 1970s.", "wild"),
+  P("Robert Mugabe",      "Dictators",     "e5", ["leader"],               [42,58,52,34,66], "Ruled Zimbabwe for decades, ending in economic ruin and repression.", "wild"),
+  P("Nicolae Ceaușescu",  "Dictators",     "e4", ["leader"],               [30,48,34,32,60], "Romanian communist dictator, overthrown and executed in 1989.", "wild"),
+  P("Francisco Franco",   "Dictators",     "e3", ["leader","defence"],     [36,56,34,44,62], "Ruled Spain as a dictator after the Civil War.", "wild"),
+  P("Slobodan Milošević", "Dictators",     "e6", ["leader"],               [38,50,46,38,56], "Serbian leader during the Yugoslav wars; died on trial for war crimes.", "wild"),
+  P("Bashar al-Assad",    "Dictators",     "e7", ["leader","defence"],     [30,52,36,34,58], "President of Syria through a brutal and devastating civil war.", "wild"),
+  P("Kim Il-sung",        "Dictators",     "e4", ["leader"],               [44,54,48,38,76], "Founder of North Korea's ruling dynasty.", "wild"),
+  P("Hideki Tojo",        "Dictators",     "e3", ["defence"],              [34,52,38,40,54], "Wartime Prime Minister of Imperial Japan; executed for war crimes.", "wild"),
+  P("Suharto",            "Dictators",     "e4", ["leader","defence"],     [38,56,40,42,60], "Ruled Indonesia for three decades after a violent purge.", "wild"),
+  P("Mobutu Sese Seko",   "Dictators",     "e4", ["leader"],               [40,46,44,28,56], "Kleptocratic dictator of Zaire.", "wild"),
+
+  P("Jawaharlal Nehru",   "World Leaders", "e4", ["pm","foreign"],         [72,76,74,70,72], "India's first Prime Minister.", "wild"),
+  P("Indira Gandhi",      "World Leaders", "e4", ["pm","foreign"],         [66,72,68,66,72], "Long-serving and formidable Prime Minister of India.", "wild"),
+  P("David Ben-Gurion",   "World Leaders", "e4", ["pm","defence"],         [70,74,70,72,72], "Israel's founding Prime Minister.", "wild"),
+  P("Anwar Sadat",        "World Leaders", "e5", ["pm","foreign"],         [66,68,66,68,64], "Egyptian president who made a historic peace with Israel.", "wild"),
+  P("Yitzhak Rabin",      "World Leaders", "e6", ["pm","defence"],         [62,72,60,68,66], "Israeli Prime Minister and Oslo peace signatory.", "wild"),
+  P("Volodymyr Zelensky", "World Leaders", "e7", ["leader","pm"],          [78,52,82,58,70], "Wartime President of Ukraine.", "wild"),
+  P("Deng Xiaoping",      "World Leaders", "e5", ["leader","chancellor"],  [60,80,58,82,76], "Architect of China's economic transformation.", "wild"),
+  P("Kofi Annan",         "World Leaders", "e6", ["foreign"],              [70,74,68,74,64], "UN Secretary-General and Nobel Peace laureate.", "wild"),
+  P("Shinzo Abe",         "World Leaders", "e7", ["pm","foreign"],         [60,72,62,70,70], "Japan's longest-serving Prime Minister.", "wild"),
+  P("Helmut Kohl",        "World Leaders", "e6", ["pm","foreign"],         [58,74,60,72,74], "The Chancellor who reunified Germany.", "wild"),
   /* --- World Statesmen --- */
   P("Charles de Gaulle",  "World Leaders", "e4", ["pm","defence"],          [76,82,82,80,76], "Free French leader; founder of the Fifth Republic.", "wild"),
   P("Konrad Adenauer",    "World Leaders", "e4", ["pm","foreign"],          [62,84,62,82,78], "First Chancellor of West Germany.", "wild"),
@@ -356,6 +399,8 @@ G.CONFIG = {
   fitBonus: 1.15,
   fitNeutral: 1.0,
   misfitPenalty: 0.90,
+  pickShowMax: 8,        // most candidates ever shown at once
+  tierThreshold: 14,     // above this, spin for a tier first
   voteMin: 0.20,
   voteMax: 0.52,
   strengthFloor: 12 * 48,

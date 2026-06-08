@@ -281,20 +281,30 @@ G.ministerName = function (portfolioKey) {
 G._diff = function () { var d = (G.state && G.state.difficulty) || "normal"; return G.GOVCONFIG.diff[d] || G.GOVCONFIG.diff.normal; };
 
 /* ---- start a term -------------------------------------------------------- */
-G.startTerm = function (res) {
+/* opts (optional): { coalition: deal, minority: bool } */
+G.startTerm = function (res, opts) {
+  opts = opts || {};
   var cfg = G.GOVCONFIG, C = G.CONFIG;
   var mode = (G.state && G.state.mode) || "unity";
+  var seats = res.seats;
+  if (opts.coalition) seats = opts.coalition.combined;
+
   var approval = G._clampM(38 + (res.voteShare - 0.33) * 120 + (res.tier.govt ? 4 : 0));
   approval = Math.max(cfg.startApprovalMin, Math.min(cfg.startApprovalMax, approval));
   var economy = G._clampM(46 + (G.ministerStat("chancellor", "statecraft") - 50) * 0.30);
-  var maj = res.majorityOf;
+  var maj = seats - C.majority;
   var unity = G._clampM(42 + maj / 22 + (mode === "dynasty" ? 6 : -2)
                           + (G.ministerStat("whip", "partyMgmt") - 50) * 0.25
                           + (G.ministerStat("leader", "partyMgmt") - 50) * 0.10);
+  /* coalitions and minorities are harder to hold together */
+  if (opts.coalition) unity = G._clampM(unity - (opts.coalition.natural ? 8 : 16));
+  if (opts.minority)  unity = G._clampM(unity - 10);
 
   G.term = {
+    kind: "govt",
+    coalition: opts.coalition || null, minority: !!opts.minority,
     meters: { approval: approval, economy: economy, unity: unity },
-    seats: res.seats, startSeats: res.seats,
+    seats: seats, startSeats: seats,
     session: 1, length: cfg.sessions,
     mode: mode, difficulty: (G.state && G.state.difficulty) || "normal",
     caretaker: {}, drawn: [], current: null,
@@ -307,8 +317,9 @@ G.startTerm = function (res) {
 
 /* pick the next crisis (avoid repeating recent ones) */
 G.govDraw = function () {
-  var t = G.term, pool = G.EVENTS.filter(function (e) { return t.drawn.indexOf(e.id) === -1; });
-  if (!pool.length) { t.drawn = []; pool = G.EVENTS.slice(); }
+  var t = G.term, src = (t.kind === "opp") ? G.OPP_EVENTS : G.EVENTS;
+  var pool = src.filter(function (e) { return t.drawn.indexOf(e.id) === -1; });
+  if (!pool.length) { t.drawn = []; pool = src.slice(); }
   var e = pool[Math.floor(Math.random() * pool.length)];
   t.drawn.push(e.id);
   return e;
@@ -455,9 +466,28 @@ G._confidenceVote = function (log) {
   return false;
 };
 
+/* apply a governing programme to the term's opening meters. Matching the
+   manifesto rewards unity (promises kept); diverging costs unity + approval. */
+G.applyProgramme = function (programme) {
+  var t = G.term; if (!t || !programme) return;
+  var man = (G.state && G.state.policy) || {};
+  var kept = 0, diverged = 0;
+  G.POLICY_AXES.forEach(function (ax) {
+    var sel = programme[ax.key]; if (!sel) return;
+    var opt = G.policyOption(ax.key, sel);
+    if (opt && opt.gov) G._apply({ a: opt.gov.a || 0, e: opt.gov.e || 0, u: opt.gov.u || 0 }, false);
+    if (man[ax.key]) { if (man[ax.key] === sel) kept++; else diverged++; }
+  });
+  t.meters.unity = G._clampM(t.meters.unity + kept * 2 - diverged * 3);
+  if (diverged) t.meters.approval = G._clampM(t.meters.approval - diverged);
+  t.programme = programme; t.policyKept = kept; t.policyDiverged = diverged;
+};
+
 /* ---- final verdict ------------------------------------------------------- */
 G.govVerdict = function () {
-  var t = G.term, m = t.meters;
+  var t = G.term;
+  if (t.kind === "opp") return G.oppVerdict();
+  var m = t.meters;
   var seatScore = Math.max(0, Math.min(20, t.seats / G.CONFIG.totalSeats * 20));
   var raw = m.approval * 0.34 + m.economy * 0.24 + m.unity * 0.20 + seatScore
             + (t.outcome === "completed" ? 8 : 0);
@@ -484,5 +514,275 @@ G.govVerdict = function () {
     seats: t.seats, startSeats: t.startSeats,
     sessionsServed: t.outcome === "completed" ? t.length : (t.fellSession || t.session),
     length: t.length, history: t.history, caretakers: Object.keys(t.caretaker).length
+  };
+};
+
+/* ============================================================================
+   650 — OPPOSITION: a term on the other benches
+   Played when you fail to form a government. The three meters are repurposed:
+     approval -> Public support   economy -> Momentum (pressure on the govt)
+     unity    -> Party unity
+   Win by driving Momentum to breaking point (you force an early election and
+   sweep in); survive to the next election as a strong opposition; or lose the
+   leadership if your own party turns on you. Your drafted cabinet doubles as
+   the Shadow Cabinet, so the same ministers' stats decide your gambles.
+   ========================================================================== */
+G.OPPCONFIG = { sessions: 8, forceMomentum: 85, challengeUnity: 26, momentumDrift: 1 };
+
+G.OPP_EVENTS = [
+  { id:"pmqs", dept:"pm", title:"Prime Minister's Questions", icon:"❝",
+    text:"The despatch box, every Wednesday. A clean hit can dominate the news for days.",
+    choices:[
+      { label:"Go for the jugular", text:"A scripted, high-risk ambush.",
+        base:{a:1,e:1,u:1}, gamble:{stat:"oratory", dept:"pm",
+          success:{a:4,e:7,u:3}, fail:{a:-3,e:-2,u:-3}} },
+      { label:"Forensic and factual", text:"Six quiet questions, no theatrics.",
+        base:{a:2,e:3,u:0} },
+      { label:"Rise above the bear pit", text:"Look statesmanlike; cede the drama.",
+        base:{a:1,e:-2,u:1} }
+    ]},
+  { id:"oppbudget", dept:"chancellor", title:"Responding to the Budget", icon:"£",
+    text:"The Chancellor sits down. You have minutes to tear the Budget apart at the despatch box.",
+    choices:[
+      { label:"Demolish the numbers", text:"Your Shadow Chancellor goes line by line.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
+          success:{a:5,e:8,u:2}, fail:{a:-3,e:-3,u:-2}} },
+      { label:"Make it about fairness", text:"Frame it as a Budget for the few.",
+        base:{a:4,e:3,u:1} },
+      { label:"Promise a costed alternative", text:"Look like a government-in-waiting.",
+        base:{a:2,e:2,u:-1} }
+    ]},
+  { id:"oppscandal", dept:"home", title:"A Government Scandal Breaks", icon:"!",
+    text:"A minister is in serious trouble. The lobby wants the opposition's response.",
+    choices:[
+      { label:"Demand the resignation", text:"Lead the chase; keep the pressure on.",
+        base:{a:3,e:6,u:1} },
+      { label:"Call for a full inquiry", text:"Sober and procedural — and lasting.",
+        base:{a:1,e:3,u:0} },
+      { label:"Overreach for the kill", text:"Throw everything at it and risk looking opportunistic.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"leader",
+          success:{a:3,e:9,u:1}, fail:{a:-5,e:-3,u:-2}} }
+    ]},
+  { id:"oppbyelection", dept:"whip", title:"A By-election Opportunity", icon:"▣",
+    text:"A seat falls vacant in territory you could take. A win would shake the government.",
+    choices:[
+      { label:"Pour in every activist", text:"Throw the kitchen sink at it.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
+          success:{a:4,e:7,u:4}, fail:{a:-2,e:-3,u:-3}} },
+      { label:"Run a disciplined local race", text:"Steady, professional, low-risk.",
+        base:{a:2,e:3,u:1} },
+      { label:"Manage expectations", text:"Downplay it to avoid a damaging loss.",
+        base:{a:0,e:-1,u:1} }
+    ]},
+  { id:"oppunity", dept:"deputy", title:"Your Own Party Grumbles", icon:"⚑",
+    text:"A faction wants a sharper line; another wants caution. The papers smell division.",
+    choices:[
+      { label:"Bang heads together", text:"Your deputy enforces discipline.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"deputy",
+          success:{a:1,e:2,u:6}, fail:{a:-2,e:-2,u:-5}} },
+      { label:"Give the activists red meat", text:"Please the base, spook the centre.",
+        base:{a:-2,e:2,u:4} },
+      { label:"Appeal for unity", text:"Plead for discipline; hope it holds.",
+        base:{a:1,e:0,u:2} }
+    ]},
+  { id:"oppvision", dept:"leader", title:"A Defining Speech", icon:"♞",
+    text:"Conference season. A big vision speech could announce you as the next government.",
+    choices:[
+      { label:"Set out a bold programme", text:"A soaring, risky prospectus.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
+          success:{a:7,e:4,u:5}, fail:{a:-5,e:-2,u:-4}} },
+      { label:"A safe, unifying speech", text:"No risks, modest reward.",
+        base:{a:2,e:1,u:2} },
+      { label:"A relentless attack on the record", text:"All offence, little vision.",
+        base:{a:1,e:4,u:-1} }
+    ]},
+  { id:"oppvote", dept:"whip", title:"An Opposition Day Vote", icon:"⚖",
+    text:"You control the agenda for a day. Pick the battlefield and try to split the government benches.",
+    choices:[
+      { label:"Table a wedge motion", text:"Design it to divide their party.",
+        base:{a:1,e:3,u:1}, gamble:{stat:"partyMgmt", dept:"whip",
+          success:{a:2,e:7,u:2}, fail:{a:-2,e:-2,u:-2}} },
+      { label:"A popular, populist motion", text:"Win the room and the clip.",
+        base:{a:4,e:3,u:0} },
+      { label:"A serious policy motion", text:"Worthy, less dramatic.",
+        base:{a:1,e:1,u:1} }
+    ]},
+  { id:"oppmedia", dept:"leader", title:"The Sunday Interviews", icon:"✦",
+    text:"The big political programmes want you. A strong round can set the week's narrative.",
+    choices:[
+      { label:"Make news with a pledge", text:"Announce something eye-catching.",
+        base:{a:4,e:2,u:-1} },
+      { label:"Stay relentlessly on message", text:"Disciplined repetition of the attack.",
+        base:{a:1,e:4,u:1} },
+      { label:"Wing a tricky interview", text:"Trust your front-runner to perform.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
+          success:{a:5,e:3,u:1}, fail:{a:-5,e:-2,u:-2}} }
+    ]},
+  { id:"oppdefection", dept:"whip", title:"A Government MP Wavers", icon:"⇄",
+    text:"A disillusioned backbencher on the other side hints they might cross the floor.",
+    choices:[
+      { label:"Court them hard", text:"Roll out the charm; a defection is gold.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"whip",
+          success:{a:3,e:9,u:2}, fail:{a:-1,e:-1,u:-3}} },
+      { label:"Welcome them quietly", text:"Avoid spooking them with a circus.",
+        base:{a:1,e:4,u:0} },
+      { label:"Keep your distance", text:"Defectors bring baggage.",
+        base:{a:0,e:-1,u:2} }
+    ]},
+  { id:"oppcrisis", dept:"foreign", title:"A National Crisis", icon:"◆",
+    text:"Events take over. The country looks to the government — and judges the opposition's response too.",
+    choices:[
+      { label:"Offer responsible support", text:"Put country before party; look like a PM.",
+        base:{a:5,e:-1,u:1} },
+      { label:"Attack the handling", text:"Hammer every misstep.",
+        base:{a:-1,e:5,u:0} },
+      { label:"Lead with a credible plan", text:"Your shadow team sets out what it would do.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"foreign",
+          success:{a:5,e:5,u:2}, fail:{a:-4,e:-2,u:-2}} }
+    ]}
+];
+
+G.startOpposition = function (res) {
+  var cfg = G.OPPCONFIG, gc = G.GOVCONFIG;
+  var mode = (G.state && G.state.mode) || "unity";
+  var support = G._clampM(30 + (res.voteShare - 0.30) * 120);
+  support = Math.max(22, Math.min(60, support));
+  var momentum = G._clampM(28 + (50 - support) * 0.15);   // a little anti-incumbency to start
+  var unity = G._clampM(46 + (res.seats - 180) / 14 + (mode === "dynasty" ? 6 : -2)
+                          + (G.ministerStat("whip", "partyMgmt") - 50) * 0.20
+                          + (G.ministerStat("leader", "partyMgmt") - 50) * 0.10);
+
+  G.term = {
+    kind: "opp",
+    meters: { approval: support, economy: momentum, unity: unity },
+    seats: res.seats, startSeats: res.seats,
+    session: 1, length: cfg.sessions,
+    mode: mode, difficulty: (G.state && G.state.difficulty) || "normal",
+    caretaker: {}, drawn: [], current: null,
+    over: false, outcome: null, fellSession: null,
+    history: [], byElectionSeats: []
+  };
+  G.term.current = G.govDraw();
+  return G.term;
+};
+
+G.oppChoose = function (idx) {
+  var t = G.term; if (!t || t.over) return { log: [], over: true, outcome: t ? t.outcome : null };
+  var ev = t.current, choice = ev.choices[idx], log = [];
+  log.push({ text: ev.title + " — " + choice.label, cls: "head" });
+
+  G._apply(choice.base, true);
+
+  if (choice.gamble) {
+    var g = choice.gamble, stat = G.ministerStat(g.dept, g.stat);
+    var p = 0.30 + (stat - 50) / 100 * 0.95 - G._diff().confidence * 0.5;
+    p = Math.max(0.05, Math.min(0.95, p));
+    var win = Math.random() < p;
+    G._apply(win ? g.success : g.fail, true);
+    log.push({ text: (win ? "✓ " : "✗ ") + G.ministerName(g.dept) + (win ? " lands the blow." : " fluffs it."),
+               cls: win ? "good" : "bad" });
+  }
+
+  /* momentum drifts back to the government between flashpoints */
+  t.meters.economy = G._clampM(t.meters.economy - G.OPPCONFIG.momentumDrift);
+
+  /* an opposition by-election: a win adds seats + momentum; a loss stings */
+  if (t.session >= 2 && Math.random() < 0.42) G._oppByElection(log);
+
+  t.history.push({ session: t.session, title: ev.title, choice: choice.label,
+    meters: { approval: t.meters.approval, economy: t.meters.economy, unity: t.meters.unity }, seats: t.seats });
+
+  /* force an early election if the pressure becomes unbearable */
+  if (t.meters.economy >= G.OPPCONFIG.forceMomentum && t.meters.approval >= 45) {
+    t.over = true; t.outcome = "forced"; t.fellSession = t.session;
+    log.push({ text: "The government's position collapses — it is forced to the country, and you are ready.", cls: "good" });
+    return { log: log, over: true, outcome: "forced" };
+  }
+
+  /* lose your own leadership if the party turns */
+  if (t.meters.unity < G.OPPCONFIG.challengeUnity) {
+    var survived = G._leadershipChallenge(log);
+    if (!survived) { t.over = true; t.outcome = "ousted"; t.fellSession = t.session;
+      return { log: log, over: true, outcome: "ousted" }; }
+  }
+
+  t.session++;
+  if (t.session > t.length) {
+    t.over = true; t.outcome = "survived";
+    log.push({ text: "You reach the next general election as a credible opposition.", cls: "good" });
+    return { log: log, over: true, outcome: "survived" };
+  }
+  t.current = G.govDraw();
+  return { log: log, over: false, outcome: null };
+};
+
+G._oppByElection = function (log) {
+  var t = G.term, geo = G.buildGeo ? G.buildGeo() : null;
+  var name = "a marginal seat";
+  if (geo && geo.constituencies.length) name = geo.constituencies[Math.floor(Math.random() * geo.constituencies.length)].name;
+  var sup = t.meters.approval;
+  var winBias = (sup - 50) / 60;                       // popular ⇒ likelier to gain
+  var roll = Math.random();
+  if (roll < 0.45 + winBias) {
+    var gained = Math.random() < 0.3 ? 2 : 1;
+    t.seats += gained;
+    t.meters.economy = G._clampM(t.meters.economy + 4);
+    log.push({ text: "By-election in " + name + ": a gain! " + gained + " seat" + (gained > 1 ? "s" : "") + " taken from the government (" + t.seats + " now).", cls: "good" });
+  } else if (roll > 0.92) {
+    t.seats = Math.max(0, t.seats - 1);
+    t.meters.approval = G._clampM(t.meters.approval - 2);
+    log.push({ text: "By-election in " + name + ": a disappointing loss (" + t.seats + " held).", cls: "bad" });
+  } else {
+    log.push({ text: "By-election in " + name + ": no change.", cls: "" });
+  }
+};
+
+G._leadershipChallenge = function (log) {
+  var t = G.term, m = t.meters;
+  log.push({ text: "A challenge to your leadership is mounted.", cls: "head" });
+  var grip = (G.ministerStat("leader", "partyMgmt") + G.ministerStat("whip", "partyMgmt") + G.ministerStat("pm", "appeal")) / 3;
+  var p = 0.42 + (m.unity - 30) / 100 + (m.approval - 40) / 200 + (grip - 50) / 160 - G._diff().confidence;
+  p = Math.max(0.05, Math.min(0.95, p));
+  if (Math.random() < p) {
+    m.unity = G._clampM(m.unity + 10);
+    log.push({ text: "You see off the challenge and emerge stronger.", cls: "good" });
+    return true;
+  }
+  log.push({ text: "You lose the confidence of your party and the leadership with it.", cls: "bad" });
+  return false;
+};
+
+G.oppVerdict = function () {
+  var t = G.term, m = t.meters;
+  var seatScore = Math.max(0, Math.min(16, t.seats / G.CONFIG.totalSeats * 16));
+  var raw = m.approval * 0.40 + m.economy * 0.30 + m.unity * 0.18 + seatScore;
+  if (t.outcome === "forced")   raw += 14;
+  if (t.outcome === "survived") raw += 4;
+  var legacy = Math.round(Math.max(0, Math.min(100, raw)));
+  if (t.outcome === "ousted") legacy = Math.round(legacy * 0.55);
+
+  var tier;
+  if (t.outcome === "ousted") tier = { key: "ousted", label: "Deposed by your own side",
+        line: "Toppled in session " + t.fellSession + " of " + t.length + ". The opposition moves on without you." };
+  else if (t.outcome === "forced" && legacy >= 70) tier = { key: "swept", label: "Swept into power",
+        line: "You broke the government and won the country. The keys to No.10 are yours." };
+  else if (t.outcome === "forced") tier = { key: "forced", label: "Brought the government down",
+        line: "You forced the election — now the hard part begins." };
+  else if (legacy >= 72) tier = { key: "great", label: "A government-in-waiting",
+        line: "Disciplined, popular, ready. The next election is yours to lose." };
+  else if (legacy >= 56) tier = { key: "good", label: "An effective opposition",
+        line: "You landed real blows and look like a credible alternative." };
+  else if (legacy >= 42) tier = { key: "ok", label: "A workmanlike opposition",
+        line: "You held the line without ever quite breaking through." };
+  else tier = { key: "poor", label: "An ineffective opposition",
+        line: "The years drifted by and the government barely noticed you." };
+
+  return {
+    kind: "opp",
+    legacy: legacy, tier: tier, outcome: t.outcome,
+    meters: { approval: m.approval, economy: m.economy, unity: m.unity },
+    seats: t.seats, startSeats: t.startSeats,
+    sessionsServed: t.outcome === "survived" ? t.length : (t.fellSession || t.session),
+    length: t.length, history: t.history, caretakers: 0
   };
 };

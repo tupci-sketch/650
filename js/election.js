@@ -43,7 +43,11 @@ G.FIT_ADJACENCY = {
   defence:    ["foreign"],
   home:       ["justice"],
   justice:    ["home"],
-  leader:     ["whip", "deputy"]
+  leader:     ["whip", "deputy"],
+  work:        ["business", "health", "chancellor"],
+  transport:   ["business", "defence"],
+  environment: ["business", "health"],
+  culture:     ["education", "leader"]
 };
 G.fitClass = function (politician, portfolioKey) {
   if (!politician) return "bad";
@@ -125,6 +129,43 @@ G.voteShare = function (rating, diff) {
   return Math.max(0.05, Math.min(0.62, base));
 };
 
+/* ---- optional policy layer: a manifesto (pre) and a programme (post) ------
+   Gated behind a setup toggle. Pre-election stances nudge the vote; the same
+   axes, chosen again in office, set your starting meters — and matching your
+   manifesto keeps faith with voters while diverging invites a betrayal hit.  */
+G.POLICY_AXES = [
+  { key: "tax", title: "Tax & spending", options: [
+      { key: "cut",     label: "Cut taxes",            blurb: "Back growth; let people keep more.",   voteMod: 0.015, gov: { e: 6, a: -2 } },
+      { key: "invest",  label: "Invest in services",   blurb: "Spend to rebuild the public realm.",   voteMod: 0.010, gov: { a: 5, e: -4 } },
+      { key: "balance", label: "Balance the books",    blurb: "Discipline first; nothing unfunded.",  voteMod: -0.010, gov: { e: 4, a: -3, u: 1 } } ] },
+  { key: "nhs", title: "The NHS", options: [
+      { key: "fund",   label: "A funding surge",       blurb: "Pour money into the front line.",      voteMod: 0.020, gov: { a: 6, e: -5 } },
+      { key: "reform", label: "Reform & efficiency",   blurb: "More care for the same money.",        voteMod: 0.000, gov: { e: 3 } },
+      { key: "hold",   label: "Hold the line",         blurb: "No blank cheques.",                    voteMod: -0.015, gov: { e: 4, a: -4 } } ] },
+  { key: "imm", title: "Immigration", options: [
+      { key: "tighten", label: "Tighten the borders",  blurb: "Hard limits and enforcement.",         voteMod: 0.020, gov: { a: 3, u: -3 } },
+      { key: "manage",  label: "Manage pragmatically", blurb: "Control with a steady hand.",          voteMod: 0.000, gov: { u: 1 } },
+      { key: "open",    label: "Open & humane",        blurb: "Compassion and legal routes.",         voteMod: -0.020, gov: { a: -3, u: 4 } } ] },
+  { key: "world", title: "Europe & defence", options: [
+      { key: "europe",    label: "Closer to Europe",   blurb: "Rebuild ties with the continent.",     voteMod: 0.005, gov: { e: 3, u: -2 } },
+      { key: "sovereign", label: "Sovereign course",   blurb: "Chart our own way in the world.",      voteMod: 0.010, gov: { a: 2, u: 2 } },
+      { key: "defence",   label: "Rearm and lead",     blurb: "Spend on defence and alliances.",      voteMod: 0.000, gov: { a: 2, e: -3 } } ] }
+];
+G.policyOption = function (axisKey, optKey) {
+  var ax = G.POLICY_AXES.filter(function (a) { return a.key === axisKey; })[0];
+  if (!ax) return null;
+  return ax.options.filter(function (o) { return o.key === optKey; })[0] || null;
+};
+G.policyVoteMod = function (policy) {
+  if (!policy) return 0;
+  var tot = 0;
+  G.POLICY_AXES.forEach(function (ax) {
+    var opt = G.policyOption(ax.key, policy[ax.key]);
+    if (opt) tot += opt.voteMod;
+  });
+  return tot;
+};
+
 /* ---- which regions a ticket can win, and the seat ceiling ---------------- */
 G.regionLeanFor = function (mode, lineage, regionId) {
   /* returns a number (logit lean) or null if the ticket can't win there */
@@ -143,6 +184,52 @@ G.contestableSeats = function (mode, lineage) {
   return total;
 };
 
+/* ---- the rest of the field: who wins the seats you DON'T -----------------
+   Relative strengths of the OTHER parties by region, reflecting the current
+   (2026) landscape rather than the 2024 result — Reform resurgent, the Greens
+   up, the SNP recovering. Used only to populate the seats your ticket loses,
+   so the full House can be shown.                                            */
+G.LANDSCAPE = {
+  SCO: [["SNP",34],["Labour",24],["Reform UK",16],["Conservative",12],["Liberal Democrat",12],["Green",2]],
+  WAL: [["Labour",30],["Reform UK",26],["Plaid Cymru",22],["Conservative",10],["Liberal Democrat",6],["Green",6]],
+  NI:  [["Sinn Féin",30],["DUP",28],["Alliance",18],["UUP",12],["SDLP",12]],
+  NE:  [["Reform UK",34],["Labour",30],["Conservative",16],["Liberal Democrat",8],["Green",8],["Independent",4]],
+  NW:  [["Reform UK",34],["Labour",30],["Conservative",16],["Liberal Democrat",8],["Green",8],["Independent",4]],
+  YH:  [["Reform UK",34],["Labour",30],["Conservative",16],["Liberal Democrat",8],["Green",8],["Independent",4]],
+  EM:  [["Reform UK",34],["Labour",28],["Conservative",20],["Liberal Democrat",8],["Green",6],["Independent",4]],
+  WM:  [["Reform UK",34],["Labour",28],["Conservative",20],["Liberal Democrat",8],["Green",6],["Independent",4]],
+  EE:  [["Reform UK",30],["Conservative",24],["Liberal Democrat",20],["Labour",16],["Green",7],["Independent",3]],
+  SE:  [["Reform UK",28],["Conservative",24],["Liberal Democrat",22],["Labour",16],["Green",7],["Independent",3]],
+  SW:  [["Reform UK",28],["Conservative",22],["Liberal Democrat",24],["Labour",16],["Green",7],["Independent",3]],
+  LDN: [["Labour",34],["Conservative",18],["Liberal Democrat",16],["Green",16],["Reform UK",12],["Independent",4]]
+};
+G.LINEAGE_PARTY = {           /* the party label that represents each lineage  */
+  Labour: "Labour", Conservative: "Conservative", Liberal: "Liberal Democrat",
+  SNP: "SNP", Plaid: "Plaid Cymru", Reform: "Reform UK", Green: "Green", Independent: "Independent"
+};
+G.playerBloc = function (mode, lineage) {
+  if (mode === "dynasty") {
+    var lbl = G.LINEAGE_PARTY[lineage] || lineage;
+    var pty = G.PARTIES[lbl];
+    return { label: lbl, colour: pty ? pty.colour : "#2f5d3a", excl: lbl };
+  }
+  if (mode === "wildcard") return { label: "Your cabinet", colour: "#b3862f", excl: null };
+  return { label: "Your unity ticket", colour: "#2f5d3a", excl: null };
+};
+G._wpick = function (entries, exclude) {
+  var pool = entries.filter(function (e) { return e[0] !== exclude; });
+  if (!pool.length) pool = entries;
+  var tot = 0, i; for (i = 0; i < pool.length; i++) tot += pool[i][1];
+  var r = Math.random() * tot;
+  for (i = 0; i < pool.length; i++) { r -= pool[i][1]; if (r <= 0) return pool[i][0]; }
+  return pool[pool.length - 1][0];
+};
+G.partyColour = function (label, blocLabel, blocColour) {
+  if (label === blocLabel) return blocColour;
+  var p = G.PARTIES[label];
+  return p ? p.colour : "#6b6b6b";
+};
+
 /* ---- one full campaign across all 650 real constituencies ---------------- */
 /* returns { seats, byRegion:[{id,name,total,won,winnable}],
             results:[{id,gss,name,region,won}] } (results in region order) */
@@ -153,13 +240,22 @@ G.simulateCampaign = function (params) {
   var rswing = C.regionSwing * params.noiseMul;
   var nat = G.gauss() * 0.30 * params.noiseMul;     // national swing for this campaign
 
+  var bloc = G.playerBloc(params.mode, params.lineage);
+  var totals = {};
+  function award(label) { totals[label] = (totals[label] || 0) + 1; }
+
   var seats = 0, byRegion = [], results = [];
   G.REGIONS.forEach(function (r) {
     var list = geo.byRegion[r.id] || [];
+    var landscape = G.LANDSCAPE[r.id] || G.LANDSCAPE.EE;
     var lean = G.regionLeanFor(params.mode, params.lineage, r.id);
     var rec = { id: r.id, name: r.name, total: list.length, won: 0, winnable: lean !== null };
     if (lean === null) {
-      list.forEach(function (c) { results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: false }); });
+      list.forEach(function (c) {
+        var w = G._wpick(landscape, bloc.excl);
+        award(w);
+        results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: false, winner: w });
+      });
       byRegion.push(rec); return;
     }
     if (params.mode !== "dynasty") lean = G.gauss() * C.unityLeanSpread; // mild local colour
@@ -167,12 +263,22 @@ G.simulateCampaign = function (params) {
     list.forEach(function (c) {
       var logit = baseLogit + lean + nat + regSwing + G.gauss() * noise;
       var won = Math.random() < G.sigmoid(logit);
-      if (won) { rec.won++; seats++; }
-      results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: won });
+      var winner;
+      if (won) { rec.won++; seats++; winner = bloc.label; }
+      else { winner = G._wpick(landscape, bloc.excl); }
+      award(winner);
+      results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: won, winner: winner });
     });
     byRegion.push(rec);
   });
-  return { seats: seats, byRegion: byRegion, results: results };
+
+  var breakdown = Object.keys(totals).map(function (label) {
+    return { party: label, seats: totals[label], colour: G.partyColour(label, bloc.label, bloc.colour),
+             isYou: label === bloc.label };
+  }).sort(function (a, b) { return b.seats - a.seats; });
+
+  return { seats: seats, byRegion: byRegion, results: results,
+           breakdown: breakdown, blocLabel: bloc.label, blocColour: bloc.colour };
 };
 
 /* ---- fast seat-total estimate for one campaign (for the odds loop) ------- */
@@ -234,7 +340,56 @@ G.governVerdict = function (rating, seats) {
   return { stability: stability, line: line };
 };
 
-/* ---- the full election --------------------------------------------------- */
+/* ---- coalition maths: who could get you to a majority -------------------- */
+G._BLOC = {
+  Labour: "L", "Liberal Democrat": "L", Green: "L", SNP: "L", "Plaid Cymru": "L",
+  SDLP: "L", Alliance: "C", "Your unity ticket": "C", "Your cabinet": "C",
+  Conservative: "R", "Reform UK": "R", DUP: "R", UUP: "R", "Sinn Féin": "X", Independent: "C"
+};
+G._natural = function (a, b) {
+  var x = G._BLOC[a], y = G._BLOC[b];
+  if (!x || !y) return false;
+  if (x === "C" || y === "C") return true;          // centre works with either
+  return x === y;
+};
+/* seats = your seats; campaign = the run's campaign (has breakdown, blocLabel) */
+G.coalitionOptions = function (seats, campaign) {
+  var C = G.CONFIG, bd = campaign.breakdown, blocLabel = campaign.blocLabel;
+  var largest = bd.length > 0 && bd[0].party === blocLabel;
+  var opp = bd.filter(function (p) { return !p.isYou && p.party !== "Sinn Féin"; });
+
+  var deals = [];
+  /* single-party deals */
+  opp.forEach(function (p) {
+    if (seats + p.seats >= C.majority) {
+      deals.push({ parties: [p], combined: seats + p.seats, natural: G._natural(blocLabel, p.party) });
+    }
+  });
+  /* two-party deals (only if single options are thin) — search the top opponents */
+  if (deals.length < 3) {
+    var top = opp.slice(0, 6);
+    for (var i = 0; i < top.length; i++) {
+      for (var j = i + 1; j < top.length; j++) {
+        var a = top[i], b = top[j];
+        if (seats + a.seats >= C.majority || seats + b.seats >= C.majority) continue; // already a single
+        if (seats + a.seats + b.seats >= C.majority) {
+          deals.push({ parties: [a, b], combined: seats + a.seats + b.seats,
+                       natural: G._natural(blocLabel, a.party) && G._natural(blocLabel, b.party) && G._natural(a.party, b.party) });
+        }
+      }
+    }
+  }
+  deals.sort(function (x, y) { return (y.natural - x.natural) || (x.combined - y.combined); });
+  deals = deals.slice(0, 5);
+
+  return {
+    soloMajority: seats >= C.majority,
+    largest: largest,
+    need: Math.max(0, C.majority - seats),
+    deals: deals,
+    canMinority: largest && seats < C.majority
+  };
+};
 /* opts: { mode, lineage, difficulty, govern } */
 G.runElection = function (cabinet, opts) {
   opts = opts || {};
@@ -245,6 +400,7 @@ G.runElection = function (cabinet, opts) {
 
   var rating = G.rateCabinet(cabinet);
   var vote = G.voteShare(rating, diff);
+  vote = Math.max(0.05, Math.min(0.62, vote + G.policyVoteMod(opts.policy)));   // manifesto nudge (if any)
   var contestable = G.contestableSeats(mode, lineage);
   var params = { vote: vote, mode: mode, lineage: lineage, midShift: diff.midShift, noiseMul: diff.noiseMul };
 
@@ -267,6 +423,7 @@ G.runElection = function (cabinet, opts) {
   /* the headline campaign that actually gets watched / shown */
   var campaign = G.simulateCampaign(params);
   var tier = G.tierFor(campaign.seats, contestable);
+  var coalition = G.coalitionOptions(campaign.seats, campaign);
 
   return {
     rating: rating,
@@ -277,6 +434,8 @@ G.runElection = function (cabinet, opts) {
     contestable: contestable,
     majorityOf: campaign.seats - C.majority,
     campaign: campaign,
+    breakdown: campaign.breakdown,
+    coalition: coalition,
     difficulty: opts.difficulty || "normal",
     govern: !!opts.govern,
     governVerdict: G.governVerdict(rating, campaign.seats),
