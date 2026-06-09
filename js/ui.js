@@ -30,6 +30,28 @@ G.UI.ticketColour = function (state) {
   return "#2f5d3a";
 };
 
+/* portraits: lazy Wikipedia thumbnail, cached, monogram fallback (offline-safe) */
+G.UI._initials = function (n) { var p = String(n||"").replace(/[^A-Za-z .'-]/g,"").split(/\s+/).filter(Boolean); return p.length ? ((p[0][0]||"")+(p.length>1?p[p.length-1][0]:"")).toUpperCase() : "?"; };
+G.UI.portrait = function (name, elm) {
+  if (!elm) return;
+  elm.textContent = G.UI._initials(name);
+  var key = "650.pic." + name, cached = null;
+  try { cached = window.localStorage.getItem(key); } catch (e) {}
+  if (cached === "none") return;
+  function put(url){ var img = document.createElement("img"); img.alt=""; img.loading="lazy"; img.referrerPolicy="no-referrer"; img.onerror=function(){ try{elm.removeChild(img);}catch(e){} }; img.src=url; elm.innerHTML=""; elm.appendChild(img); }
+  if (cached) { put(cached); return; }
+  if (typeof fetch !== "function") return;
+  fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(String(name).replace(/ /g,"_")), { headers:{ accept:"application/json" } })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ var src = d && d.thumbnail && d.thumbnail.source; if (src){ try{window.localStorage.setItem(key,src);}catch(e){} put(src); } else { try{window.localStorage.setItem(key,"none");}catch(e){} } })
+    .catch(function(){});
+};
+G.UI._hydratePortraits = function (root) {
+  var nodes = (root || document).querySelectorAll("[data-pol]");
+  for (var i=0;i<nodes.length;i++){ var el=nodes[i]; if (el._picDone) continue; el._picDone=true; G.UI.portrait(el.getAttribute("data-pol"), el); }
+};
+G.UI._ovrClass = function (v){ return v>=80?"s-elite":v>=66?"s-good":v>=52?"s-mid":"s-low"; };
+
 /* --------------------------------------------------------- draft: pips -- */
 G.UI.renderProgress = function () {
   var pips = $("pips"); pips.innerHTML = "";
@@ -50,23 +72,21 @@ G.UI.renderProgress = function () {
 
 /* --------------------------------------------------------- draft: reels - */
 G.UI.renderReels = function () {
-  var sp = G.state.spin;
+  var d = G.state.lastDeal;
   var pv = $("reelParty").querySelector(".reel-value");
   var ps = $("reelParty").querySelector(".reel-sub");
   var ev = $("reelEra").querySelector(".reel-value");
   var es = $("reelEra").querySelector(".reel-sub");
-  if (!sp) {
-    pv.innerHTML = "—"; ps.textContent = "spin to begin";
+  if (!d) {
+    pv.innerHTML = "—"; ps.textContent = "tap deal to begin";
     ev.textContent = "—"; es.textContent = "";
     return;
   }
-  var party = G.PARTIES[sp.party];
-  var era = G.ERA_BY_ID[sp.era];
-  pv.innerHTML = '<span class="party-dot" style="background:' + (party ? party.colour : "#999") + '"></span>' + (party ? party.label : sp.party);
-  if (sp.stage === "tier") ps.textContent = sp.full.length + " in play — spin for a tier";
-  else if (sp.tier) ps.textContent = sp.tier.label + " · " + sp.candidates.length + " shortlisted";
-  else ps.textContent = sp.candidates.length + " available";
-  ev.textContent = era ? era.label : sp.era;
+  var party = G.PARTIES[d.politician.party];
+  var era = G.ERA_BY_ID[d.politician.era];
+  pv.innerHTML = '<span class="party-dot" style="background:' + (party ? party.colour : "#999") + '"></span>' + (party ? party.label : d.politician.party);
+  ps.textContent = "last dealt";
+  ev.textContent = era ? era.label : d.politician.era;
   es.textContent = era ? era.years : "";
 };
 
@@ -86,137 +106,85 @@ G.UI.setSpinning = function (on) {
 };
 
 /* --------------------------------------------------------- draft: pool -- */
+/* Hands-off: the wheel deals one minister at random into a seat they fit.
+   No tier choice, no picking the person, no swaps — this card reveals who
+   the returning officer handed you, with a portrait and overall rating. */
 G.UI.renderPool = function () {
   var pool = $("pool"); pool.innerHTML = "";
-  var sp = G.state.spin;
-  if (!sp) { return; }
-
-  /* TIER STAGE — too many in this party+era: spin for a tier first */
-  if (sp.stage === "tier") {
-    var tnote = document.createElement("p");
-    tnote.className = "assign-note"; tnote.style.color = "var(--ink-soft)";
-    tnote.textContent = "A deep bench — " + sp.full.length + " in play. Spin for a calibre, then pick from a shortlist:";
-    pool.appendChild(tnote);
-    sp.tiers.forEach(function (t) {
-      var b = document.createElement("button");
-      b.className = "tier-opt tier-" + t.key;
-      b.innerHTML = '<span class="tier-name">' + t.label + '</span>' +
-                    '<span class="tier-count">' + t.count + ' to choose from</span>';
-      b.onclick = function () { G.ctrl.spinTier(t.key); };
-      pool.appendChild(b);
-    });
+  var d = G.state.lastDeal;
+  if (!d) {
+    pool.innerHTML = '<p class="assign-note" style="color:var(--ink-soft)">The returning officer draws ministers at random. Tap <b>Deal a minister</b> \u2014 whoever you draw is slotted into a seat they fit. No swaps, no picking: that\u2019s the game.</p>';
     return;
   }
-
-  if (!sp.candidates || sp.candidates.length === 0) {
-    pool.innerHTML = '<p class="pool-empty">No one left from this party and era. Spin again or use a do-over.</p>';
-    return;
-  }
-
-  var note = document.createElement("p");
-  note.className = "assign-note";
-  if (G.state.pendingPick) {
-    note.textContent = "▶ " + G.state.pendingPick.name + " chosen — now click an open seat on the right →";
-  } else {
-    note.style.color = "var(--ink-soft)";
-    note.textContent = sp.tier ? ("The " + sp.tier.label.toLowerCase() + " shortlist — pick one:") : "Pick one to bring into your cabinet:";
-  }
-  pool.appendChild(note);
-
-  sp.candidates.forEach(function (p) {
-    var b = document.createElement("button");
-    var isSel = G.state.pendingPick && G.state.pendingPick.name === p.name;
-    b.className = "cand" + (isSel ? " sel" : "");
-    var fitNames = p.fits.map(function (k) { return (G.PORTFOLIO_BY_KEY[k] ? G.PORTFOLIO_BY_KEY[k].name.split(" ")[0] : k); }).slice(0, 3).join(" · ");
-
-    var html = '<span class="who">' +
-        '<span class="nm">' + p.name + '</span>' +
-        '<span class="meta">fits: ' + (fitNames || "—") + '</span>';
-    if (!G.state.hard) {
-      if (p.scope === "wild") html += '<span class="wild-tag">wildcard</span>';
-      if (p.note) html += '<span class="cand-note">' + p.note + '</span>';
-    }
-    html += '</span>';
-
-    if (!G.state.hard) {
-      var s = p.stats;
-      html += '<div class="stats">' +
-          '<span class="stat-chip">APP<b>' + s.appeal + '</b></span>' +
-          '<span class="stat-chip">EXP<b>' + s.experience + '</b></span>' +
-          '<span class="stat-chip">ORA<b>' + s.oratory + '</b></span>' +
-          '<span class="stat-chip">STA<b>' + s.statecraft + '</b></span>' +
-          '<span class="stat-chip">PTY<b>' + s.partyMgmt + '</b></span>' +
-        '</div>';
-    }
-    b.innerHTML = html;
-    b.onclick = function () { G.ctrl.chooseCandidate(p.name); };
-    pool.appendChild(b);
-  });
-
-  if (G.poolRemainder && G.poolRemainder() > 0) {
-    var rb = document.createElement("button");
-    rb.className = "reshuffle-btn";
-    rb.textContent = "↻ Show me different names (" + G.poolRemainder() + " more)";
-    rb.onclick = function () { G.ctrl.reshuffle(); };
-    pool.appendChild(rb);
-  }
+  var p = d.politician, hard = G.state.hard;
+  var card = document.createElement("div");
+  card.className = "deal-card" + (d.despot ? " is-despot" : "");
+  var pic = '<span class="cand-pic" data-pol="' + G.UI._esc(p.name) + '"></span>';
+  var stats = hard ? '' :
+    '<div class="dc-stats">' +
+      '<span class="stat-chip">APP<b>' + p.stats.appeal + '</b></span>' +
+      '<span class="stat-chip">EXP<b>' + p.stats.experience + '</b></span>' +
+      '<span class="stat-chip">ORA<b>' + p.stats.oratory + '</b></span>' +
+      '<span class="stat-chip">STA<b>' + p.stats.statecraft + '</b></span>' +
+      '<span class="stat-chip">PTY<b>' + p.stats.partyMgmt + '</b></span>' +
+    '</div>';
+  var main = '<div class="dc-main">' +
+    '<div class="dc-nm">' + G.UI._esc(p.name) + '</div>' +
+    '<div class="dc-meta"><span class="party-dot" style="background:' + ((G.PARTIES[p.party]||{}).colour||"#999") + '"></span>' + G.UI._esc(p.party) + ' \u00b7 ' + ((G.ERA_BY_ID[p.era]||{}).label||p.era) + (p.scope==="wild"?' \u00b7 <span class="wild-tag">wildcard</span>':'') + '</div>' +
+    (p.note ? '<div class="dc-note">' + G.UI._esc(p.note) + '</div>' : '') +
+    '<div class="dc-assign">\u2192 ' + G.UI._esc(d.seatName) + (d.fit ? '  \u2713 a natural fit' : '  \u00b7 out of their depth') + '</div>' +
+    (d.despot ? '<div class="dc-despot">\u26a0 a despot in your cabinet \u2014 a national scandal</div>' : '') +
+    stats +
+    '</div>';
+  var ovr = hard ? '' : ('<div style="text-align:center"><span class="ovr ' + G.UI._ovrClass(G.overall(p)) + '">' + G.overall(p) + '</span><span class="ovr-cap">overall</span></div>');
+  card.innerHTML = pic + main + ovr;
+  pool.appendChild(card);
 };
 
 /* ------------------------------------------------------ draft: cabinet -- */
+/* Display-only now: the deal fills seats; you don't place anyone by hand. */
 G.UI.renderCabinet = function () {
   var box = $("cabinet"); box.innerHTML = "";
-  var pending = G.state.pendingPick;
+  var hard = G.state.hard;
   G.PORTFOLIOS.forEach(function (port) {
     var holder = G.state.cabinet[port.key];
     var seat = document.createElement("div");
     var roleShort = port.name.replace(" of the Exchequer", "").replace(" Secretary", "").replace("Prime Minister", "PM");
-
     if (holder) {
+      var despot = G.isDespot && G.isDespot(holder);
       var hCls = G.fitClass(holder, port.key);
-      var hLabel = hCls === "good" ? "✓ fit" : hCls === "okay" ? "≈ capable" : "△ stretch";
-      seat.className = "seat";
+      var right = hard
+        ? '<span class="fitmark ' + hCls + '">' + (hCls==="good"?"\u2713 fit":hCls==="okay"?"\u2248 capable":"\u25b3 stretch") + '</span>'
+        : '<span class="ovr ' + G.UI._ovrClass(G.overall(holder)) + ' seat-ovr">' + G.overall(holder) + '</span>';
+      seat.className = "seat" + (despot ? " despot" : "");
       seat.innerHTML =
         '<span class="role">' + roleShort + '</span>' +
-        '<span class="holder">' + holder.name +
+        '<span class="seat-pic" data-pol="' + G.UI._esc(holder.name) + '"></span>' +
+        '<span class="holder">' + G.UI._esc(holder.name) +
           ' <span class="era-mini">' + (G.ERA_BY_ID[holder.era] ? G.ERA_BY_ID[holder.era].years : "") + '</span></span>' +
-        '<span class="fitmark ' + hCls + '">' + hLabel + '</span>';
-    } else if (pending) {
-      var pCls = G.fitClass(pending, port.key);
-      var pLabel = pCls === "good" ? "✓ fit" : pCls === "okay" ? "≈ capable" : "△ stretch";
-      seat.className = "seat target";
-      seat.innerHTML =
-        '<span class="role">' + roleShort + '</span>' +
-        '<span class="vacant">Place ' + pending.name + ' here</span>' +
-        '<span class="fitmark ' + pCls + '">' + pLabel + '</span>';
-      seat.onclick = function () { G.ctrl.assign(port.key); };
+        right;
     } else {
       seat.className = "seat empty";
-      seat.innerHTML = '<span class="role">' + roleShort + '</span><span class="vacant">vacant</span>';
+      seat.innerHTML = '<span class="role">' + roleShort + '</span><span class="vacant">awaiting appointment\u2026</span>';
     }
     box.appendChild(seat);
   });
-
-  if (G.state.hard) {
-    $("strengthVal").textContent = "hidden";
-    $("strengthVal").style.fontSize = "18px";
+  if (hard) {
+    $("strengthVal").textContent = "hidden"; $("strengthVal").style.fontSize = "18px";
   } else {
-    var r = G.preview();
-    $("strengthVal").textContent = Math.round(r.raw);
-    $("strengthVal").style.fontSize = "";
+    var r = G.preview(); $("strengthVal").textContent = Math.round(r.raw); $("strengthVal").style.fontSize = "";
   }
 };
 
 /* ----------------------------------------------------- draft: controls - */
 G.UI.refreshControls = function () {
-  $("spinBtn").disabled = !!G.state.spin || G.isComplete();
-  $("spinBtn").textContent = G.isComplete() ? "Cabinet complete" :
-    (G.state.spin ? "Choose from the wheel" : (G.state.spinsTaken ? "Spin again" : "Spin the wheel"));
-  $("skipEraBtn").disabled = !(G.state.spin && G.state.skips.era > 0);
-  $("skipPartyBtn").disabled = !(G.state.spin && G.state.skips.party > 0);
-  $("skipEraBtn").textContent = "↻ Different era (" + G.state.skips.era + " left)";
-  $("skipPartyBtn").textContent = "↻ Different party (" + G.state.skips.party + " left)";
-  $("holdBtn").disabled = !G.isComplete();
-  $("holdBtn").textContent = G.state.watch ? "Hold the election →" : "Hold the election";
+  var complete = G.isComplete();
+  $("spinBtn").disabled = complete;
+  $("spinBtn").textContent = complete ? "Cabinet complete" : (G.state.lastDeal ? "Deal the next minister" : "Deal a minister");
+  if ($("skipEraBtn")) $("skipEraBtn").style.display = "none";
+  if ($("skipPartyBtn")) $("skipPartyBtn").style.display = "none";
+  $("holdBtn").disabled = !complete;
+  $("holdBtn").textContent = G.state.watch ? "Hold the election \u2192" : "Hold the election";
 };
 
 G.UI.renderDraft = function () {
@@ -225,6 +193,7 @@ G.UI.renderDraft = function () {
   G.UI.renderPool();
   G.UI.renderCabinet();
   G.UI.refreshControls();
+  G.UI._hydratePortraits($("screen-draft"));
 };
 
 /* ================================================================ MAP === */
@@ -446,7 +415,7 @@ G.UI.renderLegacy = function (v) {
     box.appendChild(row);
   });
   G.UI.show("screen-legacy");
-  G.UI.countTo($("legacyNum"), v.legacy);
+  G.UI.countTo($("legacyNum"), v.legacy, 100);   // legacy is out of 100, not 650
 };
 
 /* =========================================================== WATCH-ALONG = */
@@ -544,13 +513,14 @@ G.UI.renderResult = function (res) {
   G.UI.show("screen-result");
 };
 
-G.UI.countTo = function (el, target) {
+G.UI.countTo = function (el, target, outOf) {
+  outOf = outOf || 650;
   var start = performance.now(), dur = 1100;
   function frame(t) {
     var k = Math.min(1, (t - start) / dur);
     var eased = 1 - Math.pow(1 - k, 3);
     var v = Math.round(target * eased);
-    el.innerHTML = v + '<span class="of"> / 650</span>';
+    el.innerHTML = v + '<span class="of"> / ' + outOf + '</span>';
     if (k < 1) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -776,24 +746,71 @@ G.UI.renderAbout = function () {
 
 /* ------------------------------------------------------- leaderboard ---- */
 G.UI._esc = function (s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
+G.UI._lbView = "communal";
+G.UI._lbCache = { top: [], communal: false };
+G.UI._cabinetInner = function (e) {
+  var rows = (e.cabinet || []).map(function (s) {
+    return '<div class="lbd-seat"><span class="role">' + G.UI._esc(s.seat) + '</span><span class="who">' + G.UI._esc(s.name) + ' <span class="lb-sub">' + G.UI._esc(s.party) + '</span></span></div>';
+  }).join("");
+  var bd = (e.breakdown && e.breakdown.length) ? '<div class="lbd-bd">House: ' + e.breakdown.slice(0,6).map(function(b){ return G.UI._esc(b.party) + " " + (b.seats|0); }).join(" \u00b7 ") + '</div>' : "";
+  if (!rows) rows = '<p class="lb-sub">No cabinet stored for this entry.</p>';
+  return rows + bd;
+};
+G.UI._lbRowEl = function (e, rank) {
+  var row = document.createElement("div");
+  row.className = "lb-row expandable" + (rank <= 3 && G.UI._lbView === "communal" ? " top" : "");
+  var leg = (e.legacy === null || e.legacy === undefined) ? "—" : ("" + e.legacy);
+  var tag = (e.mode || "") + (e.govt ? " \u00b7 govt" : "");
+  row.innerHTML =
+    '<span class="lb-rk">' + rank + '</span>' +
+    '<span class="lb-nm">' + G.UI._esc(e.name || "—") + '</span>' +
+    '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
+    '<span class="lb-seats">' + (e.seats | 0) + '</span>' +
+    '<span class="lb-leg">' + leg + '</span>';
+  var detail = null;
+  row.onclick = function () {
+    if (detail) { detail.parentNode.removeChild(detail); detail = null; return; }
+    detail = document.createElement("div"); detail.className = "lb-detail"; detail.innerHTML = G.UI._cabinetInner(e);
+    row.parentNode.insertBefore(detail, row.nextSibling);
+  };
+  return row;
+};
+G.UI._drawLb = function () {
+  var box = $("lbTable"); if (!box) return;
+  box.innerHTML = "";
+  var tabs = document.createElement("div"); tabs.className = "lb-tabs";
+  [["communal", "Communal"], ["personal", "Your runs"]].forEach(function (t) {
+    var b = document.createElement("button");
+    b.className = "lb-tab" + (G.UI._lbView === t[0] ? " sel" : "");
+    b.textContent = t[1];
+    b.onclick = function () { G.UI._lbView = t[0]; G.UI._drawLb(); };
+    tabs.appendChild(b);
+  });
+  box.appendChild(tabs);
+  function head() { var h = document.createElement("div"); h.className = "lb-row lb-head"; h.innerHTML = '<span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Ticket</span><span class="lb-seats">Seats</span><span class="lb-leg">Legacy</span>'; return h; }
+  function section(title, rows) {
+    if (title) { var p = document.createElement("p"); p.className = "section-label"; p.style.marginTop = "14px"; p.textContent = title; box.appendChild(p); }
+    box.appendChild(head());
+    if (!rows.length) { var e = document.createElement("p"); e.className = "pool-empty"; e.textContent = "No runs yet."; box.appendChild(e); return; }
+    rows.forEach(function (en, i) { box.appendChild(G.UI._lbRowEl(en, i + 1)); });
+  }
+  if (G.UI._lbView === "communal") {
+    section(null, (G.UI._lbCache.top || []).slice(0, G.LB.MAX_SHOW));
+  } else {
+    section("Your best 10", (G.LB.localTop ? G.LB.localTop(10) : []));
+    var worst = (G.LB.localBottom ? G.LB.localBottom(10) : []);
+    if (worst.length) section("Your worst 10", worst);
+  }
+};
 G.UI.renderLeaderboard = function (top, communal, error) {
   var status = $("lbStatus");
-  if (status) status.textContent = error
-    ? "Couldn't reach the shared leaderboard — showing your local board."
-    : communal ? "A shared, worldwide board. Each player keeps a single best run."
-               : "A local board on this device. (Deploy the backend to play communally — see leaderboard-backend.gs.)";
-  var box = $("lbTable"); if (!box) return;
-  if (!top || !top.length) { box.innerHTML = '<p class="pool-empty">No entries yet — be the first to post a result.</p>'; return; }
-  var head = '<div class="lb-row lb-head"><span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Ticket</span><span class="lb-seats">Seats</span><span class="lb-leg">Legacy</span></div>';
-  var rows = top.slice(0, G.LB.MAX_SHOW).map(function (e, i) {
-    var leg = (e.legacy === null || e.legacy === undefined) ? "—" : ("" + e.legacy);
-    var tag = (e.mode || "") + (e.govt ? " · govt" : "");
-    return '<div class="lb-row' + (i < 3 ? " top" : "") + '">' +
-      '<span class="lb-rk">' + (i + 1) + '</span>' +
-      '<span class="lb-nm">' + G.UI._esc(e.name) + '</span>' +
-      '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
-      '<span class="lb-seats">' + (e.seats | 0) + '</span>' +
-      '<span class="lb-leg">' + leg + '</span></div>';
-  }).join("");
-  box.innerHTML = head + rows;
+  if (status) status.textContent =
+      error === "not hardest mode" ? "Only the hardest mode (Wildcard \u00b7 Hard \u00b7 Expanded) is ranked \u2014 that run wasn\u2019t added to the board."
+    : error === "legacy required" ? "The board needs a fully governed term \u2014 finish a term to rank."
+    : error ? "Couldn\u2019t reach the shared board \u2014 showing your local runs. Tap a row to see the cabinet."
+    : communal ? "A shared, worldwide board \u2014 hardest mode, one best run per player. Tap a row to see the cabinet."
+               : "A local board on this device. Tap a row to see the cabinet.";
+  G.UI._lbCache = { top: top || [], communal: !!communal };
+  if (G.UI._lbView !== "personal") G.UI._lbView = "communal";
+  G.UI._drawLb();
 };

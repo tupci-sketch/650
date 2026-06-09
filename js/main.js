@@ -194,7 +194,7 @@
   }
 
   G.ctrl = {
-    spin:     function () { spinFlourish(function () { G.spin(); }); },
+    spin:     function () { spinFlourish(function () { G.deal(); }); },  // hands-off deal
     spinTier: function (key) { spinFlourish(function () { G.spinTier(key); }); },
     reshuffle:function () { if (G.reshufflePool()) { G.UI.renderPool(); G.UI.renderReels(); } },
     skipEra:  function () { if (G.state.spin && G.state.skips.era > 0) spinFlourish(function () { G.skipEra(); }); },
@@ -228,6 +228,19 @@
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
+    try {
+      if (G.LB && G.LB.recordLocalRun) G.LB.recordLocalRun({
+        name: G.LB.getName() || "You",
+        seats: res.seats,
+        legacy: (currentVerdict && typeof currentVerdict.legacy === "number") ? currentVerdict.legacy : null,
+        govt: !!(res.tier && res.tier.govt),
+        mode: (G.state && G.state.mode) || "unity",
+        difficulty: (G.state && G.state.difficulty) || "normal",
+        cabinetSize: (G.state && G.state.cabinetSize) || "standard",
+        cabinet: G.cabinetManifest ? G.cabinetManifest() : [],
+        breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; })
+      });
+    } catch (e) {}
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
@@ -420,7 +433,10 @@
     var legacy = (currentVerdict && typeof currentVerdict.legacy === "number") ? currentVerdict.legacy : null;
     return { name: name, seats: lastResult.seats, legacy: legacy,
              govt: !!(lastResult.tier && lastResult.tier.govt),
-             mode: (G.state && G.state.mode) || "unity", difficulty: (G.state && G.state.difficulty) || "normal" };
+             mode: (G.state && G.state.mode) || "unity", difficulty: (G.state && G.state.difficulty) || "normal",
+             cabinetSize: (G.state && G.state.cabinetSize) || "standard",
+             cabinet: G.cabinetManifest ? G.cabinetManifest() : [],
+             breakdown: (lastResult.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }
   function submitToLeaderboard() {
     var e = currentEntry(); if (!e) return;

@@ -214,3 +214,99 @@ G.hold = function () {
     policy: G.state.policy
   });
 };
+
+/* =============================================================================
+   HANDS-OFF SPIN (v3) — the draw is entirely out of the player's hands.
+   One tap deals ONE politician who fits a still-open seat (whenever a fit
+   exists) and slots them automatically. No tier/quality choice, no choosing
+   the person, no party/era rerolls. Odds by mode:
+     • wildcard — even chance across every eligible figure (despots included)
+     • unity    — small chance a despot intrudes and wrecks the cabinet
+     • dynasty  — a chance of a despot on YOUR side of the spectrum
+   The four expanded seats (Work/Transport/Environment/Culture) are in nobody's
+   "fits" list, so when only those remain a dealt figure is slotted as a misfit
+   — which costs rating, by design.
+   ========================================================================== */
+function fitsAnyOpen(p, openKeys) {
+  for (var i = 0; i < p.fits.length; i++) if (openKeys.indexOf(p.fits[i]) !== -1) return true;
+  return false;
+}
+G.openSeatKeys = function () { return G.openSeats().map(function (s) { return s.key; }); };
+
+/* choose the seat a dealt figure goes into: a seat they genuinely fit, scarcest
+   first (so we don't strand a hard-to-fill seat); a forced misfit only if they
+   fit none of the open seats. */
+G.placeSeatFor = function (p, open, remaining) {
+  var fitSeats = open.filter(function (s) { return p.fits.indexOf(s.key) !== -1; });
+  var target = (fitSeats.length ? fitSeats : open).slice();
+  function supply(key) {
+    var n = 0;
+    for (var i = 0; i < remaining.length; i++) {
+      var q = remaining[i];
+      if (q.name !== p.name && q.fits.indexOf(key) !== -1) n++;
+    }
+    return n;
+  }
+  target.sort(function (a, b) {
+    var sa = supply(a.key), sb = supply(b.key);
+    if (sa !== sb) return sa - sb;                       // drain the scarcest fit-seat first
+    return G.scoreFor(p, b.key) - G.scoreFor(p, a.key);  // otherwise where they're strongest
+  });
+  return target[0].key;
+};
+
+/* The single call the UI makes per draw.
+   Returns { politician, seatKey, seatName, despot, fit } or null when full. */
+G.deal = function () {
+  var st = G.state; if (!st) return null;
+  var open = G.openSeats(); if (!open.length) return null;
+  var openKeys = open.map(function (s) { return s.key; });
+
+  var pool = null, forced = false;
+
+  if (st.mode === "unity" && Math.random() < (G.CONFIG.despotUnityChance || 0)) {
+    var du = G.despotPool(null).filter(function (p) { return !st.draftedNames[p.name] && fitsAnyOpen(p, openKeys); });
+    if (du.length) { pool = du; forced = true; }
+  } else if (st.mode === "dynasty" && Math.random() < (G.CONFIG.despotDynastyChance || 0)) {
+    var dd = G.despotPool(G.spectrumOfLineage(st.lineage))
+               .filter(function (p) { return !st.draftedNames[p.name] && fitsAnyOpen(p, openKeys); });
+    if (dd.length) { pool = dd; forced = true; }
+  }
+
+  if (!pool) {
+    var und = G.undrafted();                                 // respects the mode's pool
+    var fit = und.filter(function (p) { return fitsAnyOpen(p, openKeys); });
+    pool = fit.length ? fit : und;                           // misfit fallback for orphan seats
+  }
+  if (!pool.length) return null;
+
+  var chosen = pool[Math.floor(Math.random() * pool.length)];   // even chance among the eligible
+  var remaining = G.undrafted().filter(function (p) { return p.name !== chosen.name; });
+  var seatKey = G.placeSeatFor(chosen, open, remaining);
+
+  st.cabinet[seatKey] = chosen;
+  st.draftedNames[chosen.name] = seatKey;
+  st.spin = null; st.pendingPick = null; st.spinsTaken++;
+
+  var port = G.PORTFOLIO_BY_KEY[seatKey] || { name: seatKey };
+  st.lastDeal = {
+    politician: chosen, seatKey: seatKey, seatName: port.name,
+    despot: (G.isDespot && G.isDespot(chosen)) || forced,
+    fit: chosen.fits.indexOf(seatKey) !== -1
+  };
+  return st.lastDeal;
+};
+
+G.dealComplete = function () { return G.isComplete(); };
+
+/* A snapshot of the finished cabinet for the leaderboard (seat, who, party). */
+G.cabinetManifest = function () {
+  var st = G.state; if (!st) return [];
+  return G.PORTFOLIOS.map(function (port) {
+    var p = st.cabinet[port.key];
+    return p ? { seat: port.name, name: p.name, party: p.party, era: p.era } : null;
+  }).filter(Boolean);
+};
+
+/* a single headline rating (0–100) = the mean of the five stats. */
+G.overall = function (p) { return (p && p.stats) ? Math.round(G.PROMINENCE(p)) : 0; };

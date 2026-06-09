@@ -70,15 +70,21 @@ G.seatContribution = function (politician, portfolioKey) {
            fit: cls === "good", okay: cls === "okay" };
 };
 G.rateCabinet = function (cabinet) {
-  var raw = 0, eras = {}, fits = 0, filled = 0;
+  var raw = 0, eras = {}, fits = 0, filled = 0, despots = 0;
   G.PORTFOLIOS.forEach(function (port) {
     var pol = cabinet[port.key]; if (!pol) return;
     filled++;
     var c = G.seatContribution(pol, port.key);
     raw += c.value; if (c.fit) fits++; eras[pol.era] = true;
+    if (G.isDespot && G.isDespot(pol)) despots++;
   });
-  return { raw: raw, filled: filled, fits: fits,
-           distinctEras: Object.keys(eras).length, perSeat: filled ? raw / filled : 0 };
+  /* a despot in the cabinet is a national scandal: it drags down the whole
+     ticket's standing, compounding for each one (see CONFIG.despotPenalty). */
+  var penalty = despots > 0 ? Math.pow((G.CONFIG.despotPenalty || 0.75), despots) : 1;
+  var adjusted = raw * penalty;
+  return { raw: adjusted, rawBase: raw, despots: despots, penalty: penalty,
+           filled: filled, fits: fits,
+           distinctEras: Object.keys(eras).length, perSeat: filled ? adjusted / filled : 0 };
 };
 
 /* ---- helpers ------------------------------------------------------------- */

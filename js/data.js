@@ -228,7 +228,7 @@ G.POLITICIANS = [
   /* ========================= e7 : Coalition & After (2010–present) ====== */
   /* Conservative */
   P("David Cameron",      "Conservative", "e7", ["pm","foreign"],           [70,80,80,72,66], "PM 2010–16; returned as Foreign Secretary in 2023."),
-  P("George Osborne",     "Conservative", "e7", ["chancellor"],             [58,72,70,74,66], "Austerity-era Chancellor."),
+  P("George Osborne",     "Conservative", "e7", ["chancellor"],             [58,72,70,74,66], "Austerity-era Chancellor and Cameron's chief strategist; later a newspaper editor."),
   P("Theresa May",        "Conservative", "e7", ["pm","home"],              [54,80,56,64,52], "Long-serving Home Secretary; PM through the Brexit deadlock."),
   P("Boris Johnson",      "Conservative", "e7", ["pm","foreign"],           [78,70,84,56,48], "Won an 80-seat majority in 2019."),
   P("Philip Hammond",     "Conservative", "e7", ["chancellor","foreign","defence"], [48,76,56,72,58], "Treasury, Foreign and Defence; 'Spreadsheet Phil'."),
@@ -252,8 +252,8 @@ G.POLITICIANS = [
   P("Shabana Mahmood",    "Labour",       "e7", ["home","justice"],         [54,64,62,66,60], "Justice Secretary, then Home Secretary."),
   P("David Lammy",        "Labour",       "e7", ["foreign","justice","deputy"], [62,68,76,62,58], "Foreign Secretary, then Deputy PM and Justice Secretary."),
   P("Angela Rayner",      "Labour",       "e7", ["deputy"],                 [66,58,72,56,64], "Deputy PM and deputy Labour leader until 2025."),
-  P("Wes Streeting",      "Labour",       "e7", ["health","leader"],        [60,58,74,62,58], "Reforming Health Secretary."),
-  P("Bridget Phillipson", "Labour",       "e7", ["education"],              [54,56,62,60,56], "Education Secretary."),
+  P("Wes Streeting",      "Labour",       "e7", ["health","leader"],        [60,58,74,62,58], "Health Secretary driving NHS reform; a leading figure on Labour's right."),
+  P("Bridget Phillipson", "Labour",       "e7", ["education"],              [54,56,62,60,56], "Education Secretary in Starmer's government; a schools-and-childcare reformer from the North East."),
   P("John Healey",        "Labour",       "e7", ["defence"],                [50,70,58,64,58], "Defence Secretary; long-serving frontbencher."),
   P("Pat McFadden",       "Labour",       "e7", ["business","whip"],        [48,72,58,68,66], "Cabinet Office fixer; ran a welfare 'super-ministry'."),
   P("Ed Miliband",        "Labour",       "e7", ["leader","business"],      [54,66,66,62,56], "Labour leader 2010–15; Energy Secretary."),
@@ -268,25 +268,25 @@ G.POLITICIANS = [
   P("Alex Salmond",       "SNP",          "e7", ["pm","leader"],            [70,76,84,74,64], "First Minister; brought the SNP to power."),
   P("John Swinney",       "SNP",          "e7", ["pm","chancellor","leader"], [56,74,62,68,66], "First Minister; long-time SNP deputy and finance chief."),
   P("Humza Yousaf",       "SNP",          "e7", ["pm","health","leader"],   [54,62,64,56,52], "Briefly First Minister; held Health and Justice."),
-  P("Stephen Flynn",      "SNP",          "e7", ["leader"],                 [58,52,72,56,58], "SNP's Westminster leader."),
+  P("Stephen Flynn",      "SNP",          "e7", ["leader"],                 [58,52,72,56,58], "The SNP's pugnacious Westminster leader; an Aberdeen MP of the party's younger generation."),
   P("Kate Forbes",        "SNP",          "e7", ["chancellor","deputy"],    [56,58,64,66,56], "Deputy First Minister; former finance secretary."),
   /* Plaid Cymru */
   P("Adam Price",         "Plaid Cymru",  "e7", ["leader"],                 [58,58,76,60,56], "Former Plaid Cymru leader and noted orator."),
-  P("Leanne Wood",        "Plaid Cymru",  "e7", ["leader"],                 [58,54,68,56,54], "Former Plaid Cymru leader."),
-  P("Rhun ap Iorwerth",   "Plaid Cymru",  "e7", ["leader"],                 [54,56,64,58,58], "Plaid Cymru leader."),
+  P("Leanne Wood",        "Plaid Cymru",  "e7", ["leader"],                 [58,54,68,56,54], "Former Plaid Cymru leader; a left-wing Welsh republican who broke the party's mould."),
+  P("Rhun ap Iorwerth",   "Plaid Cymru",  "e7", ["leader"],                 [54,56,64,58,58], "Leader of Plaid Cymru and a former BBC journalist; Member of the Senedd for Ynys Môn."),
   /* Reform UK */
   P("Nigel Farage",       "Reform UK",    "e7", ["leader","foreign","business"], [76,58,86,46,52], "Insurgent campaigner; UKIP, the Brexit Party and Reform UK."),
-  P("Richard Tice",       "Reform UK",    "e7", ["business","deputy","leader"], [54,50,64,50,56], "Reform UK deputy leader and MP."),
+  P("Richard Tice",       "Reform UK",    "e7", ["business","deputy","leader"], [54,50,64,50,56], "Property entrepreneur and Reform UK deputy leader; a long-time Brexit campaigner turned MP."),
   P("Zia Yusuf",          "Reform UK",    "e7", ["business","home","whip"],  [52,46,60,58,54], "Businessman; Reform UK chairman and policy chief."),
   P("Lee Anderson",       "Reform UK",    "e7", ["whip","leader"],           [56,44,62,42,50], "Reform UK chief whip and chairman; MP for Ashfield."),
   P("Ben Habib",          "Reform UK",    "e7", ["business"],                [46,46,58,52,44], "Businessman; former Reform UK deputy leader."),
-  P("Paul Nuttall",       "Reform UK",    "e7", ["leader","deputy"],         [44,48,58,46,48], "Former UKIP leader."),
+  P("Paul Nuttall",       "Reform UK",    "e7", ["leader","deputy"],         [44,48,58,46,48], "Former UKIP leader who tried to push the party into Labour's northern heartlands."),
   /* Green */
-  P("Caroline Lucas",     "Green",        "e7", ["leader","education"],      [64,64,76,64,62], "The Green Party's first MP."),
-  P("Carla Denyer",       "Green",        "e7", ["leader","business"],       [56,50,68,56,56], "Green Party co-leader and MP."),
-  P("Adrian Ramsay",      "Green",        "e7", ["leader"],                  [50,50,62,54,56], "Green Party co-leader and MP."),
+  P("Caroline Lucas",     "Green",        "e7", ["leader","education"],      [64,64,76,64,62], "The Green Party's first MP, who held Brighton Pavilion for fourteen years as its sole Commons voice."),
+  P("Carla Denyer",       "Green",        "e7", ["leader","business"],       [56,50,68,56,56], "Green Party co-leader and MP for Bristol Central; an engineer who unseated a shadow cabinet minister."),
+  P("Adrian Ramsay",      "Green",        "e7", ["leader"],                  [50,50,62,54,56], "Green Party co-leader and MP for Waveney Valley; a former deputy leader of the party."),
   P("Zack Polanski",      "Green",        "e7", ["leader"],                  [58,48,72,54,54], "Green Party leader from 2025; 'eco-populist'."),
-  P("Natalie Bennett",    "Green",        "e7", ["leader"],                  [48,52,58,52,54], "Former Green Party leader."),
+  P("Natalie Bennett",    "Green",        "e7", ["leader"],                  [48,52,58,52,54], "Australian-born former Green Party leader, now a peer; fronted the party's 2015 surge."),
   /* Your Party */
   P("Jeremy Corbyn",      "Your Party",   "e7", ["leader","foreign"],        [62,76,68,54,40], "Former Labour leader; co-founded the left-wing Your Party in 2025."),
   P("Zarah Sultana",      "Your Party",   "e7", ["leader"],                  [58,46,70,48,42], "Co-founder of Your Party; MP for Coventry South."),
@@ -311,7 +311,7 @@ G.POLITICIANS = [
   P("Franklin D. Roosevelt","US Democrat", "e3", ["pm"],                    [86,90,88,86,78], "Four-term US President; the New Deal and WWII.", "wild"),
   P("John F. Kennedy",    "US Democrat",   "e4", ["pm","foreign"],          [86,62,88,68,66], "35th US President; Cuban Missile Crisis.", "wild"),
   P("Lyndon B. Johnson",  "US Democrat",   "e4", ["pm","leader"],           [62,82,64,78,80], "Civil Rights and the Great Society; the Vietnam quagmire.", "wild"),
-  P("Bill Clinton",       "US Democrat",   "e6", ["pm"],                    [82,76,86,76,66], "Two-term 42nd US President.", "wild"),
+  P("Bill Clinton",       "US Democrat",   "e6", ["pm"],                    [82,76,86,76,66], "Two-term 42nd US President; oversaw a 1990s economic boom and survived impeachment.", "wild"),
   P("Barack Obama",       "US Democrat",   "e7", ["pm","foreign"],          [88,68,92,74,70], "44th US President; 'Yes we can'.", "wild"),
   P("Joe Biden",          "US Democrat",   "e7", ["pm","foreign"],          [54,88,56,64,62], "46th US President; half a century in US politics.", "wild"),
   /* --- Dictators & Despots (factual, condemnatory-neutral notes) --- */
@@ -322,7 +322,7 @@ G.POLITICIANS = [
   P("Vladimir Putin",     "Dictators",     "e7", ["leader","defence"],      [56,78,56,52,80], "President of Russia; the invasion of Ukraine.", "wild"),
   P("Muammar Gaddafi",    "Dictators",     "e5", ["leader"],               [48,62,54,34,70], "Ruled Libya for four decades until his overthrow.", "wild"),
   P("Saddam Hussein",     "Dictators",     "e5", ["defence","leader"],      [46,58,52,32,72], "Dictator of Iraq; toppled in the 2003 invasion.", "wild"),
-  P("Kim Jong-un",        "Dictators",     "e7", ["leader","defence"],      [40,46,44,38,82], "Supreme Leader of North Korea.", "wild"),
+  P("Kim Jong-un",        "Dictators",     "e7", ["leader","defence"],      [40,46,44,38,82], "Supreme Leader of North Korea; a nuclear-armed hereditary dictator who rules through fear.", "wild"),
   P("Joseph Goebbels",    "Dictators",     "e3", ["leader"],               [38,44,70,30,60], "Nazi propaganda minister; a principal architect of Holocaust-era propaganda.", "wild"),
   P("Heinrich Himmler",   "Dictators",     "e3", ["home"],                 [28,46,32,34,64], "Head of the SS; chief organiser of the Holocaust.", "wild"),
   P("Hermann Göring",     "Dictators",     "e3", ["defence","deputy"],     [44,48,46,32,56], "Leading Nazi; founded the Gestapo and directed the Luftwaffe.", "wild"),
@@ -345,7 +345,7 @@ G.POLITICIANS = [
   P("David Ben-Gurion",   "World Leaders", "e4", ["pm","defence"],         [70,74,70,72,72], "Israel's founding Prime Minister.", "wild"),
   P("Anwar Sadat",        "World Leaders", "e5", ["pm","foreign"],         [66,68,66,68,64], "Egyptian president who made a historic peace with Israel.", "wild"),
   P("Yitzhak Rabin",      "World Leaders", "e6", ["pm","defence"],         [62,72,60,68,66], "Israeli Prime Minister and Oslo peace signatory.", "wild"),
-  P("Volodymyr Zelensky", "World Leaders", "e7", ["leader","pm"],          [78,52,82,58,70], "Wartime President of Ukraine.", "wild"),
+  P("Volodymyr Zelensky", "World Leaders", "e7", ["leader","pm"],          [78,52,82,58,70], "Actor-turned-wartime President of Ukraine; rallied his country against Russia's invasion.", "wild"),
   P("Deng Xiaoping",      "World Leaders", "e5", ["leader","chancellor"],  [60,80,58,82,76], "Architect of China's economic transformation.", "wild"),
   P("Kofi Annan",         "World Leaders", "e6", ["foreign"],              [70,74,68,74,64], "UN Secretary-General and Nobel Peace laureate.", "wild"),
   P("Shinzo Abe",         "World Leaders", "e7", ["pm","foreign"],         [60,72,62,70,70], "Japan's longest-serving Prime Minister.", "wild"),
@@ -357,10 +357,10 @@ G.POLITICIANS = [
   P("Nelson Mandela",     "World Leaders", "e6", ["pm","leader"],           [92,72,86,78,74], "Anti-apartheid leader and first post-apartheid President of South Africa.", "wild"),
   P("Mahatma Gandhi",     "World Leaders", "e3", ["leader"],               [90,66,82,72,70], "Led India's non-violent independence movement.", "wild"),
   P("Mikhail Gorbachev",  "World Leaders", "e5", ["pm","foreign"],          [64,72,66,68,52], "Last Soviet leader; glasnost and perestroika.", "wild"),
-  P("Emmanuel Macron",    "World Leaders", "e7", ["pm","foreign"],          [58,64,72,66,58], "President of France.", "wild"),
-  P("Golda Meir",         "World Leaders", "e4", ["pm","foreign"],          [66,72,68,70,72], "Prime Minister of Israel.", "wild"),
+  P("Emmanuel Macron",    "World Leaders", "e7", ["pm","foreign"],          [58,64,72,66,58], "President of France since 2017; a centrist former investment banker and economy minister.", "wild"),
+  P("Golda Meir",         "World Leaders", "e4", ["pm","foreign"],          [66,72,68,70,72], "Prime Minister of Israel during the 1973 Yom Kippur War; among the first women to lead a nation.", "wild"),
   P("Lee Kuan Yew",       "World Leaders", "e4", ["pm","business"],         [68,86,72,88,82], "Founding Prime Minister of Singapore.", "wild"),
-  P("Jacinda Ardern",     "World Leaders", "e7", ["pm"],                    [74,56,78,64,62], "Prime Minister of New Zealand.", "wild"),
+  P("Jacinda Ardern",     "World Leaders", "e7", ["pm"],                    [74,56,78,64,62], "Prime Minister of New Zealand 2017-2023; led through Christchurch and the pandemic, then resigned on her own terms.", "wild"),
   /* --- Revolutionaries & Founders --- */
   P("Napoleon Bonaparte", "Revolutionaries","e0", ["pm","defence"],         [82,80,80,78,76], "Emperor of the French; reshaped Europe.", "wild"),
   P("George Washington",  "Revolutionaries","e0", ["pm","defence"],         [80,76,64,84,80], "Commander of the Continental Army; first US President.", "wild"),
@@ -384,15 +384,49 @@ G.POLITICIANS = [
   P("Ann Widdecombe",     "Reform UK",    "e7", ["home","justice","leader"], [58,80,66,64,60], "Veteran former Conservative minister, now a senior Reform figure."),
   P("David Bull",         "Reform UK",    "e7", ["health","leader"],       [64,52,68,52,58], "Broadcaster, doctor and Reform chairman."),
   P("Catherine Blaiklock","Brexit Party", "e7", ["business"],              [46,48,50,54,44], "Founder of the Brexit Party."),
-  P("Annunziata Rees-Mogg","Brexit Party","e7", ["business","education"],  [50,50,56,54,48], "Brexit Party MEP."),
+  P("Annunziata Rees-Mogg","Brexit Party","e7", ["business","education"],  [50,50,56,54,48], "Journalist and former Brexit Party MEP; sister of Jacob Rees-Mogg."),
   P("Gerard Batten",      "UKIP",         "e7", ["leader","home"],         [46,56,54,50,52], "Former UKIP leader and long-serving MEP."),
   P("Suzanne Evans",      "UKIP",         "e7", ["business","leader"],     [56,54,62,58,52], "Former UKIP policy chief and deputy chair."),
   P("Douglas Carswell",   "UKIP",         "e7", ["business","chancellor"], [58,66,64,66,50], "The first MP elected for UKIP, after defecting from the Conservatives."),
   P("Mark Reckless",      "UKIP",         "e7", ["home","business"],       [50,60,56,58,50], "Former Conservative who won re-election as a UKIP MP."),
   P("Roger Helmer",       "UKIP",         "e7", ["business","defence"],    [44,58,52,56,48], "Former Conservative MEP who later joined UKIP."),
-  P("Diane James",        "UKIP",         "e7", ["foreign","leader"],      [50,52,54,54,46], "MEP and briefly leader of UKIP."),
+  P("Diane James",        "UKIP",         "e7", ["foreign","leader"],      [50,52,54,54,46], "MEP who led UKIP for just eighteen days before walking away."),
   P("Neil Hamilton",      "UKIP",         "e7", ["leader","justice"],      [44,62,58,52,50], "Former Conservative MP and later UKIP's leader in Wales.")
 ];
+
+/* -------------------------------------------------------------- DESPOTS -- */
+/* Who counts as a despot (for the spin's intrusion and the cabinet penalty),
+   and where each one sits on a crude left/right axis. A satirical abstraction,
+   not a serious political taxonomy. The Dictators party is despotic by default;
+   a few revolutionaries are folded in so each side has a plausible "own-side"
+   wrecker for Dynasty mode. */
+G.DESPOT_EXTRA = { "Vladimir Lenin": 1, "Fidel Castro": 1, "Che Guevara": 1, "Maximilien Robespierre": 1 };
+G.isDespot = function (p) { return !!p && (p.party === "Dictators" || !!G.DESPOT_EXTRA[p.name]); };
+G.DESPOT_SPECTRUM = {
+  /* hard right / fascist / nationalist-authoritarian */
+  "Adolf Hitler":"right","Benito Mussolini":"right","Francisco Franco":"right","Augusto Pinochet":"right",
+  "Hideki Tojo":"right","Joseph Goebbels":"right","Heinrich Himmler":"right","Hermann Göring":"right",
+  "Reinhard Heydrich":"right","Suharto":"right","Mobutu Sese Seko":"right","Vladimir Putin":"right",
+  "Slobodan Milošević":"right","Saddam Hussein":"right","Muammar Gaddafi":"right","Bashar al-Assad":"right",
+  "Robert Mugabe":"right","Idi Amin":"right",
+  /* communist / hard left */
+  "Joseph Stalin":"left","Mao Zedong":"left","Pol Pot":"left","Nicolae Ceaușescu":"left",
+  "Kim Il-sung":"left","Kim Jong-un":"left","Vladimir Lenin":"left","Fidel Castro":"left",
+  "Che Guevara":"left","Maximilien Robespierre":"left"
+};
+/* a player's lineage -> which side a Dynasty despot should come from */
+G.LINEAGE_SPECTRUM = {
+  Conservative:"right", Reform:"right", Restore:"right",
+  Labour:"left", YourParty:"left", Green:"left", SNP:"left", Plaid:"left"
+};
+G.spectrumOfLineage = function (lin) { return G.LINEAGE_SPECTRUM[lin] || null; };
+G.despotPool = function (spectrum) {
+  return G.POLITICIANS.filter(function (p) {
+    if (!G.isDespot(p)) return false;
+    if (!spectrum) return true;
+    return (G.DESPOT_SPECTRUM[p.name] || null) === spectrum;
+  });
+};
 
 /* ---------------------------------------------------------------- CONFIG -- */
 G.CONFIG = {
@@ -407,6 +441,11 @@ G.CONFIG = {
   strengthCeil:  12 * 92,
   diversityBonusPerEra: 0.004,
   diversityErasFree: 3,
+
+  /* hands-off spin & despots */
+  despotUnityChance:   0.08,   // Greatest Cabinet (Unity): small chance a despot intrudes
+  despotDynastyChance: 0.12,   // Dynasty: chance of a despot on your own side
+  despotPenalty:       0.75,   // each despot multiplies cabinet strength (compounding) — a national scandal
 
   /* national vote -> seat responsiveness (cube-law-inspired logistic) */
   seatsK: 20,
