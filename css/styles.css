@@ -623,3 +623,45 @@ body::before {
 .lb-seats { font-family:var(--mono,monospace); font-weight:700; text-align:right; color:var(--green,#2f5d3a); }
 .lb-leg { font-family:var(--mono,monospace); text-align:right; color:var(--ink-soft,#6b6256); }
 @media (max-width:560px){ .lb-row { grid-template-columns:26px 1fr 48px 44px; } .lb-md { display:none; } }
+
+/* ---- v3 additions: portraits, overall rating, deal card, board tabs ---- */
+.cand-pic, .seat-pic, .roll-pic {
+  flex-shrink: 0; border-radius: 50%; background: #e7e1d3 center/cover no-repeat;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); color: #6b6b6b; overflow: hidden; border: 1px solid var(--line);
+}
+.cand-pic { width: 46px; height: 46px; font-size: 14px; }
+.seat-pic { width: 30px; height: 30px; font-size: 11px; }
+.roll-pic { width: 40px; height: 40px; font-size: 13px; }
+.cand-pic img, .seat-pic img, .roll-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ovr {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px;
+  padding: 0 6px; border-radius: 6px; font-family: var(--mono); font-weight: 700; font-size: 16px;
+  color: #fff; background: var(--oxblood, #862231); line-height: 1;
+}
+.ovr.s-elite { background: #1d6b3a; } .ovr.s-good { background: #3a7d44; }
+.ovr.s-mid { background: #8a6d2f; } .ovr.s-low { background: #9a4630; }
+.ovr-cap { display:block; font-family:var(--mono); font-size:8.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); text-align:center; margin-top:2px; }
+.deal-card { display:flex; gap:14px; align-items:flex-start; padding:14px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+.deal-card.is-despot { border-color:#9a1f1f; background:#fff3f0; box-shadow:0 0 0 2px rgba(154,31,31,.12); }
+.deal-card .dc-main { flex:1 1 auto; min-width:0; }
+.deal-card .dc-nm { font-family:var(--display); font-weight:700; font-size:19px; line-height:1.1; }
+.deal-card .dc-meta { font-size:12.5px; color:var(--ink-soft); margin-top:3px; }
+.deal-card .dc-note { font-family:var(--serif,var(--display)); font-style:italic; font-size:13px; color:#444; margin-top:7px; line-height:1.4; }
+.deal-card .dc-assign { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--green,#2f5d3a); margin-top:8px; }
+.deal-card .dc-despot { font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#9a1f1f; font-weight:700; margin-top:6px; }
+.deal-card .dc-stats { display:flex; gap:10px; margin-top:9px; flex-wrap:wrap; }
+.deal-hint { font-style:italic; color:var(--ink-soft); text-align:center; padding:22px 8px; }
+.seat .seat-ovr { margin-left:auto; }
+.seat.despot { border-color:#9a1f1f; background:#fff3f0; }
+.lb-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.lb-tab { cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:8px 14px; border-radius:4px; border:1px solid var(--line); background:transparent; color:var(--ink-soft); }
+.lb-tab.sel { background:var(--ink,#1c1a14); color:#fff; border-color:var(--ink,#1c1a14); }
+.lb-row.expandable { cursor:pointer; }
+.lb-detail { padding:10px 12px 4px; border-left:3px solid var(--brass,#b08d2f); margin:2px 0 10px; background:rgba(0,0,0,.02); }
+.lb-detail .lbd-seat { display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:3px 0; border-bottom:1px dotted var(--line-soft,#e6e0d2); }
+.lb-detail .lbd-seat .who { font-family:var(--display); font-weight:600; }
+.lb-detail .lbd-seat .role { font-family:var(--mono); font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); }
+.lb-detail .lbd-bd { margin-top:8px; font-size:12px; color:var(--ink-soft); }
+.lb-sub { font-family:var(--mono); font-size:10px; color:var(--ink-soft); }
+.st-you-tag { display:inline-block; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:.08em; color:#fff; background:var(--oxblood,#862231); padding:2px 6px; border-radius:4px; margin-left:6px; vertical-align:middle; }
