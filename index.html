@@ -58,14 +58,14 @@
             </button>
             <button class="opt" data-mode="parl2024">
               <h4>2024 Parliament 🗳</h4>
-              <p>Draft from the 2024 general-election field. A seeded sample, expandable via the politicians sheet.</p>
+              <p>Draft from the 2024 general-election field — the current House of Commons.</p>
             </button>
           </div>
           <div class="dynasty-pick" id="dynastyPick"></div>
           <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
         </div>
 
-        <div>
+        <div id="eraSection">
           <p class="section-label">2 · Eras in play</p>
           <p class="mini-help">Tap to leave an era out of the draft.</p>
           <div class="era-toggles" id="eraToggles"></div>
@@ -412,7 +412,7 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <p class="acct-note">Pick an existing figure and press <b>Load</b> to edit them, or type a new name to add one. Saved edits go to the politicians sheet and override the built-in figure for everyone at the next load.</p>
+        <p class="acct-note">Pick an existing figure and press <b>Load</b> to edit them, or type a new name to add one. Saved edits override the built-in figure for everyone at the next load.</p>
         <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Name (start typing to find an existing figure)" />
         <datalist id="apNames"></datalist>
         <div class="btn-row"><button class="btn btn-ghost" id="apLoad">Load for editing</button></div>
@@ -450,7 +450,7 @@
         <option value="parl2024|normal|expanded">2024 Parliament · Normal · Expanded</option>
       </select></div>
       <p class="mini-help" id="lbStatus">Loading…</p>
-      <div class="lb-namebar"><input id="lbName" class="lb-input" type="text" maxlength="24" placeholder="Your name (shown on the board)" /></div>
+      <p class="mini-help" id="lbWhoNote"></p>
       <div class="panel"><div class="lb-table" id="lbTable"></div></div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="lbRefreshBtn">Refresh</button>
