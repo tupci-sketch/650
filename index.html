@@ -38,7 +38,7 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
-      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, choose their seat, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the House.</p>
+      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, choose their seat, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the Commons.</p>
 
       <div class="menu-grid">
         <div class="span-2">
@@ -62,6 +62,14 @@
             </button>
           </div>
           <div class="dynasty-pick" id="dynastyPick"></div>
+          <div id="partySection" class="party-section">
+            <p class="sub-label">Your party — name it, place it, colour it</p>
+            <input id="partyNameInput" class="lb-input party-name" type="text" maxlength="28" autocomplete="off" spellcheck="false" placeholder="Your unity ticket…" />
+            <div class="align-row" id="partyAlignRow"></div>
+            <div class="party-swatches" id="partySwatches"></div>
+            <p class="mini-help">The name and colour appear on the count, the map, the result and your shared card; the alignment shapes which coalitions come naturally — and tilts the regions a touch. It never changes who you can draft. Leave it blank for the house style.</p>
+            <p class="mini-help party-msg" id="partyMsg"></p>
+          </div>
           <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
         </div>
 
@@ -208,7 +216,7 @@
       </div>
 
       <div class="panel" style="margin-top:18px">
-        <p class="section-label">Projected House <span class="board-note">updating live</span></p>
+        <p class="section-label">Projected Commons <span class="board-note">updating live</span></p>
         <div class="standings" id="watchStandings"></div>
       </div>
 
@@ -412,17 +420,29 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <p class="acct-note">Pick an existing figure and press <b>Load</b> to edit them, or type a new name to add one. Saved edits override the built-in figure for everyone at the next load.</p>
+        <p class="acct-note">Pick a figure and press <b>Load</b> — the whole record appears below as <b>plain text</b>, one field per line. Edit anything (or write a new record from scratch) and <b>Save</b>. Saved records override the built-in figure for everyone at the next load.</p>
         <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Name (start typing to find an existing figure)" />
         <datalist id="apNames"></datalist>
         <div class="btn-row"><button class="btn btn-ghost" id="apLoad">Load for editing</button></div>
-        <input id="apParty" class="lb-input" placeholder="Party (e.g. Labour, Conservative, Reform UK)" />
-        <input id="apFits" class="lb-input" placeholder="Fits — comma keys: pm,chancellor,foreign,home,defence,health,…" />
-        <input id="apStats" class="lb-input" placeholder="Stats: appeal,experience,oratory,statecraft,party  (e.g. 60,70,60,80,60)" />
-        <input id="apNote" class="lb-input" maxlength="160" placeholder="One-line note (optional)" />
-        <label class="adm-check"><input type="checkbox" id="apMode2024" /> A 2024-Parliament figure (edits/creates the 2024 record)</label>
-        <button class="btn btn-ghost" id="apSave">Save politician</button>
+        <textarea id="apText" class="lb-input adm-area adm-area-pol" spellcheck="false" placeholder="name: Full Name
+party: Labour
+era: postwar
+scope: uk            (uk = historical · p24 = 2024 Parliament)
+stats: 60, 70, 60, 80, 60    (appeal, experience, oratory, statecraft, party)
+fits: pm, chancellor
+despot: no
+note: One line on them (optional)"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="apSave">Save politician</button>
+          <button class="btn btn-ghost danger" id="apDelete">Delete this record</button>
+        </div>
         <p class="acct-note" id="apMsg"></p>
+      </div>
+      <div class="panel admin-block">
+        <h4>Server records <span class="board-note">added figures &amp; overrides</span></h4>
+        <p class="acct-note">Only records saved to the sheet are listed (and deletable) here — the game's built-in, hard-coded figures can't be deleted. Deleting an <i>override</i> simply restores the built-in figure at the next load.</p>
+        <div id="apList" class="adm-pol-list"></div>
+        <button class="btn btn-ghost" id="apListRefresh">Refresh records</button>
       </div>
       <div class="panel admin-block">
         <h4>Users</h4>
@@ -473,6 +493,7 @@
 
   <!-- scripts: order matters (no build step, plain globals) -->
   <script src="js/data.js"></script>
+  <script src="js/filter.js"></script>
   <script src="js/hexmap.js"></script>
   <script src="js/data.mps.js"></script>
   <script src="js/election.js"></script>
