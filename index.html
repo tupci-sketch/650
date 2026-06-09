@@ -412,11 +412,15 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <input id="apName" class="lb-input" placeholder="Name" />
+        <p class="acct-note">Pick an existing figure and press <b>Load</b> to edit them, or type a new name to add one. Saved edits go to the politicians sheet and override the built-in figure for everyone at the next load.</p>
+        <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Name (start typing to find an existing figure)" />
+        <datalist id="apNames"></datalist>
+        <div class="btn-row"><button class="btn btn-ghost" id="apLoad">Load for editing</button></div>
         <input id="apParty" class="lb-input" placeholder="Party (e.g. Labour, Conservative, Reform UK)" />
         <input id="apFits" class="lb-input" placeholder="Fits — comma keys: pm,chancellor,foreign,home,defence,health,…" />
         <input id="apStats" class="lb-input" placeholder="Stats: appeal,experience,oratory,statecraft,party  (e.g. 60,70,60,80,60)" />
-        <label class="adm-check"><input type="checkbox" id="apMode2024" /> A 2024-Parliament figure</label>
+        <input id="apNote" class="lb-input" maxlength="160" placeholder="One-line note (optional)" />
+        <label class="adm-check"><input type="checkbox" id="apMode2024" /> A 2024-Parliament figure (edits/creates the 2024 record)</label>
         <button class="btn btn-ghost" id="apSave">Save politician</button>
         <p class="acct-note" id="apMsg"></p>
       </div>
