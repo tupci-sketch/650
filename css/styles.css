@@ -388,7 +388,7 @@ body::before {
 .setup-hint.warn { color: var(--oxblood); }
 
 /* ===== watch-along ===== */
-.watch-head { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: stretch; }
+.watch-head { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
 @media (max-width: 720px){ .watch-head { grid-template-columns: 1fr; } }
 .watch-tally {
   background: linear-gradient(180deg, #2a2620, #1c1813); border: 2px solid var(--brass);
@@ -400,8 +400,8 @@ body::before {
 .watch-tally .wt-num { font-family: var(--display); font-weight: 900; font-size: 64px; line-height: .9; margin: 4px 0; color: #fff; }
 .watch-tally .wt-sub { font-family: var(--mono); font-size: 11px; color: #cdbf9c; letter-spacing: .04em; }
 .watch-tally .wt-sub b { color: #fff; }
-.watch-feed { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 8px 14px; overflow: hidden; display: flex; flex-direction: column; }
-.feed-line { font-family: var(--mono); font-size: 12px; letter-spacing: .03em; color: var(--ink); padding: 6px 0; border-bottom: 1px dotted var(--line); }
+.watch-feed { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 4px 14px; height: 240px; max-height: 42vh; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+.feed-line { font-family: var(--mono); font-size: 12px; letter-spacing: .03em; color: var(--ink); padding: 6px 0; border-bottom: 1px dotted var(--line); overflow-wrap: anywhere; word-break: break-word; }
 .feed-line:last-child { border-bottom: 0; }
 .feed-line.muted { color: var(--ink-soft); font-style: italic; }
 .feed-line.win { color: var(--green); font-weight: 500; }
@@ -619,6 +619,11 @@ body::before {
 .lb-row.top { background:rgba(179,134,47,.12); }
 .lb-rk { font-family:var(--mono,monospace); font-weight:600; color:var(--brass,#b3862f); text-align:center; }
 .lb-nm { font-weight:600; color:var(--ink,#241f17); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* role name colours (chat + leaderboard): admin dark red, moderator dark blue, user black */
+.role-admin { color:#9e1b1b !important; }
+.role-mod   { color:#1f3a8f !important; }
+.role-user  { color:var(--ink,#241f17) !important; }
 .lb-md { font-family:var(--mono,monospace); font-size:11px; color:var(--ink-soft,#6b6256); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .lb-seats { font-family:var(--mono,monospace); font-weight:700; text-align:right; color:var(--green,#2f5d3a); }
 .lb-leg { font-family:var(--mono,monospace); text-align:right; color:var(--ink-soft,#6b6256); }
@@ -651,6 +656,13 @@ body::before {
 .deal-card .dc-assign { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--green,#2f5d3a); margin-top:8px; }
 .deal-card .dc-despot { font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#9a1f1f; font-weight:700; margin-top:6px; }
 .deal-card .dc-stats { display:flex; gap:10px; margin-top:9px; flex-wrap:wrap; }
+
+/* three candidates on offer — stacked, tappable cards */
+.deal-choices { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+.deal-card.choice { cursor:pointer; transition:border-color .12s, box-shadow .12s, background .12s; }
+.deal-card.choice:hover { border-color:var(--brass,#b9892f); }
+.deal-card.choice.chosen { border-color:var(--green,#2f5d3a); background:#f3f7f1; box-shadow:0 0 0 2px rgba(47,93,58,.18); }
+.deal-card.choice.is-despot.chosen { border-color:#9a1f1f; background:#fff3f0; box-shadow:0 0 0 2px rgba(154,31,31,.18); }
 .deal-hint { font-style:italic; color:var(--ink-soft); text-align:center; padding:22px 8px; }
 .seat .seat-ovr { margin-left:auto; }
 .seat.despot { border-color:#9a1f1f; background:#fff3f0; }
