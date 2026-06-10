@@ -778,3 +778,51 @@ body::before {
   .lb-row { font-size: 13px; }
   .party-swatch { width: 56px; }
 }
+
+/* ============================== v6: casts, tiers, flags ================== */
+.cast-chip.locked { opacity: .75; cursor: default; }
+.cast-chip.locked b::after { content: " ✓"; color: var(--green, #2f5d3a); }
+.tier-chip { font-family: var(--mono, monospace); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 999px; border: 1px solid rgba(80,74,60,.35); white-space: nowrap; }
+.tier-chip.t-a { background: rgba(176,141,47,.18); border-color: rgba(176,141,47,.6); color: #7a5d14; }
+.tier-chip.t-b { background: rgba(47,93,58,.12); color: var(--green, #2f5d3a); }
+.tier-chip.t-c { background: rgba(80,74,60,.08); }
+.tier-chip.t-d { color: var(--ink-soft, #6b6256); }
+.dc-flag { font-family: var(--mono, monospace); font-size: 11px; color: #8a5a00; background: rgba(214,164,0,.12);
+  border: 1px dashed rgba(176,141,47,.55); border-radius: 8px; padding: 5px 8px; margin-top: 6px; }
+.deal-card.is-flagged { border-color: rgba(176,141,47,.55); }
+.seat.flagged { box-shadow: inset 3px 0 0 rgba(176,141,47,.7); }
+.grandees-banner { font-family: var(--display); font-weight: 600; text-align: center; padding: 9px 12px; margin-bottom: 10px;
+  border: 1px solid rgba(176,141,47,.6); border-radius: 10px; background: linear-gradient(180deg, rgba(214,164,0,.16), rgba(214,164,0,.05));
+  color: #6e5410; }
+
+/* ============================== v6: pledges ============================== */
+.pledge-strip { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.pledge-strip .pl-cap { font-family: var(--mono, monospace); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin-right: 2px; }
+.pledge { font-size: 12px; border: 1px solid var(--line, #e3dac6); border-radius: 999px; padding: 3px 10px; background: rgba(255,255,255,.55); }
+.pledge i { font-style: normal; font-family: var(--mono, monospace); font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; margin-left: 6px; color: var(--ink-soft); }
+.pledge.delivered { border-color: rgba(47,93,58,.55); background: rgba(47,93,58,.10); }
+.pledge.delivered i { color: var(--green, #2f5d3a); }
+.pledge.watered { border-color: rgba(176,141,47,.5); background: rgba(176,141,47,.10); }
+.pledge.broken { border-color: rgba(134,34,49,.5); background: rgba(134,34,49,.08); }
+.pledge.broken i { color: var(--oxblood, #862231); }
+
+/* ============================== v6: opposition =========================== */
+.opp-gov { border-left: 4px solid rgba(134,34,49,.5); }
+.attack-chip { font-size: 12.5px; }
+.attack-chip.sel { border-color: var(--oxblood, #862231); box-shadow: inset 0 0 0 1px var(--oxblood, #862231); font-weight: 600; background: rgba(134,34,49,.06); }
+.force-btn { width: 100%; margin-top: 10px; font-family: var(--display); font-weight: 700; padding: 11px;
+  border: 1px solid rgba(134,34,49,.6); border-radius: 10px; background: rgba(134,34,49,.08); color: var(--oxblood, #862231); cursor: pointer;
+  transition: transform .08s ease, background .12s ease; }
+.force-btn:not(:disabled):hover { background: rgba(134,34,49,.14); transform: translateY(-1px); }
+.force-btn:disabled { opacity: .45; cursor: default; }
+.gov-actions { margin-top: 10px; }
+.reshuffle-panel { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rs-chip.sel { border-color: var(--green, #2f5d3a); box-shadow: inset 0 0 0 1px var(--green, #2f5d3a); }
+
+/* ============================== v6: explainers =========================== */
+.rng-simple { border: 1px solid var(--line, #e3dac6); border-left: 4px solid var(--brass, #b08d2f); border-radius: 10px;
+  padding: 12px 14px; margin: 14px 0; background: rgba(255,255,255,.5); }
+.rng-simple h4 { margin: 0 0 6px; font-family: var(--display); }
+.rng-body h3 { margin-top: 18px; }
+.rng-body p { line-height: 1.65; }
