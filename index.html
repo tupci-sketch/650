@@ -79,6 +79,13 @@
           <div class="era-toggles" id="eraToggles"></div>
         </div>
 
+        <div id="castSection">
+          <p class="section-label">2b · Who can walk in</p>
+          <p class="mini-help">Statesmen are always in. Toggle the insiders and the mavericks — flagged figures (despots, conspiracists) are marked plainly on their cards and cost you credibility.</p>
+          <div class="era-toggles" id="castToggles"></div>
+          <p class="mini-help" id="castNote" style="display:none">A dynasty drafts its tradition's <b>whole</b> bench — these toggles don't apply.</p>
+        </div>
+
         <div>
           <p class="section-label">3 · Election difficulty</p>
           <div class="choice-row" id="diffRow">
@@ -310,6 +317,35 @@
       <div class="btn-row"><button class="btn btn-ghost" id="aboutBackBtn">← Back</button></div>
     </section>
 
+    <section id="screen-rng" class="screen">
+      <div class="wrap">
+        <div class="screen-head"><h2>The full machinery</h2>
+          <button class="btn btn-ghost" id="rngBackBtn">← Back to How it works</button></div>
+        <div class="about-body rng-body">
+          <h3>1 · The draft: weighted spins, honest luck</h3>
+          <p>Each of the three dealt cards independently rolls a <b>tier</b> first — Front rank, Cabinet calibre, Frontbench, Backbench &amp; intake, ranked by a figure's mean ratings — then takes a <b>uniform</b> pick within that tier. Tier odds multiply two things: your difficulty's appetite for stars, and the pool's own composition raised to the power 0.55, so a sea of four hundred baseline backbenchers can no longer drown twenty-five front-rankers, but big benches still feel big. No card is ever guaranteed: an awful round is always possible, and so is a jammy one.</p>
+          <p><b>The pity valve.</b> Once at least four seats are filled, if your bench's per-seat strength sits below 56 the party <b>grandees may intervene</b>: the next whole deal is drawn from the best tiers going, and it is announced. Uses: Easy 2 · Normal 1 · Hard 0. Sometimes the game saves you; sometimes you never needed saving. That's luck.</p>
+          <h3>2 · Cabinet → strength</h3>
+          <p>Each filled seat contributes its weighted stat score times a fit multiplier (bonus in a job they held, neutral in a related one, a penalty truly out of position). Each <b>despot</b> multiplies the whole ticket by 0.75 — a national scandal — and each <b>flagged</b> figure (a conspiracist, say) by 0.92, a milder credibility drag. The total per seat is judged on the same 48–92 scale whether you took twelve seats or sixteen, so the sizes compete fairly.</p>
+          <h3>3 · Strength → votes → seats</h3>
+          <p>Per-seat strength maps linearly onto a national vote share (plus a small era-diversity bonus, your difficulty's shift, and any manifesto nudge). That share sets a per-seat win <b>logit</b> through a logistic curve inspired by the cube law: small vote moves swing many seats.</p>
+          <h3>4 · Every constituency is its own contest</h3>
+          <p>Each of the 650 real seats then adjusts that logit by: a <b>persistent seat lean</b> hashed from its GSS code (±0.45 — the same marginals stay marginal from game to game); the <b>regional lean</b> (a dynasty carries its tradition's real geography, including the Northern Ireland parties living and dying in NI; custom tickets get a mild random regional colour); your <b>alignment tilt</b> in custom modes (modest by design); a shared <b>regional swing</b> and one <b>national swing</b> per campaign; <b>opposition pressure</b> (below); and per-seat luck. A seeded draw decides the seat; lost seats are awarded to a rival, so the totals always sum to exactly 650.</p>
+          <h3>5 · The random opposition</h3>
+          <p>Every rival party drafts its own front bench each game from its party-locked, <b>statesman-only</b> figures, minus anyone you took — sitting MPs only in 2024 mode, never despots. Bench quality maps into a 0.82–1.18 strength band, nudged by campaign form and the difficulty's oppBoost. Its weight in the share-out of seats you lose is multiplied by strength², and the field's average strength above 1.0 leans on your own contests. Flavour, never the decider — and the same benches return if the run is replayed.</p>
+          <h3>6 · Seeding</h3>
+          <p>At the moment you hold the election a unique runId is minted and a seed is hashed from it plus your cabinet, mode, difficulty and size (FNV-1a into mulberry32). The campaign, the odds panel (800 simulated nights) and the rival benches all draw from that one stream — bit-for-bit reproducible, which is what keeps the leaderboard fair.</p>
+          <h3>7 · Difficulty, in numbers</h3>
+          <p><b>Easy</b>: vote +4.5 pts · curve centre −0.020 · noise ×0.80 · rivals ×0.97 · tier appetite 3.2/2.6/1.6/1.0 · pity ×2.<br>
+             <b>Normal</b>: the baseline · tier appetite 2.2/2.2/1.7/1.2 · pity ×1.<br>
+             <b>Hard</b>: vote −3.5 pts · centre +0.022 · noise ×1.25 · rivals ×1.04 · tier appetite 1.3/1.8/1.8/1.5 · pity ×0. A quadruple squeeze: thinner stars, less support, a steeper hill, wilder nights, stronger rivals.</p>
+          <h3>8 · After the vote</h3>
+          <p>In office, gambles resolve at p = 0.30 + (minister's stat − 50) × 0.95% adjusted by difficulty; the mid-term Budget, your tracked pledges, by-elections, rebellions and confidence votes all feed the final legacy. In opposition the government you face decays at 0.6–2.2 a session, +2.5×(0.6–1.4) where your attack line lands on its weaker front; forcing the election is a single gamble priced off momentum, your support, their weakness and your front-runners — fail and the moment passes for two sessions.</p>
+          <p>Every number above lives in <code>CONFIG</code> at the top of <code>js/data.js</code> (and <code>GOVCONFIG</code>/<code>OPPCONFIG</code> in <code>js/govern.js</code>). Disagree with one? Edit it.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ====================================================== GOVERN === -->
     <!-- ====================================================== POLICY ==== -->
     <section id="screen-policy" class="screen">
@@ -331,6 +367,20 @@
         <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="meter" id="meterUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="gov-seats"><b id="govSeats">0</b> seats held <span class="gov-seats-sub" id="govSeatsSub"></span></div>
+        <div class="pledge-strip" id="pledgeStrip" style="display:none"></div>
+        <div class="btn-row gov-actions"><button class="btn btn-ghost" id="reshuffleBtn" style="display:none">↺ Reshuffle (once)</button></div>
+        <div class="reshuffle-panel" id="reshufflePanel" style="display:none"></div>
+      </div>
+      <div class="panel opp-gov" id="oppGovPanel" style="display:none">
+        <p class="section-label" id="oppGovName">The government</p>
+        <div class="meter" id="govApprovalBar"><span class="meter-label">Their standing</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="govEconomyBar"><span class="meter-label">Their economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <p class="mini-help">Pick your <b>attack line</b> — hitting their weaker front bites harder. Force the election when the moment is right; misjudge it and the moment passes.</p>
+        <div class="btn-row" id="attackRow">
+          <button class="chip attack-chip" data-attack="approval">Attack their standing</button>
+          <button class="chip attack-chip" data-attack="economy">Attack the economy</button>
+        </div>
+        <button class="btn force-btn" id="forceBtn" disabled>⚡ Force the election</button>
       </div>
       <div class="panel event-card" id="eventCard">
         <div class="event-head"><span class="event-icon" id="eventIcon"></span><span class="event-title" id="eventTitle"></span></div>
@@ -353,6 +403,7 @@
         <div class="meter" id="legEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="meter" id="legUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="gov-seats" id="legSeats"></div>
+        <div class="pledge-strip" id="legacyPledges" style="display:none"></div>
       </div>
       <div class="panel"><p class="section-label">Term in review</p><div class="term-review" id="termReview"></div></div>
       <div class="btn-row">
@@ -389,7 +440,7 @@
         <input id="acctUser" class="lb-input" type="text" maxlength="24" placeholder="Username" />
         <input id="acctPass" class="lb-input" type="password" maxlength="64" placeholder="Password (min 6 characters)" />
         <button class="btn btn-primary" id="acctSubmit">Sign in</button>
-        <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear. The first account created becomes the admin.</p>
+        <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear.</p>
       </div>
       <div class="btn-row"><button class="btn btn-ghost" id="acctBackBtn">Back to menu</button></div>
     </section>
@@ -445,6 +496,13 @@ note: One line on them (optional)"></textarea>
         <button class="btn btn-ghost" id="apListRefresh">Refresh records</button>
       </div>
       <div class="panel admin-block">
+        <h4>Photo audit</h4>
+        <p class="acct-note">Walks every figure through the portrait chain (override → Wikipedia → monogram) <b>in your browser</b> and lists anyone without a real photo. Fix a miss by adding a <code>wiki:</code> title or <code>img:</code> URL line in the editor above and saving — the override ships to everyone.</p>
+        <button class="btn btn-ghost" id="photoAuditBtn">Run photo audit</button>
+        <p class="acct-note" id="auditProgress"></p>
+        <div id="auditList" class="adm-pol-list"></div>
+      </div>
+      <div class="panel admin-block">
         <h4>Users</h4>
         <div id="admUsers" class="adm-users"></div>
         <button class="btn btn-ghost" id="admUsersRefresh">Refresh users</button>
@@ -493,6 +551,7 @@ note: One line on them (optional)"></textarea>
 
   <!-- scripts: order matters (no build step, plain globals) -->
   <script src="js/data.js"></script>
+  <script src="js/data.more.js"></script>
   <script src="js/filter.js"></script>
   <script src="js/hexmap.js"></script>
   <script src="js/data.mps.js"></script>
