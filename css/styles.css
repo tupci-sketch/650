@@ -826,3 +826,70 @@ body::before {
 .rng-simple h4 { margin: 0 0 6px; font-family: var(--display); }
 .rng-body h3 { margin-top: 18px; }
 .rng-body p { line-height: 1.65; }
+
+/* ========================= Wikipedia election screen ===================== */
+.wiki-wrap { max-width: 680px; margin: 0 auto; padding: 0 0 40px; }
+.wiki-wrap > .btn { margin-bottom: 18px; }
+.wiki-box { border: 1px solid #a2a9b1; border-radius: 4px; background: #f8f9fa; font-size: 13.5px; overflow: hidden; }
+.wiki-title { background: #cee0f2; padding: 10px 14px; font-family: var(--display); font-weight: 700; font-size: 16px; border-bottom: 1px solid #a2a9b1; }
+.wiki-flag { margin-right: 6px; }
+.wiki-year { color: #54595d; font-weight: 400; margin-left: 4px; }
+.wiki-date { background: #eaf3fb; padding: 6px 14px; font-size: 12px; color: #54595d; border-bottom: 1px solid #a2a9b1; }
+
+.wiki-cols { display: flex; border-bottom: 1px solid #a2a9b1; }
+.wiki-col { flex: 1; padding: 0 0 12px; }
+.wiki-divider { width: 1px; background: #a2a9b1; flex-shrink: 0; }
+.wiki-col-head { background: #cee0f2; padding: 7px 12px; font-weight: 700; font-size: 12px; text-align: center; border-bottom: 1px solid #a2a9b1; }
+
+.wiki-portrait-wrap { display: flex; justify-content: center; align-items: center; height: 90px; margin: 12px 0 8px; }
+.wiki-portrait { width: 72px; height: 90px; object-fit: cover; border: 1px solid #a2a9b1; display: block; }
+.wiki-portrait-init { width: 72px; height: 90px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 22px; font-weight: 700; background: #e8e8e8; border: 1px solid #a2a9b1;
+  color: #54595d; border-radius: 2px; }
+
+.wiki-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.wiki-table tr:nth-child(even) { background: rgba(234,243,251,.55); }
+.wt-label { padding: 4px 10px 4px 12px; color: #54595d; text-align: right; width: 50%; white-space: nowrap; vertical-align: top; }
+.wt-value { padding: 4px 12px 4px 6px; font-weight: 500; }
+
+.wiki-national { border-bottom: 1px solid #a2a9b1; }
+.wiki-nat-row { display: flex; justify-content: space-between; padding: 5px 14px; font-size: 12.5px; }
+.wiki-nat-row:nth-child(even) { background: rgba(234,243,251,.55); }
+
+.wiki-comp-head { padding: 10px 14px 4px; font-size: 12px; font-weight: 700; color: #54595d; border-bottom: none; }
+.wiki-comp { padding: 6px 14px 14px; border-bottom: 1px solid #a2a9b1; }
+.wiki-dots { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 10px; }
+.wiki-dot { display: inline-block; width: 8px; height: 8px; border-radius: 1px; }
+.wiki-dot-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 11.5px; }
+.wiki-dot-leg { display: flex; align-items: center; gap: 5px; }
+.wiki-dot-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+
+.wiki-pmrow { display: flex; background: #cee0f2; border-top: 1px solid #a2a9b1; }
+.wiki-pm-cell { flex: 1; padding: 8px 14px; font-size: 12.5px; }
+.wiki-pm-cell:first-child { border-right: 1px solid #a2a9b1; }
+.wiki-pm-label { display: block; font-size: 11px; color: #54595d; margin-bottom: 2px; }
+
+/* ========================== Career banner ================================ */
+.career-banner { display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  background: rgba(47,93,58,.07); border-left: 3px solid var(--green, #2f5d3a);
+  border-radius: 0 8px 8px 0; font-size: 13px; margin-bottom: 10px; }
+.cb-arrow { font-size: 18px; line-height: 1; }
+
+/* ========================== Retirement screen ============================ */
+.ret-wrap { max-width: 560px; margin: 0 auto; padding: 0 0 40px; }
+.ret-wrap h2 { font-family: var(--display); font-size: 26px; margin-bottom: 8px; }
+.ret-list { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.ret-card { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.6);
+  border: 1px solid var(--line, #e3dac6); border-radius: 10px; padding: 10px 14px; }
+.ret-portrait { width: 44px; height: 44px; border-radius: 50%; background: #e0d8cc; display: flex;
+  align-items: center; justify-content: center; font-family: var(--display); font-weight: 700;
+  font-size: 14px; flex-shrink: 0; overflow: hidden; }
+.ret-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.ret-info { display: flex; flex-direction: column; gap: 2px; }
+.ret-info b { font-size: 15px; }
+.ret-port { font-size: 12.5px; color: var(--ink-soft, #6b6256); }
+.ret-served { font-family: var(--mono, monospace); font-size: 11px; color: var(--ink-soft, #6b6256); }
+.ret-mods { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 18px;
+  padding: 10px 14px; background: rgba(255,255,255,.5); border: 1px solid var(--line, #e3dac6); border-radius: 10px; }
+.ret-mod-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.ret-arrow { font-size: 18px; width: 20px; text-align: center; }

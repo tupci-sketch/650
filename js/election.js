@@ -407,7 +407,8 @@ G.simulateCampaign = function (params) {
     lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);         // the modest politics tilt
     var regSwing = G.gaussR(rnd) * rswing;
     list.forEach(function (c) {
-      var logit = baseLogit + lean + nat + regSwing + G.seatBaseLean(c) + G.gaussR(rnd) * noise;
+      var incumbBonus = (params.heldSeats && params.heldSeats[c.gss]) ? (C.incumbencyLean || 0) : 0;
+      var logit = baseLogit + lean + nat + regSwing + G.seatBaseLean(c) + incumbBonus + G.gaussR(rnd) * noise;
       var won = rnd() < G.sigmoid(logit);
       var winner;
       if (won) { rec.won++; seats++; winner = bloc.label; }
@@ -582,6 +583,8 @@ G.runElection = function (cabinet, opts) {
   var rating = G.rateCabinet(cabinet);
   var vote = G.voteShare(rating, diff);
   vote = Math.max(0.05, Math.min(0.62, vote + G.policyVoteMod(opts.policy)));   // manifesto nudge (if any)
+  /* career vote modifier: accumulated from prior term performance (one-shot) */
+  if (G.careerApplyVoteMod) vote = G.careerApplyVoteMod(vote);
   var contestable = G.contestableSeats(mode, lineage);
   var align = G.playerAlignValue(mode, opts.lineage, custom);
   var bloc = G.playerBloc(mode, opts.lineage, custom);
@@ -591,9 +594,16 @@ G.runElection = function (cabinet, opts) {
     mode: mode, difficulty: opts.difficulty, draftedNames: opts.draftedNames || null, excl: bloc.excl
   }, rnd);
 
+  /* incumbency: seats held in the prior parliament get a logit bonus */
+  var heldSeats = null;
+  if (G.career && G.career.active && G.career.heldSeats && G.career.heldSeats.length) {
+    heldSeats = {};
+    G.career.heldSeats.forEach(function (gss) { heldSeats[gss] = true; });
+  }
+
   var params = { vote: vote, mode: mode, lineage: lineage, midShift: diff.midShift,
                  noiseMul: diff.noiseMul, custom: custom, align: align,
-                 opposition: opposition, rnd: rnd };
+                 opposition: opposition, heldSeats: heldSeats, rnd: rnd };
 
   var expected = G.expectedSeats(params);
 

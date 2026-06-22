@@ -86,12 +86,30 @@ G.inScope = function (p, mode) {
   return p.scope === "uk";                              // unity / dynasty: UK only
 };
 
+/* alignment distance between a politician's party and the player's chosen
+   alignment. Returns a non-negative number; 0 means exact match. */
+G._alignDist = function (p, playerAlignValue) {
+  if (playerAlignValue == null) return 0;
+  var pa = (G.PARTY_ALIGN && G.PARTY_ALIGN[p.party] != null) ? G.PARTY_ALIGN[p.party] : 0;
+  return Math.abs(pa - playerAlignValue);
+};
+
 /* build the draftable pool for a config.
    opts.casts = { insider: bool, novelty: bool } — who may walk into the draft
-   (statesmen always can). Dynasty ignores the toggles: a dynasty IS its bench. */
+   (statesmen always can). Dynasty ignores the toggles: a dynasty IS its bench.
+   opts.alignValue — numeric player alignment; in unity/wildcard this filters
+   out politicians whose party is too far across the spectrum (alignFilterThreshold). */
 G.poolFor = function (opts) {
   var mode = opts.mode || "unity";
   var casts = opts.casts || { insider: true, novelty: false };
+  var C = G.CONFIG;
+  /* alignment filter applies in unity + wildcard (not dynasty — you ARE the party;
+     not parl2024 — that mode is already a single pool of sitting MPs). */
+  var filterAlign = (mode !== "dynasty" && mode !== "parl2024") &&
+                    (opts.alignValue != null) &&
+                    (C.alignFilterThreshold > 0);
+  var threshold = C.alignFilterThreshold || 1.5;
+
   if (mode === "parl2024") return G.POLITICIANS.filter(function (p) {
     if (!p.mp2024) return false;
     var c = G.castOf(p);
@@ -108,6 +126,11 @@ G.poolFor = function (opts) {
     var c = G.castOf(p);
     if (c === "insider" && !casts.insider) return false;
     if (c === "novelty" && !casts.novelty) return false;
+    /* alignment filter: skip figures too far across the political spectrum.
+       Wildcard figures with scope "wild" (world leaders, revolutionaries) are
+       always excluded via their scope gate in non-wildcard modes, so this
+       only trims partisan figures within the player's accessible range. */
+    if (filterAlign && G._alignDist(p, opts.alignValue) > threshold) return false;
     return true;
   });
 };
@@ -127,7 +150,9 @@ G.eligibleDynastyLineages = function (eras, need) {
 };
 
 /* start a run.
-   opts = { mode, lineage, hard, eras, difficulty, govern, watch, custom } */
+   opts = { mode, lineage, hard, eras, difficulty, govern, watch, custom,
+            carryOver } — carryOver is a cabinet dict of pre-filled ministers
+   for career mode (ministers who didn't retire carry over automatically). */
 G.newGame = function (opts) {
   opts = opts || {};
   var mode = (opts.mode === "dynasty" || opts.mode === "wildcard" || opts.mode === "parl2024") ? opts.mode : "unity";
@@ -136,23 +161,38 @@ G.newGame = function (opts) {
   G.setCabinetSize(opts.cabinetSize === "expanded" ? "expanded" : "standard");
   var casts = { insider: !(opts.casts && opts.casts.insider === false),
                 novelty: !!(opts.casts && opts.casts.novelty) };
-  var pool = G.poolFor({ mode: mode, eras: eras, lineage: lineage, casts: casts });
-  var redos = (typeof opts.redos === "number") ? opts.redos : 1;
-  var pityUses = (G.CONFIG.pityUses || {})[opts.difficulty || "normal"];
-  if (typeof pityUses !== "number") pityUses = 1;
 
   /* the player's own party identity — name, alignment, colour. Not in
      Dynasty (a dynasty IS its party). Defaults fill anything skipped. */
   var custom = null;
+  var alignValue = null;
   if (mode !== "dynasty") {
     var def = G.defaultCustom(mode);
     var c = opts.custom || {};
+    var alignKey = (G.ALIGN_BY_KEY && G.ALIGN_BY_KEY[c.align]) ? c.align : def.align;
     custom = {
       name:   String(c.name || def.name).slice(0, 28),
-      align:  (G.ALIGN_BY_KEY && G.ALIGN_BY_KEY[c.align]) ? c.align : def.align,
+      align:  alignKey,
       colour: /^#[0-9a-fA-F]{6}$/.test(String(c.colour || "")) ? c.colour : def.colour
     };
+    alignValue = G.alignValue ? G.alignValue(alignKey) : 0;
   }
+
+  /* pass player alignment to poolFor so out-of-spectrum candidates are excluded */
+  var pool = G.poolFor({ mode: mode, eras: eras, lineage: lineage, casts: casts,
+                         alignValue: alignValue });
+  var redos = (typeof opts.redos === "number") ? opts.redos : 1;
+  var pityUses = (G.CONFIG.pityUses || {})[opts.difficulty || "normal"];
+  if (typeof pityUses !== "number") pityUses = 1;
+
+  /* career carry-over: ministers who survived retirement pre-fill their seats */
+  var carryOver = opts.carryOver || {};
+  var draftedNames = {};
+  var cabinet = {};
+  Object.keys(carryOver).forEach(function (key) {
+    var pol = carryOver[key];
+    if (pol) { cabinet[key] = pol; draftedNames[pol.name] = key; }
+  });
 
   G.state = {
     mode: mode,
@@ -164,6 +204,7 @@ G.newGame = function (opts) {
     watch: opts.watch !== false,           // default: watch live
     cabinetSize: opts.cabinetSize === "expanded" ? "expanded" : "standard",
     custom: custom,                         // { name, align, colour } | null
+    alignValue: alignValue,                 // numeric player alignment (for pool filtering)
     casts: casts,                           // who may walk into the draft
     pity: { uses: pityUses, used: 0 },      // the grandees' remaining interventions
     dealInfo: null,                         // { tiers:[..], boost } for the last deal
@@ -171,15 +212,16 @@ G.newGame = function (opts) {
     policy: null,                           // chosen manifesto stances (set at the manifesto step)
     contestable: G.contestableSeats(mode, lineage),
     pool: pool,              // the exact draftable figures for this run (by reference)
-    draftedNames: {},
-    cabinet: {},
+    draftedNames: draftedNames,
+    cabinet: cabinet,
     spin: null,
     pendingPick: null,
     choices: null,           // the 3 candidates currently on offer
     lastDeal: null,
     skips: { era: redos, party: redos },
     redos: redos,            // re-draws of the dealt minister (v4)
-    spinsTaken: 0
+    spinsTaken: 0,
+    carryOver: carryOver     // ministers carried from previous parliament (career mode)
   };
   return G.state;
 };
@@ -444,6 +486,21 @@ G.deal = function () {
     return keys[keys.length - 1];
   }
 
+  /* prominence-weighted pick within a tier bucket: politicians with higher
+     mean stats are proportionally more likely to appear (makes named curated
+     figures rise above baseline-stat 2024 intake within the same tier). */
+  function pickFromBucket(bucket) {
+    if (!bucket || !bucket.length) return null;
+    var total = 0, i, w = new Array(bucket.length);
+    for (i = 0; i < bucket.length; i++) {
+      w[i] = Math.max(1, G.PROMINENCE(bucket[i]));
+      total += w[i];
+    }
+    var r = Math.random() * total;
+    for (i = 0; i < bucket.length; i++) { r -= w[i]; if (r <= 0) return bucket[i]; }
+    return bucket[bucket.length - 1];
+  }
+
   var picks = [], tiers = [], guard = 0;
   while (picks.length < Math.min(3, und.length) && guard++ < 60) {
     var tk = rollTier();
@@ -455,8 +512,31 @@ G.deal = function () {
       }
       if (!bucket.length) break;
     }
-    picks.push(bucket[Math.floor(Math.random() * bucket.length)]);
+    picks.push(pickFromBucket(bucket));
     tiers.push(tk);
+  }
+
+  /* enforce maxIntakePerDeal: at most N tier-"d" cards in the 3-card deal.
+     If the limit is exceeded, re-roll the excess "d" picks into a higher tier. */
+  var maxD = (C.maxIntakePerDeal != null) ? C.maxIntakePerDeal : 1;
+  var dCount = tiers.filter(function (t) { return t === "d"; }).length;
+  if (dCount > maxD) {
+    var higherKeys = keys.filter(function (k) { return k !== "d"; });
+    for (var pi = picks.length - 1; pi >= 0 && dCount > maxD; pi--) {
+      if (tiers[pi] !== "d") continue;
+      /* try to find a replacement from a higher tier */
+      var replaced = false;
+      for (var hi = 0; hi < higherKeys.length && !replaced; hi++) {
+        var hb = by[higherKeys[hi]] ? by[higherKeys[hi]].filter(function (p) { return picks.indexOf(p) === -1; }) : [];
+        if (hb.length) {
+          picks[pi] = pickFromBucket(hb);
+          tiers[pi] = higherKeys[hi];
+          dCount--;
+          replaced = true;
+        }
+      }
+      if (!replaced) break;   // no alternatives — leave the intake pick in place
+    }
   }
 
   st.choices = picks;
@@ -496,6 +576,114 @@ G.redraw = function () {
 G.redosLeft = function () { return G.state ? (G.state.redos | 0) : 0; };
 
 G.dealComplete = function () { return G.isComplete(); };
+
+/* ============================================================= CAREER MODE ==
+   G.career persists across parliaments in a career run. It accumulates vote
+   modifiers from governing/opposition performance, tracks minister service
+   counts for retirement checks, and records held seats for incumbency lean. */
+G.career = null;
+
+G.careerInit = function (opts) {
+  G.career = {
+    active: true,
+    parliament: 1,
+    partyName:   (opts && opts.partyName)   || "",
+    partyColour: (opts && opts.partyColour) || "#2f5d3a",
+    partyAlign:  (opts && opts.partyAlign)  || "centre",
+    mode:        (opts && opts.mode)        || "unity",
+    difficulty:  (opts && opts.difficulty)  || "normal",
+    cabinetSize: (opts && opts.cabinetSize) || "standard",
+    eras:        (opts && opts.eras)        || [],
+    /* cumulative modifiers feeding the NEXT election */
+    voteModifier:     0,      /* ±0.05 max; reset after applied */
+    reputationScore:  50,     /* 0–100 — shown in the career dashboard */
+    /* incumbency: GSS codes of seats won in the most recent election */
+    heldSeats: [],
+    /* minister fatigue */
+    ministerServeCount: {},   /* { "Winston Churchill": 2 } — terms served */
+    retiredMinsters: {},      /* names removed from future pool */
+    /* history for the election-record screen */
+    electionHistory: [],      /* [{parliament, seats, voteShare, tier}] */
+    termHistory: []           /* [{parliament, kind, outcome, legacy, sessionsServed}] */
+  };
+  return G.career;
+};
+
+/* Check which ministers want to retire after a term. Returns array of
+   { portfolioKey, name } for ministers who roll retire. The probability
+   scales with how many terms the minister has already served. */
+G.checkRetirements = function (cabinet) {
+  if (!G.career || !G.career.active) return [];
+  var C = G.CONFIG;
+  var chances = C.careerRetireChance || { 1: 0.05, 2: 0.20, 3: 0.50, 4: 0.80 };
+  var retiring = [];
+  G.PORTFOLIOS.forEach(function (port) {
+    var pol = cabinet[port.key]; if (!pol) return;
+    var served = (G.career.ministerServeCount[pol.name] || 0);
+    var chance = chances[Math.min(served, 4)] || chances[4] || 0.80;
+    if (Math.random() < chance) retiring.push({ portfolioKey: port.key, politician: pol });
+  });
+  return retiring;
+};
+
+/* Record a completed term into the career and compute next-election modifiers. */
+G.careerRecordTerm = function (result, termVerdict) {
+  if (!G.career || !G.career.active) return;
+  var st = G.state;
+
+  /* increment serve counts for every cabinet minister */
+  G.PORTFOLIOS.forEach(function (port) {
+    var pol = st && st.cabinet && st.cabinet[port.key];
+    if (pol) {
+      G.career.ministerServeCount[pol.name] = (G.career.ministerServeCount[pol.name] || 0) + 1;
+    }
+  });
+
+  /* held seats for incumbency in next election */
+  if (result && result.campaign && result.campaign.results) {
+    G.career.heldSeats = result.campaign.results.filter(function (r) { return r.won; }).map(function (r) { return r.gss; });
+  }
+
+  /* accumulate vote modifier from governing performance */
+  if (termVerdict) {
+    var leg = termVerdict.legacy || 50;
+    var mod = 0;
+    if (leg >= 70)  mod += 0.018;
+    if (leg >= 85)  mod += 0.010;   // bonus for a great term
+    if (leg < 35)   mod -= 0.015;
+    if (termVerdict.outcome === "collapsed") mod -= 0.020;
+    var finalApproval  = (termVerdict.meters && termVerdict.meters.approval)  || 50;
+    var finalEconomy   = (termVerdict.meters && termVerdict.meters.economy)   || 50;
+    var finalUnity     = (termVerdict.meters && termVerdict.meters.unity)     || 50;
+    if (finalEconomy >= 65)  mod += 0.010;
+    if (finalEconomy < 35)   mod -= 0.010;
+    if (finalUnity < 32)     mod -= 0.008;
+    if (finalApproval >= 65) mod += 0.006;
+    G.career.voteModifier = Math.max(-0.05, Math.min(0.05, (G.career.voteModifier || 0) + mod));
+    G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + (leg - 50) * 0.4));
+  }
+
+  /* record in history */
+  G.career.termHistory.push({
+    parliament: G.career.parliament,
+    kind: termVerdict ? (termVerdict.kind || "govt") : "govt",
+    outcome: termVerdict ? termVerdict.outcome : "unknown",
+    legacy: termVerdict ? termVerdict.legacy : 0,
+    sessionsServed: termVerdict ? (termVerdict.sessionsServed || 0) : 0
+  });
+
+  G.career.parliament++;
+};
+
+/* Apply career vote modifier to a vote share and clear it for next use. */
+G.careerApplyVoteMod = function (vote) {
+  if (!G.career || !G.career.active) return vote;
+  var mod = G.career.voteModifier || 0;
+  G.career.voteModifier = 0;   // one-shot: consumed on application
+  return Math.max(0.05, Math.min(0.62, vote + mod));
+};
+
+/* ============================================================ CAREER END === */
 
 /* A snapshot of the finished cabinet for the leaderboard (seat, who, party). */
 G.cabinetManifest = function () {
