@@ -306,8 +306,74 @@
         <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
         <button class="btn btn-ghost" id="againBtn">Run it again</button>
+        <button class="btn btn-ghost" id="wikiBtn">📜 View election record</button>
         <button class="btn btn-ghost" id="resultLbBtn">★ Post to leaderboard</button>
         <button class="btn btn-ghost" id="menuBtn">Change game</button>
+      </div>
+    </section>
+
+    <!-- ================================================= WIKI SCREEN ==== -->
+    <section id="screen-wiki" class="screen">
+      <div class="wiki-wrap">
+        <button id="wikiBackBtn" class="btn btn-ghost">← Back to results</button>
+
+        <div class="wiki-box">
+          <div class="wiki-title">
+            <span class="wiki-flag">🇬🇧</span>
+            United Kingdom general election
+            <span class="wiki-year" id="wikiYear"></span>
+          </div>
+          <div class="wiki-date" id="wikiDate"></div>
+
+          <div class="wiki-cols">
+            <div class="wiki-col" id="wikiColOut">
+              <div class="wiki-col-head" id="wikiOutHead">Outgoing government</div>
+              <div class="wiki-portrait-wrap">
+                <img class="wiki-portrait" id="wikiOutPortrait" src="" alt="" style="display:none" />
+                <div class="wiki-portrait-init" id="wikiOutInit"></div>
+              </div>
+              <table class="wiki-table" id="wikiTableOut"></table>
+            </div>
+
+            <div class="wiki-divider"></div>
+
+            <div class="wiki-col" id="wikiColIn">
+              <div class="wiki-col-head" id="wikiInHead">Incoming government</div>
+              <div class="wiki-portrait-wrap">
+                <img class="wiki-portrait" id="wikiInPortrait" src="" alt="" style="display:none" />
+                <div class="wiki-portrait-init" id="wikiInInit"></div>
+              </div>
+              <table class="wiki-table" id="wikiTableIn"></table>
+            </div>
+          </div>
+
+          <div class="wiki-national">
+            <div class="wiki-nat-row"><span>Registered electorate</span><span>47,586,602</span></div>
+            <div class="wiki-nat-row"><span>Turnout</span><span id="wikiTurnout"></span></div>
+          </div>
+
+          <div class="wiki-comp-head">Composition of the House of Commons after the election</div>
+          <div id="wikiComposition" class="wiki-comp"></div>
+
+          <div class="wiki-pmrow">
+            <div class="wiki-pm-cell"><span class="wiki-pm-label">Prime Minister before</span><span id="wikiPmBefore"></span></div>
+            <div class="wiki-pm-cell"><span class="wiki-pm-label">Prime Minister after</span><span id="wikiPmAfter"></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================= RETIREMENT SCREEN ==== -->
+    <section id="screen-retirement" class="screen">
+      <div class="ret-wrap">
+        <h2>Between Parliaments</h2>
+        <p id="retIntro">The following members of your cabinet will not contest the next election.</p>
+        <div id="retList" class="ret-list"></div>
+        <div class="ret-mods" id="retMods"></div>
+        <p class="mini-help">The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next parliament.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="retContinueBtn">Draft replacements — Parliament <span id="retParlNum">2</span> →</button>
+        </div>
       </div>
     </section>
 
@@ -362,6 +428,7 @@
         <p class="section-label" style="margin:0"><span id="govHeading">In government</span> <span class="gov-session" id="govSession"></span></p>
         <span class="gov-modetag" id="govModeTag"></span>
       </div>
+      <div class="career-banner" id="careerBanner" style="display:none"></div>
       <div class="panel gov-meters">
         <div class="meter" id="meterApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>

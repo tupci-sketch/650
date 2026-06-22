@@ -48,6 +48,8 @@
     wirePolicy();
     wireExplore();
     wireLeaderboard();
+    wireRetirement();
+    wireLegacyCareer();
     wirePlatform();
     renderRecords();
     sel("homeLink").onclick = goMenu;
@@ -464,6 +466,12 @@
 
   /* --------------------------------------------------- the result screen -- */
   function wireResult() {
+    sel("wikiBtn").onclick = function () {
+      if (!lastResult) return;
+      G.UI.renderWikiParliament(lastResult, G.state, G.career);
+    };
+    sel("wikiBackBtn").onclick = function () { G.UI.show("screen-result"); };
+
     sel("downloadBtn").onclick = function () {
       if (!lastResult) return;
       var go = function () {
@@ -635,7 +643,7 @@
   function enterGovernment(res, opts) {
     G.startTerm(res, opts || {});
     if (G.state.policyOn) G.UI.renderPolicy("programme");
-    else G.UI.renderGovern();
+    else { G.UI.renderGovern(); if (G.UI.renderCareerBanner) G.UI.renderCareerBanner(G.career); }
   }
   function startCoalitionGovern(res, deal, minority) {
     enterGovernment(res, { coalition: deal || null, minority: !!minority });
@@ -643,6 +651,7 @@
   function startOpposition(res) {
     G.startOpposition(res);
     G.UI.renderGovern();
+    if (G.UI.renderCareerBanner) G.UI.renderCareerBanner(G.career);
   }
 
   function wireCoalition() {
@@ -760,10 +769,83 @@
     currentVerdict = G.govVerdict();
     G.UI.renderLegacy(currentVerdict);
     recordLegacy(currentVerdict);
+    /* career: record this term and prepare retirement screen */
+    if (G.career && G.career.active && G.careerRecordTerm) {
+      G.careerRecordTerm(lastResult, currentVerdict);
+    }
     /* the governed term completes THIS run's record: same runId, legacy now
        filled in \u2014 the personal board (and the signed-in run history) update
        the existing record in place rather than adding a second row. */
     try { if (G.LB && G.LB.recordLocalRun && lastResult) G.LB.recordLocalRun(currentEntry()); } catch (e) {}
+  }
+
+  /* ----------------------------------------- career retirement screen ----- */
+  function wireRetirement() {
+    var btn = sel("retContinueBtn"); if (!btn) return;
+    btn.onclick = function () {
+      if (!G.career || !G.career.active) { goMenu(); return; }
+      /* compute retirements based on serve counts set in careerRecordTerm */
+      var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+      /* add retiring names to retiredMinisters so pool excludes them */
+      retiring.forEach(function (r) {
+        if (G.career.retiredMinsters) G.career.retiredMinsters[r.politician.name] = true;
+      });
+      /* build carry-over: ministers NOT retiring keep their portfolio */
+      var carryOver = {};
+      var cabinet = (G.state && G.state.cabinet) || {};
+      Object.keys(cabinet).forEach(function (key) {
+        var pol = cabinet[key]; if (!pol) return;
+        var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
+        if (!isRetiring) carryOver[key] = pol;
+      });
+      /* record election history entry for career */
+      if (lastResult) {
+        G.career.electionHistory.push({
+          parliament: G.career.parliament - 1,
+          seats: lastResult.seats,
+          voteShare: lastResult.voteShare,
+          tier: lastResult.tier && lastResult.tier.key
+        });
+      }
+      /* start the next parliament with carry-over cabinet */
+      currentVerdict = null; submitting = false;
+      setLbBtns(false, "★ Post to leaderboard");
+      G.newGame({
+        mode: G.career.mode,
+        lineage: G.career.lineage || null,
+        eras: G.career.eras || [],
+        difficulty: G.career.difficulty,
+        govern: true,
+        watch: G.state ? G.state.watch : true,
+        cabinetSize: G.career.cabinetSize || "standard",
+        carryOver: carryOver,
+        custom: G.state ? G.state.custom : null
+      });
+      G.UI.show("screen-draft");
+      G.UI.renderDraft();
+    };
+  }
+
+  /* legacy screen "between parliaments" button (career mode only) */
+  function wireLegacyCareer() {
+    var legEl = sel("legacyAgainBtn"); if (!legEl) return;
+    var origOnclick = legEl.onclick;
+    legEl.onclick = function () {
+      if (G.career && G.career.active) {
+        /* show retirement screen instead of new game */
+        var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+        G.UI.renderRetirements(retiring, G.career);
+      } else {
+        if (origOnclick) origOnclick.call(this);
+        else {
+          cancelWatch();
+          currentVerdict = null; submitting = false;
+          setLbBtns(false, "★ Post to leaderboard");
+          lastResult = G.hold();
+          if (G.state.watch) startWatch(lastResult); else showResult(lastResult);
+        }
+      }
+    };
   }
 
   /* --------------------------------------------------------- explorer ----- */

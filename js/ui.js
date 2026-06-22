@@ -12,7 +12,7 @@ var $ = function (id) { return document.getElementById(id); };
 /* role -> name colour class (admin dark red, moderator dark blue, user black) */
 G.UI.roleClass = function (level) { return (level >= 9) ? "role-admin" : (level >= 5) ? "role-mod" : "role-user"; };
 
-var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live"];
+var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
 
 G.UI.show = function (screenId) {
   SCREENS.forEach(function (s) {
@@ -1071,3 +1071,212 @@ G.UI.renderLeaderboard = function (top, communal, error) {
     }).join("");
   };
 })();
+
+/* ============================================================ WIKI SCREEN =
+   G.UI.renderWikiParliament(res, state, career)
+   Renders the fantasy Wikipedia election infobox after an election result.   */
+G.UI.renderWikiParliament = function (res, state, career) {
+  if (!res) return;
+  var C = G.CONFIG || {};
+  var baseline = C.baseline2024 || {};
+  var year = new Date().getFullYear();
+  var el = document.getElementById("wikiYear"); if (el) el.textContent = year;
+  var dateEl = document.getElementById("wikiDate");
+  if (dateEl) dateEl.textContent = "General election · United Kingdom";
+
+  /* turnout (simulated: 60–72%) */
+  var turnout = (58 + Math.round(res.voteShare * 40)).toFixed(1) + "%";
+  var turnEl = document.getElementById("wikiTurnout"); if (turnEl) turnEl.textContent = turnout;
+
+  /* the player's bloc */
+  var bd = res.breakdown || [];
+  var youEntry = null, outEntry = null;
+  bd.forEach(function (b) { if (b.isYou) youEntry = b; else if (!outEntry) outEntry = b; });
+  var playerPm = (state && state.cabinet && state.cabinet.pm) ? state.cabinet.pm.name : "—";
+  var youParty  = (youEntry && youEntry.party)  || (res.blocLabel)  || "Your Party";
+  var youSeats  = (youEntry && youEntry.seats)  || res.seats || 0;
+  var youVote   = (Math.round((res.voteShare || 0) * 1000) / 10).toFixed(1);
+
+  /* prior baseline */
+  var priorData = null;
+  if (career && career.active && career.electionHistory && career.electionHistory.length >= 1) {
+    var ph = career.electionHistory[career.electionHistory.length - 1];
+    priorData = { seats: ph.seats, vote: (ph.voteShare * 100).toFixed(1) };
+  } else {
+    priorData = baseline[youParty] || null;
+  }
+  var priorSeats = priorData ? priorData.seats : "—";
+  var priorVote  = priorData ? priorData.vote  : "—";
+  var seatDelta  = priorData ? (youSeats - priorData.seats) : null;
+  var voteDelta  = priorData ? ((res.voteShare * 100) - parseFloat(priorData.vote)) : null;
+
+  /* outgoing (opposition) */
+  var outParty  = (outEntry && outEntry.party) || "—";
+  var outSeats  = (outEntry && outEntry.seats) || 0;
+  var outLeader = "—";
+  if (res.opposition && res.opposition[outParty] && res.opposition[outParty].bench && res.opposition[outParty].bench.length) {
+    outLeader = res.opposition[outParty].bench[0].name;
+  }
+  var outPrior = baseline[outParty] || null;
+  var outPriorSeats = outPrior ? outPrior.seats : "—";
+  var outPriorVote  = outPrior ? outPrior.vote  : "—";
+  var outSeatDelta  = outPrior ? (outSeats - outPrior.seats) : null;
+  var outVoteDelta  = outPrior ? ((res.breakdown.filter(function (b) { return b.party === outParty; })[0] || {}).seats / 650 * 100 - parseFloat(outPriorVote)) : null;
+  var outVoteShare  = outPrior ? (Math.round(outSeats / 650 * 1000) / 10).toFixed(1) : "—";
+
+  function sign(n) { return n >= 0 ? "+" + n : String(n); }
+  function signF(n, dp) { var v = Math.round(n * Math.pow(10, dp || 1)) / Math.pow(10, dp || 1); return (v >= 0 ? "+" : "") + v.toFixed(dp || 1) + "%"; }
+
+  function buildTable(rows) {
+    return '<table class="wiki-table"><tbody>' +
+      rows.map(function (r) {
+        return '<tr><td class="wt-label">' + G.UI._esc(r[0]) + '</td><td class="wt-value">' + G.UI._esc(String(r[1])) + '</td></tr>';
+      }).join("") + '</tbody></table>';
+  }
+
+  /* incoming (player) column */
+  var inHead = document.getElementById("wikiInHead"); if (inHead) inHead.textContent = res.tier && res.tier.govt ? "Incoming government" : "Official Opposition";
+  var inRows = [
+    ["Leader", playerPm],
+    ["Party", youParty],
+    ["Seats before", priorSeats],
+    ["Seats won", youSeats],
+    ["Seat change", seatDelta != null ? sign(seatDelta) : "—"],
+    ["Vote share", youVote + "%"],
+    ["Swing", voteDelta != null ? signF(voteDelta) : "—"]
+  ];
+  var tableIn = document.getElementById("wikiTableIn"); if (tableIn) tableIn.outerHTML = buildTable(inRows);
+
+  /* load portrait for player's PM */
+  var inPortEl = document.getElementById("wikiInPortrait");
+  var inInitEl = document.getElementById("wikiInInit");
+  if (inInitEl) inInitEl.textContent = G.UI._initials(playerPm);
+  if (inPortEl && playerPm !== "—") {
+    inPortEl.onerror = function () { this.style.display = "none"; };
+    var ovr = (G.PHOTO && G.PHOTO[playerPm]) || null;
+    var wikiTitle = (ovr && ovr.wiki) ? ovr.wiki : playerPm;
+    fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(wikiTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { inPortEl.src = src; inPortEl.style.display = ""; if (inInitEl) inInitEl.style.display = "none"; } })
+      .catch(function () {});
+  }
+
+  /* outgoing column */
+  var outRows = [
+    ["Leader", outLeader],
+    ["Party", outParty],
+    ["Seats before", outPriorSeats],
+    ["Seats won", outSeats],
+    ["Seat change", outSeatDelta != null ? sign(outSeatDelta) : "—"],
+    ["Vote share", outVoteShare + "%"],
+    ["Swing", outVoteDelta != null ? signF(outVoteDelta) : "—"]
+  ];
+  var outHead = document.getElementById("wikiOutHead");
+  if (outHead) outHead.textContent = res.tier && res.tier.govt ? "Outgoing opposition" : "Governing party";
+  var tableOut = document.getElementById("wikiTableOut"); if (tableOut) tableOut.outerHTML = buildTable(outRows);
+
+  /* portrait for outgoing leader */
+  var outPortEl = document.getElementById("wikiOutPortrait");
+  var outInitEl = document.getElementById("wikiOutInit");
+  if (outInitEl) outInitEl.textContent = G.UI._initials(outLeader);
+  if (outPortEl && outLeader !== "—") {
+    outPortEl.onerror = function () { this.style.display = "none"; };
+    var oovr = (G.PHOTO && G.PHOTO[outLeader]) || null;
+    var oTitle = (oovr && oovr.wiki) ? oovr.wiki : outLeader;
+    fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(oTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { outPortEl.src = src; outPortEl.style.display = ""; if (outInitEl) outInitEl.style.display = "none"; } })
+      .catch(function () {});
+  }
+
+  /* 650-dot composition grid */
+  var compEl = document.getElementById("wikiComposition");
+  if (compEl) {
+    var sorted = bd.slice().sort(function (a, b) { return b.seats - a.seats; });
+    var dots = [];
+    sorted.forEach(function (party) {
+      for (var i = 0; i < party.seats; i++) {
+        dots.push('<span class="wiki-dot" style="background:' + (party.colour || "#6b6b6b") + '" title="' + G.UI._esc(party.party) + '"></span>');
+      }
+    });
+    /* legend below dots */
+    var legend = sorted.slice(0, 6).map(function (p) {
+      return '<span class="wiki-dot-leg"><span class="wiki-dot-swatch" style="background:' + (p.colour || "#6b6b6b") + '"></span>' + G.UI._esc(p.party) + ' ' + p.seats + '</span>';
+    }).join("");
+    compEl.innerHTML = '<div class="wiki-dots">' + dots.join("") + '</div><div class="wiki-dot-legend">' + legend + '</div>';
+  }
+
+  /* PM before/after */
+  var pmBefore = document.getElementById("wikiPmBefore");
+  var pmAfter  = document.getElementById("wikiPmAfter");
+  /* best guess at previous PM: the outgoing leader if they were governing, or a historical guess */
+  var prevPm = outLeader !== "—" ? outLeader : "—";
+  if (pmBefore) pmBefore.textContent = prevPm;
+  if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : outLeader;
+
+  G.UI.show("screen-wiki");
+};
+
+/* ========================================================= RETIREMENT SCREEN
+   G.UI.renderRetirements(retiring, career)
+   Shows which ministers are standing down between parliaments.               */
+G.UI.renderRetirements = function (retiring, career) {
+  var listEl = document.getElementById("retList");
+  var modsEl = document.getElementById("retMods");
+  var parlEl = document.getElementById("retParlNum");
+  var introEl = document.getElementById("retIntro");
+
+  if (parlEl && career) parlEl.textContent = career.parliament;
+
+  if (introEl) {
+    introEl.textContent = retiring && retiring.length
+      ? "The following members of your cabinet have decided not to contest the next election."
+      : "All members of your cabinet are ready to stand again — no retirements this time.";
+  }
+
+  if (listEl) {
+    if (!retiring || !retiring.length) {
+      listEl.innerHTML = '<p class="mini-help">No retirements — a full carry-over into the next parliament.</p>';
+    } else {
+      listEl.innerHTML = retiring.map(function (r) {
+        var pol = r.politician, port = (G.PORTFOLIO_BY_KEY && G.PORTFOLIO_BY_KEY[r.portfolioKey]) || { name: r.portfolioKey };
+        var served = (career && career.ministerServeCount && career.ministerServeCount[pol.name]) || 1;
+        return '<div class="ret-card">' +
+          '<span class="ret-portrait" data-pol="' + G.UI._esc(pol.name) + '">' + G.UI._initials(pol.name) + '</span>' +
+          '<div class="ret-info">' +
+            '<b>' + G.UI._esc(pol.name) + '</b>' +
+            '<span class="ret-port">' + G.UI._esc(port.name) + '</span>' +
+            '<span class="ret-served">' + served + ' parliament' + (served !== 1 ? 's' : '') + ' served</span>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+      G.UI._hydratePortraits(listEl);
+    }
+  }
+
+  if (modsEl && career) {
+    var mod = career.voteModifier || 0;
+    var rep = career.reputationScore || 50;
+    var modSign = mod >= 0 ? "+" : "";
+    var modText = Math.abs(mod) >= 0.001 ? (modSign + (mod * 100).toFixed(1) + "% projected vote swing into the next election") : "No net vote modifier carried over.";
+    var repText = "Reputation: " + Math.round(rep) + " / 100";
+    modsEl.innerHTML = '<div class="ret-mod-row"><span class="ret-arrow">' + (mod >= 0.001 ? "↑" : mod <= -0.001 ? "↓" : "→") + '</span><span>' + G.UI._esc(modText) + '</span></div>' +
+      '<div class="ret-mod-row"><span class="ret-arrow">★</span><span>' + G.UI._esc(repText) + '</span></div>';
+  }
+
+  G.UI.show("screen-retirement");
+};
+
+/* ======================================================= CAREER BANNER
+   G.UI.renderCareerBanner(career)
+   Small "career outlook" strip on the govern screen.                         */
+G.UI.renderCareerBanner = function (career) {
+  var el = document.getElementById("careerBanner"); if (!el) return;
+  if (!career || !career.active) { el.style.display = "none"; return; }
+  var mod = career.voteModifier || 0;
+  var arrow = mod >= 0.005 ? "↑" : mod <= -0.005 ? "↓" : "→";
+  var modTxt = Math.abs(mod) >= 0.001 ? ((mod >= 0 ? "+" : "") + (mod * 100).toFixed(1) + "% projected swing") : "neutral outlook";
+  var rep = career.reputationScore != null ? Math.round(career.reputationScore) : 50;
+  el.innerHTML = '<span class="cb-arrow">' + arrow + '</span> Career outlook: <b>' + G.UI._esc(modTxt) + '</b> · Reputation <b>' + rep + '/100</b> · Parliament <b>' + (career.parliament || 1) + '</b>';
+  el.style.display = "";
+};

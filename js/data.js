@@ -507,15 +507,17 @@ G.CONFIG = {
   despotDynastyChance: 0,      // DESPOTS ARE WILDCARD-ONLY (never in dynasty)
   despotPenalty:       0.75,   // each despot multiplies cabinet strength (compounding) — a national scandal
   /* WEIGHTED SPINS (v6): each of the three dealt cards independently rolls a
-     TIER first (front rank → intake), then a uniform pick within it — so the
-     deal is still random at its core and an awful round is always possible.
-     Tier odds blend the difficulty's taste with the pool's own composition
-     (count^poolAlpha), so 400 baseline backbenchers can't drown 25 stars. */
-  poolAlpha: 0.55,
-  tierOdds: {                       /* relative appetite per tier, by difficulty */
-    easy:   { a: 3.2, b: 2.6, c: 1.6, d: 1.0 },
-    normal: { a: 2.2, b: 2.2, c: 1.7, d: 1.2 },
-    hard:   { a: 1.3, b: 1.8, c: 1.8, d: 1.5 }
+     TIER first (front rank → intake), then a uniform pick within it weighted
+     by prominence — so front-rank names within a tier appear more often.
+     poolAlpha dampens count so 600 backbenchers can't drown 20 stars.
+     maxIntakePerDeal caps how many "d"-tier (backbench/new-intake) cards can
+     appear in a single 3-card deal — prevents 2024-mode flooding. */
+  poolAlpha: 0.40,
+  maxIntakePerDeal: 1,          // at most 1 backbench/intake card per 3-card deal
+  tierOdds: {                   /* relative appetite per tier, by difficulty */
+    easy:   { a: 4.5, b: 3.2, c: 1.4, d: 0.6 },
+    normal: { a: 3.5, b: 2.8, c: 1.5, d: 0.7 },
+    hard:   { a: 2.0, b: 2.2, c: 1.8, d: 1.3 }
   },
   /* the pity valve: if your bench is genuinely poor part-way through, the
      party grandees MAY intervene with a top-tier deal — sometimes the game
@@ -526,16 +528,31 @@ G.CONFIG = {
   /* flagged figures (conspiracists etc.) — a milder scandal than a despot */
   flaggedPenalty: 0.92,
 
-  /* national vote -> seat responsiveness (cube-law-inspired logistic) */
-  seatsK: 20,
+  /* alignment filter: exclude politicians whose party alignment is more than
+     this distance from the player's chosen alignment in custom/unity/wildcard
+     modes. Prevents left-wing runs from drafting Farage, right-wing runs from
+     drafting Corbyn etc. Despots and World figures are excluded via their own
+     mode gates and are not affected. */
+  alignFilterThreshold: 1.5,
+
+  /* national vote -> seat responsiveness (cube-law-inspired logistic).
+     seatsK reduced from 20→17 so a 1% vote swing flips fewer seats (more
+     realistic). seatBaseLeanSpread increased from 0.45→0.70 so safe seats
+     stay safe and genuine marginals stay on a knife-edge. */
+  seatsK: 17,
   seatsMid: 0.38,
 
   /* constituency model */
   seatNoise: 0.70,        // per-seat logit noise (the "anything can happen" factor)
-  seatBaseLeanSpread: 0.45, // PERSISTENT per-seat lean (from the seat's id) — the same
-                            // constituencies stay safe or marginal from game to game
-  regionSwing: 0.45,      // per-region shared swing each campaign
+  seatBaseLeanSpread: 0.70, // PERSISTENT per-seat lean (from the seat's id) — the same
+                             // constituencies stay safe or marginal from game to game
+  regionSwing: 0.38,      // per-region shared swing each campaign
   unityLeanSpread: 0.5,   // mild regional variation for unity / wildcard tickets
+
+  /* incumbency bonus: seats won in a previous term (career mode) are slightly
+     harder to flip — the incumbent effect. Applied as a logit bonus for held
+     seats only when career.heldSeats is populated. */
+  incumbencyLean: 0.28,
 
   /* alignment: how strongly a ticket's politics tilt its regional appeal (D4) */
   alignTiltScale: 0.12,   // logit per (alignment step x region tilt) — modest by design
@@ -563,6 +580,23 @@ G.CONFIG = {
     easy:   { label: "Easy",   voteShift:  0.045, midShift: -0.020, noiseMul: 0.80, oppBoost: 0.97 },
     normal: { label: "Normal", voteShift:  0.000, midShift:  0.000, noiseMul: 1.00, oppBoost: 1.00 },
     hard:   { label: "Hard",   voteShift: -0.035, midShift:  0.022, noiseMul: 1.25, oppBoost: 1.04 }
+  },
+
+  /* career mode: per-term retirement probability by number of terms served.
+     After 2 terms a minister has a 20% chance of standing down; by 4+ terms
+     they almost certainly won't stand again. */
+  careerRetireChance: { 1: 0.05, 2: 0.20, 3: 0.50, 4: 0.80 },
+
+  /* 2024 general election baseline — used by the Wikipedia election screen
+     to show "seats before" and vote-share swing vs the most recent real result. */
+  baseline2024: {
+    "Labour":           { seats: 411, vote: 33.7 },
+    "Conservative":     { seats: 121, vote: 23.7 },
+    "Liberal Democrat": { seats:  72, vote: 12.2 },
+    "Reform UK":        { seats:   5, vote: 14.3 },
+    "SNP":              { seats:   9, vote:  2.5 },
+    "Plaid Cymru":      { seats:   4, vote:  3.5 },
+    "Green":            { seats:   4, vote:  6.7 }
   }
 };
 
