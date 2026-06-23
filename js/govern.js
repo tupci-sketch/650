@@ -12,11 +12,13 @@
 window.G = window.G || {};
 
 G.GOVCONFIG = {
-  sessions: 9,                 // length of a full parliament
+  sessions: 14,                // length of a full parliament
   startApprovalMin: 28, startApprovalMax: 66,
-  byElectionChance: 0.40,      // per session (from session 2)
+  byElectionChance: 0.30,      // per session (from session 2) — lower with longer terms
   rebellionUnity: 32,          // unity below this risks a rebellion
   drift: 1,                    // incumbency erosion of approval per session
+  earlyElectionMinSession: 5,  // earliest session you can call an early election
+  earlyElectionApproval: 48,   // minimum approval needed to call early election
   diff: {                      // multipliers by difficulty
     easy:   { bad: 0.78, confidence: -0.12, byEloss: 0.7 },
     normal: { bad: 1.00, confidence:  0.00, byEloss: 1.0 },
@@ -34,35 +36,35 @@ G.EVENTS = [
       { label:"A bold tax-cutting Budget", text:"You gamble on growth.",
         base:{a:3,e:0,u:2}, gamble:{stat:"statecraft", dept:"chancellor",
           success:{a:4,e:10,u:1}, fail:{a:-4,e:-12,u:-3}},
-        careerEffect:{voteShift:0.006,repShift:3} },
+        careerEffect:{voteShift:0.012,repShift:3} },
       { label:"Tax rises to fund services", text:"Unpopular, but it steadies the books.",
-        base:{a:-5,e:6,u:-2}, careerEffect:{voteShift:-0.004,repShift:2} },
+        base:{a:-5,e:6,u:-2}, careerEffect:{voteShift:-0.008,repShift:2} },
       { label:"Borrow and spend", text:"Sugar now, a bill later.",
-        base:{a:6,e:-5,u:1}, careerEffect:{voteShift:0.002,repShift:-1} }
+        base:{a:6,e:-5,u:1}, careerEffect:{voteShift:0.004,repShift:-1} }
     ]},
   { id:"nhswinter", dept:"health", title:"NHS Winter Crisis", icon:"✚",
     text:"A brutal flu season has hospitals on the brink. The front pages are grim.",
     choices:[
       { label:"Emergency funding package", text:"Throw money at it fast.",
-        base:{a:5,e:-4,u:0}, careerEffect:{voteShift:0.004,repShift:4} },
+        base:{a:5,e:-4,u:0}, careerEffect:{voteShift:0.008,repShift:4} },
       { label:"A reform-driven response", text:"Your Health Secretary stakes their reputation on a plan.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"health",
           success:{a:8,e:1,u:2}, fail:{a:-7,e:-1,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Tough it out", text:"Insist the system is coping.",
-        base:{a:-6,e:1,u:-1}, careerEffect:{voteShift:-0.006,repShift:-5} }
+        base:{a:-6,e:1,u:-1}, careerEffect:{voteShift:-0.012,repShift:-5} }
     ]},
   { id:"strikes", dept:"business", title:"A Wave of Strikes", icon:"✊",
     text:"Public-sector unions walk out. Schools shut and trains stop.",
     choices:[
       { label:"Negotiate a settlement", text:"Buy industrial peace.",
-        base:{a:4,e:-5,u:-1}, careerEffect:{voteShift:0.003,repShift:2} },
+        base:{a:4,e:-5,u:-1}, careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Hold the line", text:"Refuse to budge and face them down.",
         base:{a:-2,e:2,u:3}, gamble:{stat:"partyMgmt", dept:"whip",
           success:{a:3,e:3,u:4}, fail:{a:-6,e:-3,u:-5}},
-        careerEffect:{voteShift:0.002,repShift:0} },
+        careerEffect:{voteShift:0.004,repShift:0} },
       { label:"Legislate against strikes", text:"A confrontational, lasting measure.",
-        base:{a:-4,e:3,u:2}, careerEffect:{voteShift:-0.004,repShift:-3} }
+        base:{a:-4,e:3,u:2}, careerEffect:{voteShift:-0.008,repShift:-3} }
     ]},
   { id:"foreigncrisis", dept:"foreign", title:"An Overseas Crisis", icon:"✈",
     text:"A flashpoint erupts abroad and allies are watching how you respond.",
@@ -70,45 +72,45 @@ G.EVENTS = [
       { label:"Lead a diplomatic push", text:"Your Foreign Secretary works the phones.",
         base:{a:1,e:0,u:0}, gamble:{stat:"statecraft", dept:"foreign",
           success:{a:7,e:2,u:2}, fail:{a:-5,e:-2,u:-2}},
-        careerEffect:{voteShift:0.004,repShift:3} },
+        careerEffect:{voteShift:0.008,repShift:3} },
       { label:"Commit firm support", text:"Stand shoulder to shoulder, at a cost.",
-        base:{a:3,e:-4,u:1}, careerEffect:{voteShift:0.003,repShift:2} },
+        base:{a:3,e:-4,u:1}, careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Stay out of it", text:"Keep your distance and your options.",
-        base:{a:-3,e:1,u:0}, careerEffect:{voteShift:-0.003,repShift:-2} }
+        base:{a:-3,e:1,u:0}, careerEffect:{voteShift:-0.006,repShift:-2} }
     ]},
   { id:"scandal", dept:"whip", title:"Trouble on the Benches", icon:"!",
     text:"Allegations swirl around a member of your government. The lobby smells blood.",
     choices:[
       { label:"Draw a line — accept a resignation", text:"Cut it loose to save the week.",
-        base:{a:2,e:0,u:-3}, resign:true, careerEffect:{voteShift:0.002,repShift:1} },
+        base:{a:2,e:0,u:-3}, resign:true, careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Tough it out behind your colleague", text:"Loyalty has a price.",
-        base:{a:-5,e:0,u:3}, careerEffect:{voteShift:-0.005,repShift:-6} },
+        base:{a:-5,e:0,u:3}, careerEffect:{voteShift:-0.010,repShift:-6} },
       { label:"Order an independent inquiry", text:"Kick it into the long grass.",
         base:{a:-1,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
           success:{a:3,e:0,u:1}, fail:{a:-4,e:0,u:-2}},
-        careerEffect:{voteShift:-0.002,repShift:-1} }
+        careerEffect:{voteShift:-0.004,repShift:-1} }
     ]},
   { id:"immigration", dept:"home", title:"Borders & Asylum", icon:"⚓",
     text:"Crossings dominate the news and your own party is split on the answer.",
     choices:[
       { label:"A tough new enforcement plan", text:"Hard-edged and headline-grabbing.",
-        base:{a:4,e:-2,u:-3}, careerEffect:{voteShift:0.005,repShift:-2} },
+        base:{a:4,e:-2,u:-3}, careerEffect:{voteShift:0.010,repShift:-2} },
       { label:"A managed, legalistic approach", text:"Your Home Secretary navigates the courts.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"home",
           success:{a:5,e:1,u:3}, fail:{a:-5,e:-1,u:-3}},
-        careerEffect:{voteShift:0.002,repShift:1} },
+        careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Lead a humane reform", text:"Principle over polls.",
-        base:{a:-4,e:0,u:4}, careerEffect:{voteShift:-0.004,repShift:3} }
+        base:{a:-4,e:0,u:4}, careerEffect:{voteShift:-0.008,repShift:3} }
     ]},
   { id:"costofliving", dept:"chancellor", title:"Cost of Living", icon:"£",
     text:"Prices bite. Households are hurting and they want to know whose side you're on.",
     choices:[
       { label:"Direct cash support", text:"Help now, borrow for it.",
-        base:{a:7,e:-6,u:0}, careerEffect:{voteShift:0.006,repShift:4} },
+        base:{a:7,e:-6,u:0}, careerEffect:{voteShift:0.012,repShift:4} },
       { label:"Targeted help for the poorest", text:"Careful and defensible.",
-        base:{a:2,e:-2,u:1}, careerEffect:{voteShift:0.002,repShift:2} },
+        base:{a:2,e:-2,u:1}, careerEffect:{voteShift:0.004,repShift:2} },
       { label:"Hold firm on discipline", text:"Promise it will pass.",
-        base:{a:-6,e:4,u:-1}, careerEffect:{voteShift:-0.005,repShift:-4} }
+        base:{a:-6,e:4,u:-1}, careerEffect:{voteShift:-0.010,repShift:-4} }
     ]},
   { id:"reshuffle", dept:"pm", title:"A Reshuffle Beckons", icon:"♻",
     text:"The commentariat says your top team looks tired. You could refresh it.",
@@ -116,47 +118,47 @@ G.EVENTS = [
       { label:"A bold reshuffle", text:"Promote new blood, make enemies.",
         base:{a:2,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"pm",
           success:{a:4,e:1,u:5}, fail:{a:-3,e:-1,u:-6}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"A steady hand", text:"Reward loyalty, change little.",
-        base:{a:0,e:0,u:3}, careerEffect:{voteShift:0.001,repShift:1} },
+        base:{a:0,e:0,u:3}, careerEffect:{voteShift:0.002,repShift:1} },
       { label:"No change at all", text:"Project calm; risk looking stale.",
-        base:{a:-2,e:0,u:-1}, careerEffect:{voteShift:-0.002,repShift:-2} }
+        base:{a:-2,e:0,u:-1}, careerEffect:{voteShift:-0.004,repShift:-2} }
     ]},
   { id:"housing", dept:"business", title:"The Housing Question", icon:"⌂",
     text:"A generation can't afford a home. Everyone agrees something must be done; no one agrees what.",
     choices:[
       { label:"Build, build, build", text:"Override objections to get spades in the ground.",
-        base:{a:3,e:5,u:-4}, careerEffect:{voteShift:0.005,repShift:3} },
+        base:{a:3,e:5,u:-4}, careerEffect:{voteShift:0.010,repShift:3} },
       { label:"Protect the green belt", text:"Side with the shire associations.",
-        base:{a:-1,e:-3,u:4}, careerEffect:{voteShift:-0.003,repShift:-2} },
+        base:{a:-1,e:-3,u:4}, careerEffect:{voteShift:-0.006,repShift:-2} },
       { label:"A grand delivery programme", text:"Stake real money and credibility on it.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"business",
           success:{a:6,e:6,u:1}, fail:{a:-5,e:-4,u:-2}},
-        careerEffect:{voteShift:0.004,repShift:3} }
+        careerEffect:{voteShift:0.008,repShift:3} }
     ]},
   { id:"defence", dept:"defence", title:"Defence Review", icon:"⚔",
     text:"Generals warn the armed forces are stretched thin. A spending decision looms.",
     choices:[
       { label:"Raise defence spending", text:"Reassure allies; squeeze elsewhere.",
-        base:{a:2,e:-5,u:1}, careerEffect:{voteShift:0.003,repShift:2} },
+        base:{a:2,e:-5,u:1}, careerEffect:{voteShift:0.006,repShift:2} },
       { label:"A smart procurement reset", text:"Your Defence Secretary promises more for less.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"defence",
           success:{a:4,e:5,u:2}, fail:{a:-3,e:-5,u:-2}},
-        careerEffect:{voteShift:0.002,repShift:1} },
+        careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Hold spending flat", text:"Bank the savings, accept the grumbling.",
-        base:{a:-2,e:3,u:-1}, careerEffect:{voteShift:-0.002,repShift:-1} }
+        base:{a:-2,e:3,u:-1}, careerEffect:{voteShift:-0.004,repShift:-1} }
     ]},
   { id:"education", dept:"education", title:"Schools Under Strain", icon:"✎",
     text:"Crumbling buildings and a recruitment crisis put education in the spotlight.",
     choices:[
       { label:"A major investment plan", text:"Money for buildings and pay.",
-        base:{a:5,e:-5,u:1}, careerEffect:{voteShift:0.005,repShift:4} },
+        base:{a:5,e:-5,u:1}, careerEffect:{voteShift:0.010,repShift:4} },
       { label:"A bold reform agenda", text:"Your Education Secretary bets on structural change.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"education",
           success:{a:6,e:2,u:2}, fail:{a:-5,e:-1,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Trust the system", text:"Resist new spending.",
-        base:{a:-4,e:2,u:0}, careerEffect:{voteShift:-0.004,repShift:-3} }
+        base:{a:-4,e:2,u:0}, careerEffect:{voteShift:-0.008,repShift:-3} }
     ]},
   { id:"localelections", dept:"pm", title:"Local Elections", icon:"▣",
     text:"The country votes in the locals — a real-world verdict on your government so far.",
@@ -164,9 +166,9 @@ G.EVENTS = [
       { label:"Campaign hard yourself", text:"Put your own standing on the line.",
         base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
           success:{a:6,e:0,u:4}, fail:{a:-6,e:0,u:-4}},
-        careerEffect:{voteShift:0.004,repShift:3} },
+        careerEffect:{voteShift:0.008,repShift:3} },
       { label:"Keep your distance", text:"Let local candidates carry it.",
-        base:{a:-1,e:0,u:0}, careerEffect:{voteShift:-0.001,repShift:0} }
+        base:{a:-1,e:0,u:0}, careerEffect:{voteShift:-0.002,repShift:0} }
     ]},
   { id:"techfailure", dept:"business", title:"A Big IT Failure", icon:"⚙",
     text:"A flagship government computer system falls over. Services grind to a halt.",
@@ -174,9 +176,9 @@ G.EVENTS = [
       { label:"Own it and fix it fast", text:"Front up, take the hit, move on.",
         base:{a:1,e:-2,u:0}, gamble:{stat:"experience", dept:"business",
           success:{a:4,e:0,u:1}, fail:{a:-4,e:-2,u:-1}},
-        careerEffect:{voteShift:0.002,repShift:1} },
+        careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Blame the contractors", text:"Deflect to the suppliers.",
-        base:{a:-2,e:0,u:1}, careerEffect:{voteShift:-0.004,repShift:-4} }
+        base:{a:-2,e:0,u:1}, careerEffect:{voteShift:-0.008,repShift:-4} }
     ]},
   { id:"emergency", dept:"home", title:"A National Emergency", icon:"◆",
     text:"Severe floods hit. The response in the first 48 hours will define the story.",
@@ -184,11 +186,11 @@ G.EVENTS = [
       { label:"Lead the response in person", text:"Boots on, cameras rolling.",
         base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
           success:{a:8,e:-2,u:2}, fail:{a:-6,e:-2,u:-2}},
-        careerEffect:{voteShift:0.005,repShift:4} },
+        careerEffect:{voteShift:0.010,repShift:4} },
       { label:"Let the machine handle it", text:"Trust the agencies; stay in No.10.",
-        base:{a:-3,e:0,u:0}, careerEffect:{voteShift:-0.003,repShift:-3} },
+        base:{a:-3,e:0,u:0}, careerEffect:{voteShift:-0.006,repShift:-3} },
       { label:"A generous recovery fund", text:"Open the cheque book.",
-        base:{a:5,e:-5,u:0}, careerEffect:{voteShift:0.004,repShift:3} }
+        base:{a:5,e:-5,u:0}, careerEffect:{voteShift:0.008,repShift:3} }
     ]},
   { id:"eu", dept:"foreign", title:"A Trade Showdown", icon:"⚖",
     text:"A major trading partner threatens tariffs. Exporters are nervous.",
@@ -196,23 +198,23 @@ G.EVENTS = [
       { label:"Negotiate hard for a deal", text:"Your Foreign Secretary goes to the wire.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"foreign",
           success:{a:4,e:8,u:1}, fail:{a:-3,e:-6,u:-2}},
-        careerEffect:{voteShift:0.004,repShift:3} },
+        careerEffect:{voteShift:0.008,repShift:3} },
       { label:"Retaliate in kind", text:"Stand firm and risk escalation.",
-        base:{a:3,e:-5,u:2}, careerEffect:{voteShift:0.002,repShift:0} },
+        base:{a:3,e:-5,u:2}, careerEffect:{voteShift:0.004,repShift:0} },
       { label:"Concede to keep trade flowing", text:"Swallow pride for stability.",
-        base:{a:-3,e:4,u:-1}, careerEffect:{voteShift:-0.003,repShift:-2} }
+        base:{a:-3,e:4,u:-1}, careerEffect:{voteShift:-0.006,repShift:-2} }
     ]},
   { id:"crime", dept:"home", title:"Crime in the Headlines", icon:"⚠",
     text:"A spike in crime has the public rattled and the opposition pouncing.",
     choices:[
       { label:"More police, tougher sentences", text:"Visible, popular, costly.",
-        base:{a:5,e:-3,u:0}, careerEffect:{voteShift:0.004,repShift:2} },
+        base:{a:5,e:-3,u:0}, careerEffect:{voteShift:0.008,repShift:2} },
       { label:"A prevention-first strategy", text:"Long-term, harder to sell.",
-        base:{a:-2,e:1,u:2}, careerEffect:{voteShift:-0.002,repShift:1} },
+        base:{a:-2,e:1,u:2}, careerEffect:{voteShift:-0.004,repShift:1} },
       { label:"A flagship policing reform", text:"Your Home Secretary's plan, all in.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"home",
           success:{a:6,e:1,u:1}, fail:{a:-5,e:-1,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} }
+        careerEffect:{voteShift:0.006,repShift:2} }
     ]},
   { id:"backbench", dept:"whip", title:"A Backbench Revolt", icon:"⚑",
     text:"A bill you care about faces a sizeable rebellion on your own side.",
@@ -220,23 +222,23 @@ G.EVENTS = [
       { label:"Whip it through hard", text:"Bend arms; spend authority.",
         base:{a:1,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"whip",
           success:{a:3,e:2,u:3}, fail:{a:-3,e:-1,u:-7}},
-        careerEffect:{voteShift:0.002,repShift:1} },
+        careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Offer concessions", text:"Water it down to pass it.",
-        base:{a:-2,e:-1,u:4}, careerEffect:{voteShift:-0.002,repShift:0} },
+        base:{a:-2,e:-1,u:4}, careerEffect:{voteShift:-0.004,repShift:0} },
       { label:"Pull the bill", text:"Retreat to fight another day.",
-        base:{a:-4,e:0,u:1}, careerEffect:{voteShift:-0.004,repShift:-3} }
+        base:{a:-4,e:0,u:1}, careerEffect:{voteShift:-0.008,repShift:-3} }
     ]},
   { id:"economyboom", dept:"chancellor", title:"Unexpected Growth", icon:"↑",
     text:"The economy surprises on the upside. You have a little headroom — and a choice.",
     choices:[
       { label:"Cut taxes with the windfall", text:"Hand it back; bank the goodwill.",
-        base:{a:6,e:-2,u:1}, careerEffect:{voteShift:0.006,repShift:4} },
+        base:{a:6,e:-2,u:1}, careerEffect:{voteShift:0.012,repShift:4} },
       { label:"Invest it for the long term", text:"Your Chancellor argues for the future.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
           success:{a:3,e:9,u:2}, fail:{a:-1,e:-2,u:-1}},
-        careerEffect:{voteShift:0.004,repShift:3} },
+        careerEffect:{voteShift:0.008,repShift:3} },
       { label:"Pay down debt", text:"Prudent, and quietly unloved.",
-        base:{a:-2,e:5,u:0}, careerEffect:{voteShift:0.001,repShift:1} }
+        base:{a:-2,e:5,u:0}, careerEffect:{voteShift:0.002,repShift:1} }
     ]},
   { id:"speech", dept:"pm", title:"Conference Speech", icon:"♞",
     text:"You face your party faithful with the cameras rolling. A big speech can reset everything.",
@@ -244,21 +246,21 @@ G.EVENTS = [
       { label:"Swing for the fences", text:"A soaring, risky address.",
         base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
           success:{a:7,e:0,u:6}, fail:{a:-5,e:0,u:-4}},
-        careerEffect:{voteShift:0.005,repShift:4} },
+        careerEffect:{voteShift:0.010,repShift:4} },
       { label:"A safe, solid speech", text:"No disasters, no fireworks.",
-        base:{a:1,e:0,u:2}, careerEffect:{voteShift:0.001,repShift:1} }
+        base:{a:1,e:0,u:2}, careerEffect:{voteShift:0.002,repShift:1} }
     ]},
   { id:"devolution", dept:"deputy", title:"The Union Strains", icon:"⚜",
     text:"Tensions flare with the devolved nations over money and powers.",
     choices:[
       { label:"Devolve more powers", text:"Generous, and risky for the centre.",
-        base:{a:2,e:-2,u:-2}, careerEffect:{voteShift:0.002,repShift:2} },
+        base:{a:2,e:-2,u:-2}, careerEffect:{voteShift:0.004,repShift:2} },
       { label:"Hold the line from Westminster", text:"Assert the centre's authority.",
-        base:{a:-1,e:1,u:2}, careerEffect:{voteShift:0.001,repShift:0} },
+        base:{a:-1,e:1,u:2}, careerEffect:{voteShift:0.002,repShift:0} },
       { label:"Broker a settlement", text:"Your Deputy PM leads the talks.",
         base:{a:0,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"deputy",
           success:{a:4,e:1,u:4}, fail:{a:-3,e:-1,u:-3}},
-        careerEffect:{voteShift:0.003,repShift:2} }
+        careerEffect:{voteShift:0.006,repShift:2} }
     ]},
   { id:"media", dept:"leader", title:"A Hostile Press", icon:"❝",
     text:"A relentless media campaign is denting the government's standing.",
@@ -266,23 +268,139 @@ G.EVENTS = [
       { label:"Take the fight to them", text:"Your Leader of the House goes on the offensive.",
         base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"leader",
           success:{a:5,e:0,u:3}, fail:{a:-5,e:0,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Rise above it", text:"Refuse to engage; let it burn out.",
-        base:{a:-2,e:0,u:1}, careerEffect:{voteShift:-0.001,repShift:0} },
+        base:{a:-2,e:0,u:1}, careerEffect:{voteShift:-0.002,repShift:0} },
       { label:"A grand policy announcement", text:"Change the subject with substance.",
-        base:{a:3,e:-3,u:0}, careerEffect:{voteShift:0.003,repShift:1} }
+        base:{a:3,e:-3,u:0}, careerEffect:{voteShift:0.006,repShift:1} }
     ]},
   { id:"manifesto", dept:"chancellor", title:"A Flagship Pledge Comes Due", icon:"★",
     text:"A signature promise from your campaign is now or never. Delivering it is hard and expensive.",
     choices:[
       { label:"Deliver it, whatever the cost", text:"Keep faith with the voters.",
-        base:{a:6,e:-6,u:2}, careerEffect:{voteShift:0.008,repShift:6} },
+        base:{a:6,e:-6,u:2}, careerEffect:{voteShift:0.016,repShift:6} },
       { label:"Quietly water it down", text:"Trim it to something affordable.",
-        base:{a:-4,e:3,u:0}, careerEffect:{voteShift:-0.005,repShift:-4} },
+        base:{a:-4,e:3,u:0}, careerEffect:{voteShift:-0.010,repShift:-4} },
       { label:"Make it the fight of the term", text:"Bet the house on landing it well.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
           success:{a:7,e:3,u:3}, fail:{a:-6,e:-4,u:-3}},
-        careerEffect:{voteShift:0.006,repShift:4} }
+        careerEffect:{voteShift:0.012,repShift:4} }
+    ]},
+  { id:"publicpay", dept:"chancellor", title:"Public Sector Pay Dispute", icon:"£",
+    text:"Nurses, teachers, and civil servants are demanding pay rises above inflation. The unions are coordinating.",
+    choices:[
+      { label:"A generous above-inflation deal", text:"Settle it and move on. It's expensive.",
+        base:{a:6,e:-7,u:2}, careerEffect:{voteShift:0.010,repShift:5} },
+      { label:"A pay review body recommendation", text:"Take the politics out of it.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
+          success:{a:3,e:2,u:2}, fail:{a:-4,e:-2,u:-3}},
+        careerEffect:{voteShift:0.004,repShift:1} },
+      { label:"Hold firm below inflation", text:"Fiscal discipline, at a political cost.",
+        base:{a:-7,e:5,u:-3}, careerEffect:{voteShift:-0.012,repShift:-5} }
+    ]},
+  { id:"nhswaiting", dept:"health", title:"NHS Waiting List Crisis", icon:"✚",
+    text:"Seven million people are waiting for treatment. The Health Secretary needs a plan.",
+    choices:[
+      { label:"Outsource to the private sector", text:"Fast results, fierce controversy.",
+        base:{a:3,e:-5,u:-5}, careerEffect:{voteShift:0.006,repShift:-3} },
+      { label:"A waiting list taskforce", text:"Your Health Secretary's reform programme.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"health",
+          success:{a:7,e:2,u:3}, fail:{a:-5,e:-2,u:-2}},
+        careerEffect:{voteShift:0.008,repShift:3} },
+      { label:"New funding, new targets", text:"Throw money and accountability at it.",
+        base:{a:5,e:-6,u:1}, careerEffect:{voteShift:0.010,repShift:4} }
+    ]},
+  { id:"climate", dept:"business", title:"Climate Emergency", icon:"♻",
+    text:"A record-breaking summer — floods, droughts, and wildfires — forces the agenda onto your desk.",
+    choices:[
+      { label:"A green investment surge", text:"Net zero leadership. Expensive.",
+        base:{a:4,e:-6,u:-2}, careerEffect:{voteShift:0.010,repShift:5} },
+      { label:"Carbon pricing and market signals", text:"The economically sound option — unpopular.",
+        base:{a:-3,e:3,u:-1}, careerEffect:{voteShift:0.002,repShift:1} },
+      { label:"A climate commission", text:"Delay the hard choices with a review.",
+        base:{a:-1,e:0,u:0}, gamble:{stat:"statecraft", dept:"business",
+          success:{a:2,e:1,u:2}, fail:{a:-4,e:-1,u:-3}},
+        careerEffect:{voteShift:-0.004,repShift:-2} }
+    ]},
+  { id:"university", dept:"education", title:"University Funding Crisis", icon:"✎",
+    text:"Vice-chancellors warn dozens of universities face insolvency. Tuition fees have not risen in a decade.",
+    choices:[
+      { label:"Raise tuition fees", text:"Necessary but deeply unpopular with graduates.",
+        base:{a:-6,e:3,u:-3}, careerEffect:{voteShift:-0.010,repShift:-4} },
+      { label:"A public university rescue fund", text:"Bail them out, attach conditions.",
+        base:{a:3,e:-5,u:1}, careerEffect:{voteShift:0.006,repShift:3} },
+      { label:"Consolidation and mergers", text:"Your Education Secretary restructures the sector.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"education",
+          success:{a:3,e:4,u:2}, fail:{a:-4,e:-2,u:-2}},
+        careerEffect:{voteShift:0.004,repShift:1} }
+    ]},
+  { id:"pension", dept:"chancellor", title:"Pension Triple Lock Under Pressure", icon:"£",
+    text:"The triple lock is costing £20bn more than forecast. The Treasury wants a review.",
+    choices:[
+      { label:"Keep it — a promise is a promise", text:"Popular with pensioners; expensive for everyone else.",
+        base:{a:5,e:-5,u:2}, careerEffect:{voteShift:0.010,repShift:3} },
+      { label:"Cap it at earnings growth", text:"A compromise that satisfies nobody.",
+        base:{a:-2,e:3,u:-1}, careerEffect:{voteShift:-0.004,repShift:-2} },
+      { label:"Means-test pensioner benefits", text:"Politically toxic, fiscally sensible.",
+        base:{a:-7,e:6,u:-4}, careerEffect:{voteShift:-0.012,repShift:-5} }
+    ]},
+  { id:"energy", dept:"business", title:"Energy Bills Winter Crunch", icon:"⚙",
+    text:"Energy prices spike heading into winter. Millions face fuel poverty.",
+    choices:[
+      { label:"Extend the price cap", text:"Intervention at a serious cost to the books.",
+        base:{a:7,e:-7,u:1}, careerEffect:{voteShift:0.012,repShift:5} },
+      { label:"A windfall tax on energy firms", text:"Popular with the public, war with business.",
+        base:{a:5,e:-4,u:-2}, careerEffect:{voteShift:0.008,repShift:2} },
+      { label:"An accelerated nuclear pledge", text:"Invest for the long term; no help this winter.",
+        base:{a:-1,e:4,u:0}, gamble:{stat:"statecraft", dept:"business",
+          success:{a:3,e:6,u:2}, fail:{a:-3,e:-2,u:-2}},
+        careerEffect:{voteShift:0.004,repShift:2} }
+    ]},
+  { id:"policecrisis", dept:"home", title:"Police Integrity Crisis", icon:"⚠",
+    text:"A series of corruption and misconduct cases have shaken public confidence in the police.",
+    choices:[
+      { label:"An independent national watchdog", text:"Structural reform. The Police Federation is furious.",
+        base:{a:4,e:0,u:-2}, careerEffect:{voteShift:0.008,repShift:4} },
+      { label:"Mandatory training and standards", text:"Reform from within.",
+        base:{a:2,e:0,u:0}, gamble:{stat:"statecraft", dept:"home",
+          success:{a:4,e:0,u:2}, fail:{a:-3,e:0,u:-2}},
+        careerEffect:{voteShift:0.006,repShift:2} },
+      { label:"Support the existing leadership", text:"Stand by the force and take the heat.",
+        base:{a:-5,e:0,u:1}, careerEffect:{voteShift:-0.008,repShift:-4} }
+    ]},
+  { id:"aijobs", dept:"business", title:"Automation & Job Losses", icon:"⚙",
+    text:"A wave of AI-driven redundancies hits white-collar sectors. Think-tanks warn of structural unemployment.",
+    choices:[
+      { label:"A national retraining guarantee", text:"Ambitious, expensive, and popular.",
+        base:{a:5,e:-5,u:2}, careerEffect:{voteShift:0.010,repShift:4} },
+      { label:"Regulate AI deployment in the workplace", text:"Slow the wave; business is unhappy.",
+        base:{a:2,e:-3,u:3}, careerEffect:{voteShift:0.004,repShift:2} },
+      { label:"Let the market adapt", text:"Hands off. Growth in the long run; pain in the short.",
+        base:{a:-4,e:3,u:-2}, careerEffect:{voteShift:-0.008,repShift:-4} }
+    ]},
+  { id:"niunity", dept:"deputy", title:"Northern Ireland Tensions", icon:"⚜",
+    text:"A political crisis in Belfast has stalled the power-sharing executive. Both communities want Westminster's ear.",
+    choices:[
+      { label:"Convene an emergency summit", text:"Your Deputy PM chairs talks at Lancaster House.",
+        base:{a:2,e:0,u:1}, gamble:{stat:"partyMgmt", dept:"deputy",
+          success:{a:5,e:1,u:3}, fail:{a:-3,e:-1,u:-2}},
+        careerEffect:{voteShift:0.006,repShift:3} },
+      { label:"A special investment fund for NI", text:"Money as diplomacy.",
+        base:{a:3,e:-4,u:1}, careerEffect:{voteShift:0.004,repShift:2} },
+      { label:"Westminster resumes direct control", text:"Decisive but deeply controversial.",
+        base:{a:-2,e:0,u:-1}, careerEffect:{voteShift:-0.004,repShift:-2} }
+    ]},
+  { id:"transport", dept:"business", title:"Infrastructure in Crisis", icon:"⚑",
+    text:"A major infrastructure project is years late and billions over budget. Cancel it and disappoint; commit and bleed.",
+    choices:[
+      { label:"Full commitment to delivery", text:"Finish what you started — at enormous cost.",
+        base:{a:2,e:-8,u:1}, careerEffect:{voteShift:0.008,repShift:3} },
+      { label:"A scaled-back revised plan", text:"Compromise between vision and fiscal reality.",
+        base:{a:-1,e:-3,u:0}, gamble:{stat:"statecraft", dept:"business",
+          success:{a:3,e:2,u:2}, fail:{a:-4,e:-3,u:-3}},
+        careerEffect:{voteShift:0.002,repShift:0} },
+      { label:"Cancel and compensate contractors", text:"Cut your losses; take the political hit now.",
+        base:{a:-6,e:4,u:-2}, careerEffect:{voteShift:-0.010,repShift:-4} }
     ]}
 ];
 
@@ -293,7 +411,7 @@ G.applyCareerEffect = function (effect) {
   if (!G.career || !G.career.active || !effect) return;
   var shift = effect.voteShift || 0;
   var rep   = effect.repShift  || 0;
-  G.career.voteModifier    = Math.max(-0.05, Math.min(0.05, (G.career.voteModifier || 0) + shift));
+  G.career.voteModifier    = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + shift));
   G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + rep));
 };
 
@@ -659,7 +777,7 @@ G.govVerdict = function () {
    leadership if your own party turns on you. Your drafted cabinet doubles as
    the Shadow Cabinet, so the same ministers' stats decide your gambles.
    ========================================================================== */
-G.OPPCONFIG = { sessions: 8, forceMomentum: 85, challengeUnity: 26, momentumDrift: 1,
+G.OPPCONFIG = { sessions: 12, forceMomentum: 85, challengeUnity: 26, momentumDrift: 1,
   /* the simulated GOVERNMENT you are trying to break (visible meters) */
   govDecayMin: 0.6, govDecayMax: 2.2,      /* its standing erodes — faster under pressure */
   attackBite: 2.5,                          /* extra erosion when your attack line hits its weak front */
@@ -673,11 +791,11 @@ G.OPP_EVENTS = [
       { label:"Go for the jugular", text:"A scripted, high-risk ambush.",
         base:{a:1,e:1,u:1}, gamble:{stat:"oratory", dept:"pm",
           success:{a:4,e:7,u:3}, fail:{a:-3,e:-2,u:-3}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Forensic and factual", text:"Six quiet questions, no theatrics.",
-        base:{a:2,e:3,u:0}, careerEffect:{voteShift:0.002,repShift:1} },
+        base:{a:2,e:3,u:0}, careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Rise above the bear pit", text:"Look statesmanlike; cede the drama.",
-        base:{a:1,e:-2,u:1}, careerEffect:{voteShift:0.001,repShift:1} }
+        base:{a:1,e:-2,u:1}, careerEffect:{voteShift:0.002,repShift:1} }
     ]},
   { id:"oppbudget", dept:"chancellor", title:"Responding to the Budget", icon:"£",
     text:"The Chancellor sits down. You have minutes to tear the Budget apart at the despatch box.",
@@ -685,23 +803,23 @@ G.OPP_EVENTS = [
       { label:"Demolish the numbers", text:"Your Shadow Chancellor goes line by line.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
           success:{a:5,e:8,u:2}, fail:{a:-3,e:-3,u:-2}},
-        careerEffect:{voteShift:0.004,repShift:3} },
+        careerEffect:{voteShift:0.008,repShift:3} },
       { label:"Make it about fairness", text:"Frame it as a Budget for the few.",
-        base:{a:4,e:3,u:1}, careerEffect:{voteShift:0.003,repShift:2} },
+        base:{a:4,e:3,u:1}, careerEffect:{voteShift:0.006,repShift:2} },
       { label:"Promise a costed alternative", text:"Look like a government-in-waiting.",
-        base:{a:2,e:2,u:-1}, careerEffect:{voteShift:0.002,repShift:2} }
+        base:{a:2,e:2,u:-1}, careerEffect:{voteShift:0.004,repShift:2} }
     ]},
   { id:"oppscandal", dept:"home", title:"A Government Scandal Breaks", icon:"!",
     text:"A minister is in serious trouble. The lobby wants the opposition's response.",
     choices:[
       { label:"Demand the resignation", text:"Lead the chase; keep the pressure on.",
-        base:{a:3,e:6,u:1}, careerEffect:{voteShift:0.004,repShift:2} },
+        base:{a:3,e:6,u:1}, careerEffect:{voteShift:0.008,repShift:2} },
       { label:"Call for a full inquiry", text:"Sober and procedural — and lasting.",
-        base:{a:1,e:3,u:0}, careerEffect:{voteShift:0.002,repShift:1} },
+        base:{a:1,e:3,u:0}, careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Overreach for the kill", text:"Throw everything at it and risk looking opportunistic.",
         base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"leader",
           success:{a:3,e:9,u:1}, fail:{a:-5,e:-3,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:1} }
+        careerEffect:{voteShift:0.006,repShift:1} }
     ]},
   { id:"oppbyelection", dept:"whip", title:"A By-election Opportunity", icon:"▣",
     text:"A seat falls vacant in territory you could take. A win would shake the government.",
@@ -709,11 +827,11 @@ G.OPP_EVENTS = [
       { label:"Pour in every activist", text:"Throw the kitchen sink at it.",
         base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
           success:{a:4,e:7,u:4}, fail:{a:-2,e:-3,u:-3}},
-        careerEffect:{voteShift:0.005,repShift:3} },
+        careerEffect:{voteShift:0.010,repShift:3} },
       { label:"Run a disciplined local race", text:"Steady, professional, low-risk.",
-        base:{a:2,e:3,u:1}, careerEffect:{voteShift:0.002,repShift:1} },
+        base:{a:2,e:3,u:1}, careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Manage expectations", text:"Downplay it to avoid a damaging loss.",
-        base:{a:0,e:-1,u:1}, careerEffect:{voteShift:0.001,repShift:0} }
+        base:{a:0,e:-1,u:1}, careerEffect:{voteShift:0.002,repShift:0} }
     ]},
   { id:"oppunity", dept:"deputy", title:"Your Own Party Grumbles", icon:"⚑",
     text:"A faction wants a sharper line; another wants caution. The papers smell division.",
@@ -721,11 +839,11 @@ G.OPP_EVENTS = [
       { label:"Bang heads together", text:"Your deputy enforces discipline.",
         base:{a:0,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"deputy",
           success:{a:1,e:2,u:6}, fail:{a:-2,e:-2,u:-5}},
-        careerEffect:{voteShift:0.002,repShift:2} },
+        careerEffect:{voteShift:0.004,repShift:2} },
       { label:"Give the activists red meat", text:"Please the base, spook the centre.",
-        base:{a:-2,e:2,u:4}, careerEffect:{voteShift:-0.002,repShift:1} },
+        base:{a:-2,e:2,u:4}, careerEffect:{voteShift:-0.004,repShift:1} },
       { label:"Appeal for unity", text:"Plead for discipline; hope it holds.",
-        base:{a:1,e:0,u:2}, careerEffect:{voteShift:0.001,repShift:1} }
+        base:{a:1,e:0,u:2}, careerEffect:{voteShift:0.002,repShift:1} }
     ]},
   { id:"oppvision", dept:"leader", title:"A Defining Speech", icon:"♞",
     text:"Conference season. A big vision speech could announce you as the next government.",
@@ -733,11 +851,11 @@ G.OPP_EVENTS = [
       { label:"Set out a bold programme", text:"A soaring, risky prospectus.",
         base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
           success:{a:7,e:4,u:5}, fail:{a:-5,e:-2,u:-4}},
-        careerEffect:{voteShift:0.005,repShift:4} },
+        careerEffect:{voteShift:0.010,repShift:4} },
       { label:"A safe, unifying speech", text:"No risks, modest reward.",
-        base:{a:2,e:1,u:2}, careerEffect:{voteShift:0.001,repShift:1} },
+        base:{a:2,e:1,u:2}, careerEffect:{voteShift:0.002,repShift:1} },
       { label:"A relentless attack on the record", text:"All offence, little vision.",
-        base:{a:1,e:4,u:-1}, careerEffect:{voteShift:0.002,repShift:0} }
+        base:{a:1,e:4,u:-1}, careerEffect:{voteShift:0.004,repShift:0} }
     ]},
   { id:"oppvote", dept:"whip", title:"An Opposition Day Vote", icon:"⚖",
     text:"You control the agenda for a day. Pick the battlefield and try to split the government benches.",
@@ -745,23 +863,23 @@ G.OPP_EVENTS = [
       { label:"Table a wedge motion", text:"Design it to divide their party.",
         base:{a:1,e:3,u:1}, gamble:{stat:"partyMgmt", dept:"whip",
           success:{a:2,e:7,u:2}, fail:{a:-2,e:-2,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} },
+        careerEffect:{voteShift:0.006,repShift:2} },
       { label:"A popular, populist motion", text:"Win the room and the clip.",
-        base:{a:4,e:3,u:0}, careerEffect:{voteShift:0.003,repShift:1} },
+        base:{a:4,e:3,u:0}, careerEffect:{voteShift:0.006,repShift:1} },
       { label:"A serious policy motion", text:"Worthy, less dramatic.",
-        base:{a:1,e:1,u:1}, careerEffect:{voteShift:0.001,repShift:1} }
+        base:{a:1,e:1,u:1}, careerEffect:{voteShift:0.002,repShift:1} }
     ]},
   { id:"oppmedia", dept:"leader", title:"The Sunday Interviews", icon:"✦",
     text:"The big political programmes want you. A strong round can set the week's narrative.",
     choices:[
       { label:"Make news with a pledge", text:"Announce something eye-catching.",
-        base:{a:4,e:2,u:-1}, careerEffect:{voteShift:0.004,repShift:2} },
+        base:{a:4,e:2,u:-1}, careerEffect:{voteShift:0.008,repShift:2} },
       { label:"Stay relentlessly on message", text:"Disciplined repetition of the attack.",
-        base:{a:1,e:4,u:1}, careerEffect:{voteShift:0.002,repShift:1} },
+        base:{a:1,e:4,u:1}, careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Wing a tricky interview", text:"Trust your front-runner to perform.",
         base:{a:0,e:0,u:0}, gamble:{stat:"appeal", dept:"pm",
           success:{a:5,e:3,u:1}, fail:{a:-5,e:-2,u:-2}},
-        careerEffect:{voteShift:0.003,repShift:2} }
+        careerEffect:{voteShift:0.006,repShift:2} }
     ]},
   { id:"oppdefection", dept:"whip", title:"A Government MP Wavers", icon:"⇄",
     text:"A disillusioned backbencher on the other side hints they might cross the floor.",
@@ -769,23 +887,81 @@ G.OPP_EVENTS = [
       { label:"Court them hard", text:"Roll out the charm; a defection is gold.",
         base:{a:0,e:0,u:0}, gamble:{stat:"partyMgmt", dept:"whip",
           success:{a:3,e:9,u:2}, fail:{a:-1,e:-1,u:-3}},
-        careerEffect:{voteShift:0.006,repShift:3} },
+        careerEffect:{voteShift:0.012,repShift:3} },
       { label:"Welcome them quietly", text:"Avoid spooking them with a circus.",
-        base:{a:1,e:4,u:0}, careerEffect:{voteShift:0.003,repShift:1} },
+        base:{a:1,e:4,u:0}, careerEffect:{voteShift:0.006,repShift:1} },
       { label:"Keep your distance", text:"Defectors bring baggage.",
-        base:{a:0,e:-1,u:2}, careerEffect:{voteShift:0.001,repShift:0} }
+        base:{a:0,e:-1,u:2}, careerEffect:{voteShift:0.002,repShift:0} }
     ]},
   { id:"oppcrisis", dept:"foreign", title:"A National Crisis", icon:"◆",
     text:"Events take over. The country looks to the government — and judges the opposition's response too.",
     choices:[
       { label:"Offer responsible support", text:"Put country before party; look like a PM.",
-        base:{a:5,e:-1,u:1}, careerEffect:{voteShift:0.004,repShift:4} },
+        base:{a:5,e:-1,u:1}, careerEffect:{voteShift:0.008,repShift:4} },
       { label:"Attack the handling", text:"Hammer every misstep.",
-        base:{a:-1,e:5,u:0}, careerEffect:{voteShift:0.002,repShift:0} },
+        base:{a:-1,e:5,u:0}, careerEffect:{voteShift:0.004,repShift:0} },
       { label:"Lead with a credible plan", text:"Your shadow team sets out what it would do.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"foreign",
           success:{a:5,e:5,u:2}, fail:{a:-4,e:-2,u:-2}},
-        careerEffect:{voteShift:0.004,repShift:3} }
+        careerEffect:{voteShift:0.008,repShift:3} }
+    ]},
+  { id:"oppcommission", dept:"chancellor", title:"Your Policy Commission Reports", icon:"✎",
+    text:"Your independent policy commission has published its landmark report. How do you respond?",
+    choices:[
+      { label:"Adopt the recommendations in full", text:"Bold, but expensive. A clear line of difference.",
+        base:{a:4,e:1,u:-2}, careerEffect:{voteShift:0.008,repShift:4} },
+      { label:"A nuanced partial adoption", text:"Pick and choose what works; avoid the awkward bits.",
+        base:{a:1,e:2,u:2}, careerEffect:{voteShift:0.004,repShift:2} },
+      { label:"Commission a further review", text:"Delay the hard choices. The papers will notice.",
+        base:{a:-3,e:0,u:1}, careerEffect:{voteShift:-0.004,repShift:-2} }
+    ]},
+  { id:"oppleadership", dept:"pm", title:"Your Leadership Under Scrutiny", icon:"⚑",
+    text:"A profile piece raises questions about your authority and vision. The party is watching.",
+    choices:[
+      { label:"A high-profile party address", text:"Make the case directly to your members.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
+          success:{a:4,e:1,u:7}, fail:{a:-2,e:0,u:-5}},
+        careerEffect:{voteShift:0.008,repShift:4} },
+      { label:"Reshape the top team", text:"Quietly move the doubters out.",
+        base:{a:0,e:0,u:4}, careerEffect:{voteShift:0.004,repShift:2} },
+      { label:"Stay above it", text:"Let the story die without engaging.",
+        base:{a:-2,e:0,u:-2}, careerEffect:{voteShift:-0.002,repShift:-1} }
+    ]},
+  { id:"oppinternational", dept:"foreign", title:"An International Platform", icon:"✈",
+    text:"You're invited to address a major international summit as Leader of the Opposition.",
+    choices:[
+      { label:"A statesman's turn — lead with ideas", text:"Command the room; look prime ministerial.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"oratory", dept:"pm",
+          success:{a:6,e:2,u:3}, fail:{a:-3,e:0,u:-2}},
+        careerEffect:{voteShift:0.010,repShift:5} },
+      { label:"Use it to embarrass the government", text:"Contrast their record with your vision.",
+        base:{a:3,e:4,u:0}, careerEffect:{voteShift:0.006,repShift:2} },
+      { label:"Send your shadow foreign secretary", text:"Safe; below the radar.",
+        base:{a:0,e:1,u:1}, careerEffect:{voteShift:0.002,repShift:1} }
+    ]},
+  { id:"opppolling", dept:"deputy", title:"A Poll Surge", icon:"↑",
+    text:"A dramatic poll has you twelve points ahead. The media wants to know if you'll call it an election mandate.",
+    choices:[
+      { label:"Double down — demand a snap election", text:"Force the issue; test your moment.",
+        base:{a:4,e:5,u:-1}, gamble:{stat:"appeal", dept:"pm",
+          success:{a:5,e:5,u:2}, fail:{a:-4,e:-3,u:-3}},
+        careerEffect:{voteShift:0.010,repShift:3} },
+      { label:"Cautious optimism", text:"Stay disciplined; don't over-read it.",
+        base:{a:2,e:2,u:2}, careerEffect:{voteShift:0.006,repShift:2} },
+      { label:"Let the numbers speak", text:"Say nothing — let it build pressure.",
+        base:{a:1,e:3,u:0}, careerEffect:{voteShift:0.004,repShift:1} }
+    ]},
+  { id:"oppeconomy", dept:"chancellor", title:"A Recession is Declared", icon:"£",
+    text:"Two quarters of negative growth. The government is on the back foot and every journalist wants your plan.",
+    choices:[
+      { label:"Unveil your alternative economic plan", text:"Put substance on the table.",
+        base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"chancellor",
+          success:{a:6,e:8,u:2}, fail:{a:-3,e:-2,u:-2}},
+        careerEffect:{voteShift:0.012,repShift:5} },
+      { label:"Attack the government's record relentlessly", text:"Turn the screw. Economy as your weapon.",
+        base:{a:3,e:7,u:1}, careerEffect:{voteShift:0.008,repShift:3} },
+      { label:"Call for cross-party talks", text:"Look statesmanlike; risk looking weak.",
+        base:{a:4,e:1,u:-1}, careerEffect:{voteShift:0.004,repShift:2} }
     ]}
 ];
 
@@ -994,6 +1170,83 @@ G._leadershipChallenge = function (log) {
   }
   log.push({ text: "You lose the confidence of your party and the leadership with it.", cls: "bad" });
   return false;
+};
+
+/* government calls a snap election — available from session earlyElectionMinSession
+   when approval >= earlyElectionApproval. A high-approval gamble: the country either
+   rewards the boldness or punishes the hubris. */
+G.canCallEarlyElection = function () {
+  var t = G.term;
+  if (!t || t.kind !== "govt" || t.over) return false;
+  return t.session >= G.GOVCONFIG.earlyElectionMinSession &&
+         t.meters.approval >= G.GOVCONFIG.earlyElectionApproval;
+};
+G.callEarlyElection = function () {
+  var t = G.term; if (!G.canCallEarlyElection()) return null;
+  var log = [{ text: "You call a snap election, betting the country is with you.", cls: "head" }];
+  var bonus = Math.round((t.meters.approval - 48) / 4);
+  if (bonus > 0) log.push({ text: "High approval heading in — the gamble looks good.", cls: "good" });
+  t.over = true; t.outcome = "early"; t.fellSession = t.session;
+  t.earlyBonus = bonus;
+  log.push({ text: "Parliament is dissolved. The campaign begins.", cls: "good" });
+  return { log: log, over: true, outcome: "early" };
+};
+
+/* a once-per-term national statement — PM addresses the nation directly.
+   Costs nothing but the PM's oratory; used once. */
+G.canGovStatement = function () {
+  var t = G.term;
+  return t && t.kind === "govt" && !t.over && !t.statementUsed;
+};
+G.govStatement = function () {
+  var t = G.term; if (!G.canGovStatement()) return null;
+  t.statementUsed = true;
+  var log = [{ text: "You address the nation directly.", cls: "head" }];
+  var stat = G.ministerStat("pm", "oratory");
+  var p = 0.30 + (stat - 50) / 100 * 0.90;
+  p = Math.max(0.10, Math.min(0.90, p));
+  if (Math.random() < p) {
+    var gain = Math.round(4 + (stat - 50) / 12);
+    t.meters.approval = G._clampM(t.meters.approval + gain);
+    t.meters.unity    = G._clampM(t.meters.unity + 4);
+    log.push({ text: "✓ " + G.ministerName("pm") + " delivers. Approval +" + gain + ", party rallies.", cls: "good" });
+    G.applyCareerEffect({ voteShift: 0.010, repShift: 4 });
+  } else {
+    var loss = Math.round(3 + (50 - stat) / 16);
+    t.meters.approval = G._clampM(t.meters.approval - loss);
+    log.push({ text: "✗ The address falls flat. Approval −" + loss + ". The speech writers are blamed.", cls: "bad" });
+    G.applyCareerEffect({ voteShift: -0.006, repShift: -2 });
+  }
+  return { log: log, over: false, outcome: null };
+};
+
+/* a once-per-term opposition press conference — your leader sets the agenda.
+   Used once; cannot be repeated. */
+G.canOppPressConf = function () {
+  var t = G.term;
+  return t && t.kind === "opp" && !t.over && !t.pressConfUsed;
+};
+G.oppPressConference = function () {
+  var t = G.term; if (!G.canOppPressConf()) return null;
+  t.pressConfUsed = true;
+  var log = [{ text: "You call a major press conference to set the national agenda.", cls: "head" }];
+  var stat = G.ministerStat("pm", "oratory");
+  var p = 0.30 + (stat - 50) / 100 * 0.90;
+  p = Math.max(0.10, Math.min(0.90, p));
+  if (Math.random() < p) {
+    var mGain = Math.round(5 + (stat - 50) / 10);
+    var aGain = Math.round(3 + (stat - 50) / 16);
+    t.meters.economy = G._clampM(t.meters.economy + mGain);
+    t.meters.approval = G._clampM(t.meters.approval + aGain);
+    log.push({ text: "✓ " + G.ministerName("pm") + " dominates the news cycle. Momentum +" + mGain + ", Support +" + aGain + ".", cls: "good" });
+    G.applyCareerEffect({ voteShift: 0.010, repShift: 4 });
+  } else {
+    t.meters.economy = G._clampM(t.meters.economy - 4);
+    t.meters.unity   = G._clampM(t.meters.unity - 3);
+    log.push({ text: "✗ The press conference stumbles. Awkward questions left unanswered; momentum stalls.", cls: "bad" });
+    G.applyCareerEffect({ voteShift: -0.006, repShift: -2 });
+  }
+  return { log: log, over: false, outcome: null };
 };
 
 G.oppVerdict = function () {

@@ -40,112 +40,151 @@
       <p class="records" id="recordsLine"></p>
       <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, choose their seat, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the Commons.</p>
 
-      <div class="menu-grid">
-        <div class="span-2">
-          <p class="section-label">1 · Choose your game</p>
-          <div class="choice-row quad" id="modeRow">
-            <button class="opt sel" data-mode="unity">
-              <h4>Greatest Cabinet</h4>
-              <p>A national-unity ticket. Draft the best of every party and era. Stands in all 650 seats.</p>
-            </button>
-            <button class="opt" data-mode="dynasty">
-              <h4>Single-Party Dynasty</h4>
-              <p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p>
-            </button>
-            <button class="opt" data-mode="wildcard">
-              <h4>Wildcard ⚡</h4>
-              <p>The whole globe and all of history walk in — presidents, founders, despots. For political nerds only.</p>
-            </button>
-            <button class="opt" data-mode="parl2024">
-              <h4>2024 Parliament 🗳</h4>
-              <p>Draft from the 2024 general-election field — the current House of Commons.</p>
-            </button>
-          </div>
-          <div class="dynasty-pick" id="dynastyPick"></div>
-          <div id="partySection" class="party-section">
-            <p class="sub-label">Your party — name it, place it, colour it</p>
-            <input id="partyNameInput" class="lb-input party-name" type="text" maxlength="28" autocomplete="off" spellcheck="false" placeholder="Your unity ticket…" />
-            <div class="align-row" id="partyAlignRow"></div>
-            <div class="party-swatches" id="partySwatches"></div>
-            <p class="mini-help">The name and colour appear on the count, the map, the result and your shared card; the alignment shapes which coalitions come naturally — and tilts the regions a touch. It never changes who you can draft. Leave it blank for the house style.</p>
-            <p class="mini-help party-msg" id="partyMsg"></p>
-          </div>
-          <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
+      <!-- Wizard navigation header -->
+      <div class="wizard-nav">
+        <div class="wizard-progress" id="wizardProgress">
+          <span class="wp-dot wactive" data-step="1"></span>
+          <span class="wp-dot" data-step="2"></span>
+          <span class="wp-dot" data-step="3"></span>
+          <span class="wp-dot" data-step="4"></span>
+          <span class="wp-dot" data-step="5"></span>
+          <span class="wp-dot" data-step="6"></span>
+          <span class="wp-dot" data-step="7"></span>
         </div>
+        <p class="wstep-title" id="wizardStepTitle">Choose your game</p>
+      </div>
 
+      <!-- Step 1: Game mode & party -->
+      <div class="wizard-step wactive" id="wstep-1">
+        <p class="section-label">1 · Choose your game</p>
+        <div class="choice-row quad" id="modeRow">
+          <button class="opt sel" data-mode="unity">
+            <h4>Greatest Cabinet</h4>
+            <p>A national-unity ticket. Draft the best of every party and era. Stands in all 650 seats.</p>
+          </button>
+          <button class="opt" data-mode="dynasty">
+            <h4>Single-Party Dynasty</h4>
+            <p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p>
+          </button>
+          <button class="opt" data-mode="wildcard">
+            <h4>Wildcard ⚡</h4>
+            <p>The whole globe and all of history walk in — presidents, founders, despots. For political nerds only.</p>
+          </button>
+          <button class="opt" data-mode="parl2024">
+            <h4>2024 Parliament 🗳</h4>
+            <p>Draft from the 2024 general-election field — the current House of Commons.</p>
+          </button>
+        </div>
+        <div class="dynasty-pick" id="dynastyPick"></div>
+        <div id="partySection" class="party-section">
+          <p class="sub-label">Your party — name it, place it, colour it</p>
+          <input id="partyNameInput" class="lb-input party-name" type="text" maxlength="28" autocomplete="off" spellcheck="false" placeholder="Your unity ticket…" />
+          <div class="align-row" id="partyAlignRow"></div>
+          <div class="party-swatches" id="partySwatches"></div>
+          <p class="mini-help">The name and colour appear on the count, the map, the result and your shared card; the alignment shapes which coalitions come naturally — and tilts the regions a touch. It never changes who you can draft. Leave it blank for the house style.</p>
+          <p class="mini-help party-msg" id="partyMsg"></p>
+        </div>
+        <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
+      </div>
+
+      <!-- Step 2: Eras & cast -->
+      <div class="wizard-step" id="wstep-2">
         <div id="eraSection">
           <p class="section-label">2 · Eras in play</p>
           <p class="mini-help">Tap to leave an era out of the draft.</p>
           <div class="era-toggles" id="eraToggles"></div>
         </div>
-
-        <div id="castSection">
+        <div id="castSection" style="margin-top:20px">
           <p class="section-label">2b · Who can walk in</p>
           <p class="mini-help">Statesmen are always in. Toggle the insiders and the mavericks — flagged figures (despots, conspiracists) are marked plainly on their cards and cost you credibility.</p>
           <div class="era-toggles" id="castToggles"></div>
           <p class="mini-help" id="castNote" style="display:none">A dynasty drafts its tradition's <b>whole</b> bench — these toggles don't apply.</p>
         </div>
+      </div>
 
-        <div>
-          <p class="section-label">3 · Election difficulty</p>
-          <div class="choice-row" id="diffRow">
-            <button class="opt" data-diff="easy"><h4>Easy</h4><p>Kinder swing. A majority comes more readily.</p></button>
-            <button class="opt sel" data-diff="normal"><h4>Normal</h4><p>A fair fight on a realistic curve.</p></button>
-            <button class="opt" data-diff="hard"><h4>Hard</h4><p>Brutal marginals. Every seat is a war.</p></button>
-          </div>
-        </div>
-
-        <div>
-          <p class="section-label">4 · Draft information</p>
-          <div class="choice-row" id="hardRow">
-            <button class="opt sel" data-hard="false"><h4>Classic</h4><p>Full ratings, fits and notes on the table.</p></button>
-            <button class="opt" data-hard="true"><h4>By Reputation Alone</h4><p>Ratings hidden. Pick on memory and judgement.</p></button>
-          </div>
-          <p class="sub-label">Re-draws — swap a minister you've been dealt</p>
-          <div class="choice-row triple" id="redoRow">
-            <button class="opt" data-redos="0"><h4>Tight</h4><p>None. Live with the wheel.</p></button>
-            <button class="opt sel" data-redos="1"><h4>Standard</h4><p>One re-draw.</p></button>
-            <button class="opt" data-redos="3"><h4>Generous</h4><p>Three re-draws.</p></button>
-          </div>
-          <p class="sub-label">Cabinet size</p>
-          <div class="choice-row" id="sizeRow">
-            <button class="opt sel" data-size="standard"><h4>Standard</h4><p>The twelve great offices of state.</p></button>
-            <button class="opt" data-size="expanded"><h4>Expanded</h4><p>Sixteen seats — more posts to fill.</p></button>
-          </div>
-          <p class="sub-label">Policy phase</p>
-          <div class="choice-row" id="policyRow">
-            <button class="opt sel" data-policy="false"><h4>Off</h4><p>Just build the cabinet and fight the election.</p></button>
-            <button class="opt" data-policy="true"><h4>On</h4><p>Write a manifesto before the vote, a programme in office.</p></button>
-          </div>
-        </div>
-
-        <div>
-          <p class="section-label">5 · After the cabinet</p>
-          <div class="choice-row" id="governRow">
-            <button class="opt" data-govern="false"><h4>Just the election</h4><p>The seat result and the odds, then stop.</p></button>
-            <button class="opt sel" data-govern="true"><h4>Win &amp; govern</h4><p>Then steer a full term in office through its crises.</p></button>
-          </div>
-        </div>
-
-        <div>
-          <p class="section-label">6 · The count</p>
-          <div class="choice-row" id="watchRow">
-            <button class="opt sel" data-watch="true"><h4>Watch live</h4><p>A seat-by-seat declaration night with a results map.</p></button>
-            <button class="opt" data-watch="false"><h4>Instant result</h4><p>Skip the night. Straight to the verdict.</p></button>
-          </div>
-          <p class="sub-label" id="speedLabel">Declaration speed</p>
-          <div class="choice-row triple" id="speedRow">
-            <button class="opt" data-speed="slow"><h4>Slow</h4><p>Savour every declaration.</p></button>
-            <button class="opt sel" data-speed="normal"><h4>Normal</h4><p>A brisk election night.</p></button>
-            <button class="opt" data-speed="fast"><h4>Fast</h4><p>Results in a flash.</p></button>
-          </div>
+      <!-- Step 3: Difficulty -->
+      <div class="wizard-step" id="wstep-3">
+        <p class="section-label">3 · Election difficulty</p>
+        <div class="choice-row" id="diffRow">
+          <button class="opt" data-diff="easy"><h4>Easy</h4><p>Kinder swing. A majority comes more readily.</p></button>
+          <button class="opt sel" data-diff="normal"><h4>Normal</h4><p>A fair fight on a realistic curve.</p></button>
+          <button class="opt" data-diff="hard"><h4>Hard</h4><p>Brutal marginals. Every seat is a war.</p></button>
         </div>
       </div>
 
-      <p class="setup-hint" id="setupHint"></p>
-      <p class="elig-badge" id="lbEligBadge"></p>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="startBtn">Open the dispatch box →</button>
+      <!-- Step 4: Draft rules -->
+      <div class="wizard-step" id="wstep-4">
+        <p class="section-label">4 · Draft information</p>
+        <div class="choice-row" id="hardRow">
+          <button class="opt sel" data-hard="false"><h4>Classic</h4><p>Full ratings, fits and notes on the table.</p></button>
+          <button class="opt" data-hard="true"><h4>By Reputation Alone</h4><p>Ratings hidden. Pick on memory and judgement.</p></button>
+        </div>
+        <p class="sub-label">Re-draws — swap a minister you've been dealt</p>
+        <div class="choice-row triple" id="redoRow">
+          <button class="opt" data-redos="0"><h4>Tight</h4><p>None. Live with the wheel.</p></button>
+          <button class="opt sel" data-redos="1"><h4>Standard</h4><p>One re-draw.</p></button>
+          <button class="opt" data-redos="3"><h4>Generous</h4><p>Three re-draws.</p></button>
+        </div>
+        <p class="sub-label">Cabinet size</p>
+        <div class="choice-row" id="sizeRow">
+          <button class="opt sel" data-size="standard"><h4>Standard</h4><p>The twelve great offices of state.</p></button>
+          <button class="opt" data-size="expanded"><h4>Expanded</h4><p>Sixteen seats — more posts to fill.</p></button>
+        </div>
+        <p class="sub-label">Policy phase</p>
+        <div class="choice-row" id="policyRow">
+          <button class="opt sel" data-policy="false"><h4>Off</h4><p>Just build the cabinet and fight the election.</p></button>
+          <button class="opt" data-policy="true"><h4>On</h4><p>Write a manifesto before the vote, a programme in office.</p></button>
+        </div>
+      </div>
+
+      <!-- Step 5: After the election -->
+      <div class="wizard-step" id="wstep-5">
+        <p class="section-label">5 · After the cabinet</p>
+        <div class="choice-row" id="governRow">
+          <button class="opt" data-govern="false"><h4>Just the election</h4><p>The seat result and the odds, then stop.</p></button>
+          <button class="opt sel" data-govern="true"><h4>Win &amp; govern</h4><p>Then steer a full term in office through its crises.</p></button>
+        </div>
+        <p class="section-label" style="margin-top:20px">5b · The count</p>
+        <div class="choice-row" id="watchRow">
+          <button class="opt sel" data-watch="true"><h4>Watch live</h4><p>A seat-by-seat declaration night with a results map.</p></button>
+          <button class="opt" data-watch="false"><h4>Instant result</h4><p>Skip the night. Straight to the verdict.</p></button>
+        </div>
+        <p class="sub-label" id="speedLabel">Declaration speed</p>
+        <div class="choice-row triple" id="speedRow">
+          <button class="opt" data-speed="slow"><h4>Slow</h4><p>Savour every declaration.</p></button>
+          <button class="opt sel" data-speed="normal"><h4>Normal</h4><p>A brisk election night.</p></button>
+          <button class="opt" data-speed="fast"><h4>Fast</h4><p>Results in a flash.</p></button>
+        </div>
+      </div>
+
+      <!-- Step 6: Career mode -->
+      <div class="wizard-step" id="wstep-6">
+        <p class="section-label">6 · Run</p>
+        <div class="choice-row" id="careerRow">
+          <button class="opt sel" data-career="false"><h4>Single election</h4><p>One cabinet, one election, one verdict. The classic.</p></button>
+          <button class="opt" data-career="true"><h4>Career mode</h4><p>Your cabinet carries over between parliaments. Ministers retire. Governing choices shape the next election.</p></button>
+        </div>
+        <p id="careerNote" class="mini-help" style="display:none">Your cabinet carries over between parliaments. Ministers retire after 2–3 terms. Governing choices accumulate into a real vote swing going into the next election.</p>
+      </div>
+
+      <!-- Step 7: Ready -->
+      <div class="wizard-step" id="wstep-7">
+        <p class="section-label">7 · Ready</p>
+        <div class="ready-summary" id="readySummary"></div>
+        <p class="setup-hint" id="setupHint"></p>
+        <p class="elig-badge" id="lbEligBadge"></p>
+        <div class="btn-row" style="margin-top:16px">
+          <button class="btn btn-primary" id="startBtn">Open the dispatch box →</button>
+        </div>
+      </div>
+
+      <!-- Wizard navigation buttons -->
+      <div class="wizard-btn-row">
+        <button class="btn btn-ghost" id="wstepBackBtn" style="visibility:hidden">← Back</button>
+        <button class="btn btn-primary" id="wstepNextBtn">Continue →</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:8px">
         <button class="btn btn-ghost" id="exploreBtn">Explore the map</button>
         <button class="btn btn-ghost" id="aboutBtn">How it works</button>
         <button class="btn btn-ghost" id="rankedPresetBtn">🏆 Set ranked mode</button>
@@ -315,7 +354,7 @@
     <!-- ================================================= WIKI SCREEN ==== -->
     <section id="screen-wiki" class="screen">
       <div class="wiki-wrap">
-        <button id="wikiBackBtn" class="btn btn-ghost">← Back to results</button>
+        <button id="wikiBackBtn" class="btn btn-ghost">← Back</button>
 
         <div class="wiki-box">
           <div class="wiki-title">
@@ -435,7 +474,12 @@
         <div class="meter" id="meterUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="gov-seats"><b id="govSeats">0</b> seats held <span class="gov-seats-sub" id="govSeatsSub"></span></div>
         <div class="pledge-strip" id="pledgeStrip" style="display:none"></div>
-        <div class="btn-row gov-actions"><button class="btn btn-ghost" id="reshuffleBtn" style="display:none">↺ Reshuffle (once)</button></div>
+        <div class="btn-row gov-actions">
+          <button class="btn btn-ghost" id="reshuffleBtn" style="display:none">↺ Reshuffle (once)</button>
+          <button class="btn btn-ghost" id="govCallElectionBtn" style="display:none">🗳 Call snap election</button>
+          <button class="btn btn-ghost" id="govStatementBtn" style="display:none">📣 National statement (once)</button>
+          <button class="btn btn-ghost" id="oppPressConfBtn" style="display:none">📣 Press conference (once)</button>
+        </div>
         <div class="reshuffle-panel" id="reshufflePanel" style="display:none"></div>
       </div>
       <div class="panel opp-gov" id="oppGovPanel" style="display:none">
@@ -477,6 +521,7 @@
         <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
         <button class="btn btn-ghost" id="legacyXBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="legacyShareBtn">Copy result</button>
+        <button class="btn btn-ghost" id="legacyWikiBtn">📜 Election record</button>
         <button class="btn btn-ghost" id="legacyLbBtn">★ Post to leaderboard</button>
         <button class="btn btn-ghost" id="legacyMenuBtn">Main menu</button>
       </div>
