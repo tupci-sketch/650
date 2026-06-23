@@ -889,6 +889,8 @@
     }
     if (G.career && G.career.active) {
       var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = "→ Next Parliament";
+      /* show career parliament history strip on the legacy screen */
+      if (G.UI.renderCareerParlStrip) G.UI.renderCareerParlStrip("legacyCareerStrip", G.career);
     }
     /* the governed term completes THIS run's record: same runId, legacy now
        filled in \u2014 the personal board (and the signed-in run history) update

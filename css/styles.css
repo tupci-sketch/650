@@ -947,3 +947,98 @@ body::before {
   padding: 10px 14px; background: rgba(255,255,255,.5); border: 1px solid var(--line, #e3dac6); border-radius: 10px; }
 .ret-mod-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .ret-arrow { font-size: 18px; width: 20px; text-align: center; }
+
+/* ======================== MOBILE: BUTTON ALIGNMENT ===================== */
+@media (max-width: 520px) {
+  .btn-row:not(.gov-actions) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .btn-row:not(.gov-actions) .btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  .wizard-btn-row { flex-direction: row; align-items: center; }
+  .wizard-btn-row .btn { flex: 1; justify-content: center; text-align: center; }
+}
+
+/* ======================== MENU SECONDARY BUTTONS ======================= */
+.menu-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 14px;
+}
+.menu-btns .btn { width: 100%; justify-content: center; text-align: center; }
+@media (max-width: 700px) { .menu-btns { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 440px) { .menu-btns { grid-template-columns: 1fr; } }
+
+/* ======================== SESSION TRACK ================================ */
+.session-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 6px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft, #ddd2b4);
+}
+.st-label {
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #6b6256);
+  white-space: nowrap;
+  min-width: 80px;
+}
+.st-dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.st-dot {
+  width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.st-dot.st-future   { background: rgba(80,74,60,.14); border: 1px solid rgba(80,74,60,.18); }
+.st-dot.st-current  { background: var(--brass, #b3862f); border: 1px solid var(--brass, #b3862f); box-shadow: 0 0 0 2px rgba(179,134,47,.3); transform: scale(1.2); }
+.st-dot.st-done     { background: rgba(80,74,60,.38); border: 1px solid rgba(80,74,60,.3); }
+.st-dot.st-done-good { background: var(--green, #2f5d3a); border: 1px solid var(--green-deep, #244a2e); }
+.st-dot.st-done-bad  { background: var(--oxblood, #862231); border: 1px solid var(--oxblood-2, #6e1a27); }
+
+/* ======================== CAREER PARLIAMENT STRIP ====================== */
+.career-parl-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: rgba(47,93,58,.06);
+  border-left: 3px solid var(--green, #2f5d3a);
+  border-radius: 0 8px 8px 0;
+  margin: 14px 0;
+}
+.cps-label {
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-soft, #6b6256);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.cps-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line, #c9bd9c);
+  background: rgba(255,255,255,.5);
+  min-width: 62px;
+}
+.cps-item.cps-win      { border-color: var(--green, #2f5d3a); background: rgba(47,93,58,.09); }
+.cps-item.cps-landslide { border-color: var(--green, #2f5d3a); background: rgba(47,93,58,.17); }
+.cps-item.cps-lose     { border-color: var(--oxblood, #862231); background: rgba(134,34,49,.07); }
+.cps-parl  { font-family: var(--mono, monospace); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft, #6b6256); }
+.cps-seats { font-family: var(--display, serif); font-weight: 700; font-size: 18px; color: var(--ink, #241f17); line-height: 1.1; }
+.cps-year  { font-family: var(--mono, monospace); font-size: 9px; color: var(--ink-soft, #6b6256); }

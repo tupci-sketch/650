@@ -531,6 +531,7 @@ G.UI.renderGovern = function () {
   G.UI.refreshGovActions();
   $("govLog").innerHTML = '<div class="feed-line muted">' +
     (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
+  G.UI.renderSessionTrack();
   G.UI.renderTurnEvents();
   G.UI.show("screen-govern");
 };
@@ -552,11 +553,66 @@ G.UI.afterConfirm = function () {
   G.UI.updateGovSeats();
   G.UI.refreshGovActions();
   $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
+  G.UI.renderSessionTrack();
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {
   G.UI.afterConfirm();
 };
+
+/* --------------------------------------------------------- session track --
+   Renders a row of coloured dots showing progress through the parliament.
+   Green = approval ≥ 58 when session ended, red = approval < 36, grey = ok,
+   amber pulse = current session, faded = sessions yet to come.              */
+G.UI.renderSessionTrack = function () {
+  var el = $("sessionTrack"); if (!el) return;
+  var t = G.term; if (!t) { el.innerHTML = ""; return; }
+  var dots = [];
+  for (var i = 1; i <= t.length; i++) {
+    var hist = null;
+    if (t.history) for (var j = 0; j < t.history.length; j++) if (t.history[j].session === i) { hist = t.history[j]; break; }
+    var cls = "st-dot ";
+    if (hist) {
+      var m = hist.meters;
+      cls += (m && m.approval >= 58) ? "st-done-good" : (m && m.approval < 36) ? "st-done-bad" : "st-done";
+    } else if (i === Math.min(t.session, t.length)) {
+      cls += "st-current";
+    } else {
+      cls += "st-future";
+    }
+    var tip = "Session " + i + (hist && hist.titles ? ": " + hist.titles : "");
+    dots.push('<span class="' + cls + '" title="' + G.UI._esc(tip) + '"></span>');
+  }
+  var cur = Math.min(t.session, t.length);
+  el.innerHTML = '<span class="st-label">Session ' + cur + ' / ' + t.length + '</span>' +
+    '<div class="st-dots">' + dots.join("") + '</div>';
+};
+
+/* ----------------------------------------------- career parliament strip --
+   Compact history of previous parliaments for result / legacy screens.      */
+G.UI.renderCareerParlStrip = function (elId, career) {
+  var el = $(elId); if (!el) return;
+  if (!career || !career.active || !career.electionHistory || !career.electionHistory.length) {
+    el.style.display = "none"; return;
+  }
+  el.style.display = "";
+  var parts = ['<span class="cps-label">Career</span>'];
+  career.electionHistory.forEach(function (h) {
+    var t = h.tier || "";
+    var cls = (t === "landslide" || t === "supermajority" || t === "sweep") ? "cps-landslide"
+            : (t === "majority" || t === "largest" || t === "kingmaker") ? "cps-win"
+            : (t === "wipeout") ? "cps-lose" : "";
+    parts.push(
+      '<span class="cps-item ' + cls + '">' +
+        '<span class="cps-parl">Parl. ' + (h.parliament || "?") + '</span>' +
+        '<span class="cps-seats">' + (h.seats || 0) + '</span>' +
+        (h.electionYear ? '<span class="cps-year">' + h.electionYear + '</span>' : '') +
+      '</span>'
+    );
+  });
+  el.innerHTML = parts.join("");
+};
+
 G.UI.legacyText = function (v) {
   if (v.kind === "opp") {
     var ov = v.outcome === "ousted" ? "I was deposed as Leader of the Opposition"
@@ -643,6 +699,8 @@ G.UI.setWatchTally = function (seats, declared) {
 /* ============================================================== RESULTS == */
 G.UI.renderResult = function (res) {
   var C = G.CONFIG;
+  /* career mode: show strip of previous parliaments above the result */
+  G.UI.renderCareerParlStrip("careerParlStrip", G.career);
   var banner = $("govtBanner");
   if (res.tier.govt) {
     banner.className = "govt-banner win";

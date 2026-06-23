@@ -184,7 +184,7 @@
         <button class="btn btn-primary" id="wstepNextBtn">Continue →</button>
       </div>
 
-      <div class="btn-row" style="margin-top:8px">
+      <div class="menu-btns">
         <button class="btn btn-ghost" id="exploreBtn">Explore the map</button>
         <button class="btn btn-ghost" id="aboutBtn">How it works</button>
         <button class="btn btn-ghost" id="rankedPresetBtn">🏆 Set ranked mode</button>
@@ -280,6 +280,9 @@
         <div class="tier-name" id="tierName">—</div>
         <div class="majority-line" id="majorityLine"></div>
       </div>
+
+      <!-- career mode: compact history of previous parliaments -->
+      <div id="careerParlStrip" class="career-parl-strip" style="display:none"></div>
 
       <div class="commons">
         <div class="fill" id="commonsFill" style="width:0%"></div>
@@ -499,6 +502,8 @@
         <button class="btn force-btn" id="forceBtn" disabled>⚡ Force the election</button>
       </div>
       <div class="panel" id="eventTurn">
+        <!-- session progress track: coloured dots for each session in the parliament -->
+        <div id="sessionTrack" class="session-track"></div>
         <p class="section-label" style="margin-top:0">This session's issues — choose your response to each, then confirm</p>
         <div id="eventTurnCards"></div>
         <div class="btn-row" style="margin-top:14px">
@@ -516,6 +521,8 @@
       <div class="legacy-banner" id="legacyBanner"></div>
       <div class="legacy-score"><span class="legacy-num" id="legacyNum">0</span><span class="legacy-cap">legacy score · out of 100</span></div>
       <p class="legacy-line" id="legacyLine"></p>
+      <!-- career mode: compact history of previous parliaments -->
+      <div id="legacyCareerStrip" class="career-parl-strip" style="display:none"></div>
       <div class="panel gov-meters">
         <div class="meter" id="legApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
         <div class="meter" id="legEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
