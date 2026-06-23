@@ -23,12 +23,52 @@
                  hard: false, govern: true, watch: true, speed: "normal",
                  redos: 1, cabinetSize: "standard", policy: false,
                  casts: { insider: true, novelty: false },
-                 partyName: "", partyAlign: "centre", partyColour: "" };
+                 partyName: "", partyAlign: "centre", partyColour: "",
+                 careerMode: false };
 
   var lastResult = null;   // kept for re-run / download / copy
   var watch = null;        // live-count animation state
   var currentVerdict = null; // last governing verdict (for sharing)
   var submitting = false;    // guard against double-submit while a post is in flight
+
+  /* ---- setup wizard -------------------------------------------------------- */
+  var wizardStep = 1;
+  var WSTEP_TITLES = ["Choose your game", "Who's in the pool", "Election difficulty",
+                      "Draft rules", "After the election", "Career mode", "Ready to play"];
+  function updateReadySummary() {
+    var el = sel("readySummary"); if (!el) return;
+    var modeLabels = {
+      unity: "Greatest Cabinet", wildcard: "Wildcard", parl2024: "2024 Parliament",
+      dynasty: "Single-Party Dynasty" + (choice.lineage ? " · " + choice.lineage : "")
+    };
+    var lines = [
+      "<b>Game:</b> " + (modeLabels[choice.mode] || choice.mode),
+      "<b>Difficulty:</b> " + choice.difficulty.charAt(0).toUpperCase() + choice.difficulty.slice(1),
+      "<b>Cabinet:</b> " + (choice.cabinetSize === "expanded" ? "Expanded (16)" : "Standard (12)") + (choice.policy ? " · policy phase on" : ""),
+      "<b>After election:</b> " + (choice.govern ? "Win and govern (up to 14 sessions)" : "Result only"),
+      "<b>Run:</b> " + (choice.careerMode ? "Career mode — cabinet carries over between parliaments" : "Single election")
+    ];
+    el.innerHTML = lines.map(function (l) { return "<p>" + l + "</p>"; }).join("");
+  }
+  function goWizardStep(n) {
+    var prevEl = sel("wstep-" + wizardStep);
+    if (prevEl) prevEl.classList.remove("wactive");
+    wizardStep = Math.max(1, Math.min(7, n));
+    var nextEl = sel("wstep-" + wizardStep);
+    if (nextEl) nextEl.classList.add("wactive");
+    each(document.querySelectorAll(".wp-dot"), function (dot) {
+      var s = parseInt(dot.getAttribute("data-step"), 10);
+      dot.classList.toggle("wactive", s === wizardStep);
+      dot.classList.toggle("wdone", s < wizardStep);
+    });
+    var titleEl = sel("wizardStepTitle");
+    if (titleEl) titleEl.textContent = WSTEP_TITLES[wizardStep - 1] || "";
+    var backBtn = sel("wstepBackBtn"), nextBtn = sel("wstepNextBtn");
+    if (backBtn) backBtn.style.visibility = wizardStep === 1 ? "hidden" : "";
+    if (nextBtn) { nextBtn.style.display = wizardStep === 7 ? "none" : ""; nextBtn.textContent = "Continue →"; }
+    if (wizardStep === 7) { updateReadySummary(); updateHint(); }
+    var top = sel("screen-menu"); if (top) top.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   /* ---------------------------------------------------------------- boot -- */
   function boot() {
@@ -207,6 +247,18 @@
     bindRow("redoRow",   "data-redos",  function (v) { choice.redos = parseInt(v, 10); });
     bindRow("sizeRow",   "data-size",   function (v) { choice.cabinetSize = v; buildDynastyChips(); updateHint(); updateEligibility(); });
     bindRow("policyRow", "data-policy", function (v) { choice.policy = (v === "true"); });
+    bindRow("careerRow", "data-career", function (v) {
+      choice.careerMode = (v === "true");
+      var n = sel("careerNote"); if (n) n.style.display = choice.careerMode ? "" : "none";
+    });
+
+    /* wizard navigation */
+    sel("wstepNextBtn").onclick = function () { goWizardStep(wizardStep + 1); };
+    sel("wstepBackBtn").onclick = function () { goWizardStep(wizardStep - 1); };
+    each(document.querySelectorAll(".wp-dot"), function (dot) {
+      dot.onclick = function () { goWizardStep(parseInt(dot.getAttribute("data-step"), 10)); };
+    });
+    goWizardStep(1);
 
     sel("startBtn").onclick = function () {
       if (sel("startBtn").disabled) return;
@@ -217,6 +269,21 @@
       }
       currentVerdict = null; submitting = false;
       setLbBtns(false, "\u2605 Post to leaderboard");
+      /* career init (or clear) */
+      if (choice.careerMode) {
+        G.careerInit({
+          partyName:   choice.partyName,
+          partyColour: choice.partyColour,
+          partyAlign:  choice.partyAlign,
+          mode:        choice.mode,
+          lineage:     choice.mode === "dynasty" ? choice.lineage : null,
+          difficulty:  choice.difficulty,
+          cabinetSize: choice.cabinetSize,
+          eras:        choice.eras.slice()
+        });
+      } else {
+        G.career = null;
+      }
       G.newGame({
         mode: choice.mode,
         lineage: choice.mode === "dynasty" ? choice.lineage : null,
@@ -468,9 +535,10 @@
   function wireResult() {
     sel("wikiBtn").onclick = function () {
       if (!lastResult) return;
+      G.UI._wikiCaller = "screen-result";
       G.UI.renderWikiParliament(lastResult, G.state, G.career);
     };
-    sel("wikiBackBtn").onclick = function () { G.UI.show("screen-result"); };
+    sel("wikiBackBtn").onclick = function () { G.UI.show(G.UI._wikiCaller || "screen-result"); };
 
     sel("downloadBtn").onclick = function () {
       if (!lastResult) return;
@@ -737,12 +805,38 @@
         G.UI.refreshGovActions();
       }
     });
-    /* the player-timed snap election */
+    /* the player-timed snap election (opposition) */
     sel("forceBtn").onclick = function () {
       var r = G.forceElection(); if (!r) return;
       G.UI.pushGovLog(r.log);
       G.UI.afterChoice();
       if (r.over) endTerm();
+    };
+    /* government-initiated early election */
+    sel("govCallElectionBtn").onclick = function () {
+      var r = G.callEarlyElection ? G.callEarlyElection() : null; if (!r) return;
+      G.UI.pushGovLog(r.log);
+      G.UI.afterChoice();
+      if (r.over) endTerm();
+    };
+    /* once-per-term national statement (government) */
+    sel("govStatementBtn").onclick = function () {
+      var r = G.govStatement ? G.govStatement() : null; if (!r) return;
+      G.UI.pushGovLog(r.log);
+      G.UI.refreshGovActions();
+    };
+    /* once-per-term press conference (opposition) */
+    sel("oppPressConfBtn").onclick = function () {
+      var r = G.oppPressConference ? G.oppPressConference() : null; if (!r) return;
+      G.UI.pushGovLog(r.log);
+      G.UI.refreshGovActions();
+    };
+    /* election record from legacy screen */
+    var legWiki = sel("legacyWikiBtn");
+    if (legWiki) legWiki.onclick = function () {
+      if (!lastResult) return;
+      G.UI._wikiCaller = "screen-legacy";
+      G.UI.renderWikiParliament(lastResult, G.state, G.career);
     };
     sel("legacyAgainBtn").onclick = function () {
       cancelWatch();
@@ -772,6 +866,9 @@
     /* career: record this term and prepare retirement screen */
     if (G.career && G.career.active && G.careerRecordTerm) {
       G.careerRecordTerm(lastResult, currentVerdict);
+    }
+    if (G.career && G.career.active) {
+      var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = "→ Next Parliament";
     }
     /* the governed term completes THIS run's record: same runId, legacy now
        filled in \u2014 the personal board (and the signed-in run history) update
@@ -830,6 +927,7 @@
   function wireLegacyCareer() {
     var legEl = sel("legacyAgainBtn"); if (!legEl) return;
     var origOnclick = legEl.onclick;
+    if (G.career && G.career.active) legEl.textContent = "→ Next Parliament";
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */

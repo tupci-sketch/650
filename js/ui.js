@@ -211,11 +211,14 @@ G.UI.renderCabinet = function () {
       var right = hard
         ? '<span class="fitmark ' + hCls + '">' + (hCls==="good"?"\u2713 fit":hCls==="okay"?"\u2248 capable":"\u25b3 stretch") + '</span>'
         : '<span class="ovr ' + G.UI._ovrClass(G.overall(holder)) + ' seat-ovr">' + G.overall(holder) + '</span>';
-      seat.className = "seat" + (despot ? " despot" : "") + (flagged ? " flagged" : "");
+      var isCarryOver = G.state.carryOver && G.state.carryOver[port.key] &&
+                        G.state.carryOver[port.key].name === holder.name;
+      seat.className = "seat" + (despot ? " despot" : "") + (flagged ? " flagged" : "") + (isCarryOver ? " carry-over" : "");
       seat.innerHTML =
         '<span class="role">' + roleShort + '</span>' +
         '<span class="seat-pic" data-pol="' + G.UI._esc(holder.name) + '"></span>' +
         '<span class="holder">' + G.UI._esc(holder.name) +
+          (isCarryOver ? ' <span class="carry-badge">Returning</span>' : '') +
           ' <span class="era-mini">' + (G.ERA_BY_ID[holder.era] ? G.ERA_BY_ID[holder.era].years : "") + '</span></span>' +
         right;
     } else if (pend) {
@@ -470,9 +473,17 @@ G.UI.renderOppPanel = function () {
 };
 G.UI.refreshGovActions = function () {
   var t = G.term;
+  var isGovt = t && t.kind === "govt" && !t.over;
+  var isOpp  = t && t.kind === "opp"  && !t.over;
   var rb = $("reshuffleBtn");
-  if (rb) rb.style.display = (t && t.kind === "govt" && !t.over && !t.reshuffleUsed) ? "" : "none";
-  var rp = $("reshufflePanel"); if (rp && (!t || t.kind !== "govt" || t.reshuffleUsed)) { rp.style.display = "none"; }
+  if (rb) rb.style.display = (isGovt && !t.reshuffleUsed) ? "" : "none";
+  var rp = $("reshufflePanel"); if (rp && !isGovt) { rp.style.display = "none"; }
+  var ceBtn = $("govCallElectionBtn");
+  if (ceBtn) ceBtn.style.display = (isGovt && G.canCallEarlyElection && G.canCallEarlyElection()) ? "" : "none";
+  var stBtn = $("govStatementBtn");
+  if (stBtn) stBtn.style.display = (isGovt && !t.statementUsed) ? "" : "none";
+  var pcBtn = $("oppPressConfBtn");
+  if (pcBtn) pcBtn.style.display = (isOpp && !t.pressConfUsed) ? "" : "none";
   G.UI.renderPledges();
   G.UI.renderOppPanel();
 };
@@ -1077,6 +1088,8 @@ G.UI.renderLeaderboard = function (top, communal, error) {
    Renders the fantasy Wikipedia election infobox after an election result.   */
 G.UI.renderWikiParliament = function (res, state, career) {
   if (!res) return;
+  G.UI._wikiCaller = G.UI._wikiCaller || "screen-result";
+  G.UI.show("screen-wiki");
   var C = G.CONFIG || {};
   var baseline = C.baseline2024 || {};
   var year = new Date().getFullYear();
@@ -1213,8 +1226,6 @@ G.UI.renderWikiParliament = function (res, state, career) {
   var prevPm = outLeader !== "—" ? outLeader : "—";
   if (pmBefore) pmBefore.textContent = prevPm;
   if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : outLeader;
-
-  G.UI.show("screen-wiki");
 };
 
 /* ========================================================= RETIREMENT SCREEN

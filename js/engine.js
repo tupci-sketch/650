@@ -591,11 +591,12 @@ G.careerInit = function (opts) {
     partyColour: (opts && opts.partyColour) || "#2f5d3a",
     partyAlign:  (opts && opts.partyAlign)  || "centre",
     mode:        (opts && opts.mode)        || "unity",
+    lineage:     (opts && opts.lineage)     || null,
     difficulty:  (opts && opts.difficulty)  || "normal",
     cabinetSize: (opts && opts.cabinetSize) || "standard",
     eras:        (opts && opts.eras)        || [],
     /* cumulative modifiers feeding the NEXT election */
-    voteModifier:     0,      /* ±0.05 max; reset after applied */
+    voteModifier:     0,      /* ±0.12 max; reset after applied */
     reputationScore:  50,     /* 0–100 — shown in the career dashboard */
     /* incumbency: GSS codes of seats won in the most recent election */
     heldSeats: [],
@@ -648,18 +649,19 @@ G.careerRecordTerm = function (result, termVerdict) {
   if (termVerdict) {
     var leg = termVerdict.legacy || 50;
     var mod = 0;
-    if (leg >= 70)  mod += 0.018;
-    if (leg >= 85)  mod += 0.010;   // bonus for a great term
-    if (leg < 35)   mod -= 0.015;
-    if (termVerdict.outcome === "collapsed") mod -= 0.020;
+    if (leg >= 85)       mod += 0.035;
+    else if (leg >= 70)  mod += 0.020;
+    else if (leg <= 30)  mod -= 0.040;
+    else if (leg <= 45)  mod -= 0.022;
+    if (termVerdict.outcome === "collapsed") mod -= 0.030;
     var finalApproval  = (termVerdict.meters && termVerdict.meters.approval)  || 50;
     var finalEconomy   = (termVerdict.meters && termVerdict.meters.economy)   || 50;
     var finalUnity     = (termVerdict.meters && termVerdict.meters.unity)     || 50;
-    if (finalEconomy >= 65)  mod += 0.010;
-    if (finalEconomy < 35)   mod -= 0.010;
-    if (finalUnity < 32)     mod -= 0.008;
-    if (finalApproval >= 65) mod += 0.006;
-    G.career.voteModifier = Math.max(-0.05, Math.min(0.05, (G.career.voteModifier || 0) + mod));
+    if (finalEconomy >= 70)  mod += 0.020;
+    if (finalEconomy < 35)   mod -= 0.018;
+    if (finalUnity < 32)     mod -= 0.015;
+    if (finalApproval >= 65) mod += 0.012;
+    G.career.voteModifier = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + mod));
     G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + (leg - 50) * 0.4));
   }
 
