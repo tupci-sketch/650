@@ -221,7 +221,8 @@ G.newGame = function (opts) {
     skips: { era: redos, party: redos },
     redos: redos,            // re-draws of the dealt minister (v4)
     spinsTaken: 0,
-    carryOver: carryOver     // ministers carried from previous parliament (career mode)
+    carryOver: carryOver,    // ministers carried from previous parliament (career mode)
+    gameYear: opts.gameYear || 2026  // in-game election year (advances per parliament)
   };
   return G.state;
 };
@@ -377,6 +378,7 @@ G.hold = function () {
   res.cabinetSize = st.cabinetSize;
   res.pmName = (st.cabinet && st.cabinet.pm) ? st.cabinet.pm.name : "—";
   res.blocLabel = res.campaign && res.campaign.blocLabel;
+  res.electionYear = st.gameYear || 2025;
   return res;
 };
 

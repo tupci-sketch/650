@@ -503,16 +503,26 @@ body::before {
   border:1px solid rgba(80,74,60,.25); border-radius:999px; padding:3px 10px; white-space:nowrap; }
 
 .gov-meters { display:flex; flex-direction:column; gap:12px; }
-.meter { display:grid; grid-template-columns: 92px 1fr 38px; align-items:center; gap:12px; }
+.meter { display:grid; grid-template-columns: 92px 1fr 38px 68px; align-items:center; gap:8px; }
 .meter-label { font-size:13px; color:var(--ink,#241f17); }
 .meter-bar { height:12px; background:rgba(80,74,60,.16); border-radius:7px; overflow:hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,.12); }
 .meter-fill { display:block; height:100%; width:0; border-radius:7px; background:var(--green,#2f5d3a); transition: width .55s cubic-bezier(.4,0,.2,1), background .4s ease; }
 .meter-num { font-family:var(--mono,monospace); font-size:14px; text-align:right; color:var(--ink,#241f17); }
+.meter-status { font-family:var(--mono,monospace); font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+.meter-status.ms-critical { color:var(--oxblood,#862231); font-weight:700; }
+.meter-status.ms-weak     { color:#a05c00; }
+.meter-status.ms-stable   { color:var(--ink-soft,#6b6256); }
+.meter-status.ms-strong   { color:var(--green,#2f5d3a); font-weight:600; }
 .gov-seats { margin-top:4px; font-size:14px; color:var(--ink,#241f17); }
 .gov-seats b { font-size:17px; }
 .gov-seats-sub, .gov-seats .gov-seats-sub { color:var(--ink-soft,#6b6256); font-size:13px; margin-left:4px; }
 
-.event-card { border-left:4px solid var(--oxblood,#862231); }
+.event-card, .tc-card { border-left:4px solid var(--oxblood,#862231); }
+#eventTurnCards { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:4px; }
+@media (max-width:640px) { #eventTurnCards { grid-template-columns:1fr; } }
+.tc-card { background:rgba(255,255,255,.28); border-radius:8px; padding:14px 16px; }
+.choice-staged { border-color:var(--green,#2f5d3a) !important; background:rgba(47,93,58,.09) !important; box-shadow:0 0 0 2px rgba(47,93,58,.22); }
+.choice-staged .choice-label { color:var(--green,#2f5d3a); }
 .event-head { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .event-icon { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; flex:none;
   border-radius:10px; background:var(--oxblood,#862231); color:var(--parchment,#f3ecda);
@@ -557,7 +567,7 @@ body::before {
 .explore-search input:focus { outline:none; border-color:var(--oxblood,#862231); background:#fff; }
 
 @media (max-width:560px){
-  .meter { grid-template-columns: 78px 1fr 32px; gap:8px; }
+  .meter { grid-template-columns: 78px 1fr 32px 56px; gap:6px; }
   .event-title { font-size:19px; }
   .tr-row { grid-template-columns: 28px 1fr; }
   .tr-c { grid-column: 1 / -1; padding-left:38px; }
@@ -890,6 +900,27 @@ body::before {
 .wiki-pm-cell { flex: 1; padding: 8px 14px; font-size: 12.5px; }
 .wiki-pm-cell:first-child { border-right: 1px solid #a2a9b1; }
 .wiki-pm-label { display: block; font-size: 11px; color: #54595d; margin-bottom: 2px; }
+
+/* hung parliament notice */
+.wiki-hung-note { padding: 7px 14px; background: #fef6e4; border-left: 3px solid #c8972a;
+  font-size: 12.5px; color: #3d2b00; border-bottom: 1px solid #a2a9b1; }
+
+/* full party results table */
+.wiki-results-head { padding: 10px 14px 4px; font-size: 12px; font-weight: 700; color: #54595d; border-top: 1px solid #a2a9b1; }
+.wiki-full-results { padding: 0 0 4px; border-bottom: 1px solid #a2a9b1; overflow-x: auto; }
+.wiki-full-results table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.wiki-full-results th { background: #eaeff4; color: #54595d; font-weight: 600; text-align: left;
+  padding: 5px 10px; border-bottom: 2px solid #a2a9b1; white-space: nowrap; }
+.wiki-full-results th:not(:first-child) { text-align: right; }
+.wiki-full-results td { padding: 4px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
+.wiki-full-results td:not(:first-child) { text-align: right; }
+.wiki-full-results tr.wiki-you-row td { background: rgba(234,243,251,.6); font-weight: 600; }
+.wiki-full-results tr:last-child td { border-bottom: none; }
+.wfr-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px;
+  vertical-align: middle; margin-right: 6px; flex-shrink: 0; }
+.wfr-party-cell { display: flex; align-items: center; }
+.wfr-gain { color: #2f5d3a; }
+.wfr-loss { color: #862231; }
 
 /* ========================== Career banner ================================ */
 .career-banner { display: flex; align-items: center; gap: 10px; padding: 8px 14px;

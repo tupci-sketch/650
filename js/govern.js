@@ -474,7 +474,7 @@ G.startTerm = function (res, opts) {
       return opt ? { axis: ax.key, title: ax.title, label: opt.label, status: "open" } : null;
     }).filter(Boolean) : null
   };
-  G.term.current = G.govDraw();
+  G.govDrawTurn(2);
   return G.term;
 };
 
@@ -533,6 +533,148 @@ G.govDraw = function () {
   var e = pool[Math.floor(Math.random() * pool.length)];
   t.drawn.push(e.id);
   return e;
+};
+
+/* draw n crisis events for this turn; stored as t.turnEvents = [{event, stagedChoice:null}] */
+G.govDrawTurn = function (n) {
+  var t = G.term;
+  var events = [];
+  for (var i = 0; i < n; i++) {
+    var ev = null;
+    if (t.kind === "govt") {
+      if (i === 0 && t.session === Math.ceil(t.length / 2) && t.drawn.indexOf("midbudget") === -1) {
+        t.drawn.push("midbudget");
+        ev = G.MID_BUDGET;
+      } else if (i >= 1) {
+        var openPl = (t.pledges || []).filter(function (pl) { return pl.status === "open"; });
+        if (openPl.length && Math.random() < 0.34) {
+          ev = G._pledgeEvent(openPl[Math.floor(Math.random() * openPl.length)]);
+        }
+      }
+    } else {
+      if (i >= 1 && t.session % 3 === 0) {
+        ev = G._oppByElectionEvent();
+      }
+    }
+    if (!ev) ev = G.govDraw();
+    events.push(ev);
+  }
+  t.turnEvents = events.map(function (e) { return { event: e, stagedChoice: null }; });
+  t.current = null;
+  return t.turnEvents;
+};
+
+/* stage a choice for one event without applying it yet */
+G.stageChoice = function (eventIdx, choiceIdx) {
+  var t = G.term;
+  if (!t || t.over || !t.turnEvents || !t.turnEvents[eventIdx]) return false;
+  t.turnEvents[eventIdx].stagedChoice = choiceIdx;
+  return true;
+};
+
+/* true when every event in the current turn has a staged choice */
+G.allChoicesStaged = function () {
+  var t = G.term;
+  if (!t || !t.turnEvents || !t.turnEvents.length) return false;
+  return t.turnEvents.every(function (te) { return te.stagedChoice !== null && te.stagedChoice !== undefined; });
+};
+
+/* apply effects from one event+choice pair (no session advance, no per-turn drift) */
+G._applyChoiceEffects = function (ev, choice, log) {
+  log.push({ text: ev.title + " — " + choice.label, cls: "head" });
+  G._apply(choice.base, true);
+  G.applyCareerEffect(choice.careerEffect);
+  var gambleWon = false;
+  if (choice.gamble) {
+    var g = choice.gamble, stat = G.ministerStat(g.dept, g.stat);
+    var p = Math.max(0.05, Math.min(0.95, 0.30 + (stat - 50) / 100 * 0.95 - G._diff().confidence * 0.5));
+    gambleWon = Math.random() < p;
+    G._apply(gambleWon ? g.success : g.fail, true);
+    log.push({ text: (gambleWon ? "✓ " : "✗ ") + G.ministerName(g.dept) + (gambleWon ? " pulls it off." : " can't make it land."), cls: gambleWon ? "good" : "bad" });
+  }
+  if (choice.deliver || choice.water || choice.shelve) {
+    var ax = choice.deliver || choice.water || choice.shelve;
+    (G.term.pledges || []).forEach(function (pl) {
+      if (pl.axis !== ax) return;
+      if (choice.shelve) {
+        pl.status = "broken";
+        log.push({ text: "Pledge shelved: “" + pl.label + "”.", cls: "bad" });
+      } else if (choice.water) {
+        pl.status = "watered";
+        log.push({ text: "Pledge watered down: “" + pl.label + "”.", cls: "" });
+      } else {
+        var won = !choice.gamble || gambleWon;
+        pl.status = won ? "delivered" : "open";
+        log.push(won ? { text: "Pledge DELIVERED: “" + pl.label + "”.", cls: "good" }
+                     : { text: "The bill stalls.", cls: "bad" });
+      }
+    });
+  }
+  if (choice.resign) G._caretake(log);
+  if (ev.special === "byel" && choice.seatId && G.term.kind === "opp") {
+    G.term.targetsUsed[choice.seatId] = 1;
+    if (gambleWon) {
+      G.term.seats += 1;
+      if (G.term.gov) G.term.gov.approval = G._clampM(G.term.gov.approval - 3);
+      log.push({ text: "GAIN: " + choice.seatName + " falls to you (" + G.term.seats + " seats now).", cls: "good" });
+    } else {
+      log.push({ text: choice.seatName + " holds for the government.", cls: "bad" });
+    }
+  }
+};
+
+/* apply all staged choices, run per-turn side effects, advance session */
+G.confirmTurn = function () {
+  var t = G.term;
+  if (!t || t.over || !G.allChoicesStaged()) return { log: [], over: false, outcome: null };
+  var log = [];
+  t.turnEvents.forEach(function (te) {
+    G._applyChoiceEffects(te.event, te.event.choices[te.stagedChoice], log);
+  });
+  if (t.kind === "govt") {
+    t.meters.approval = G._clampM(t.meters.approval - G.GOVCONFIG.drift);
+    if (t.session >= 2 && Math.random() < G.GOVCONFIG.byElectionChance) G._byElection(log);
+    if (t.meters.unity < G.GOVCONFIG.rebellionUnity) G._rebellion(log);
+  } else {
+    t.meters.economy = G._clampM(t.meters.economy - G.OPPCONFIG.momentumDrift);
+    var oc = G.OPPCONFIG;
+    var decay = oc.govDecayMin + Math.random() * (oc.govDecayMax - oc.govDecayMin);
+    var weak = t.gov.approval <= t.gov.economy ? "approval" : "economy";
+    var bite = (t.attack === weak) ? oc.attackBite * (0.6 + Math.random() * 0.8) : 0;
+    if (bite > 0) log.push({ text: "Your attack line lands where it hurts.", cls: "good" });
+    t.gov[t.attack] = G._clampM(t.gov[t.attack] - decay - bite);
+    var other = t.attack === "approval" ? "economy" : "approval";
+    t.gov[other] = G._clampM(t.gov[other] - decay * 0.4 + (Math.random() - 0.6));
+    t.meters.economy = G._clampM(t.meters.economy + (50 - t.gov.approval) / 25);
+    if (t.forceLock > 0) t.forceLock--;
+  }
+  t.history.push({
+    session: t.session,
+    titles: t.turnEvents.map(function (te) { return te.event.title; }).join(" / "),
+    choices: t.turnEvents.map(function (te) { return te.event.choices[te.stagedChoice].label; }).join(" / "),
+    meters: { approval: t.meters.approval, economy: t.meters.economy, unity: t.meters.unity },
+    seats: t.seats
+  });
+  if (t.kind === "govt") {
+    if (G._confidenceAtRisk()) {
+      var surv = G._confidenceVote(log);
+      if (!surv) { t.over = true; t.outcome = "collapsed"; t.fellSession = t.session; return { log: log, over: true, outcome: "collapsed" }; }
+    }
+  } else {
+    if (t.meters.unity < G.OPPCONFIG.challengeUnity) {
+      var surv2 = G._leadershipChallenge(log);
+      if (!surv2) { t.over = true; t.outcome = "ousted"; t.fellSession = t.session; return { log: log, over: true, outcome: "ousted" }; }
+    }
+  }
+  t.session++;
+  if (t.session > t.length) {
+    t.over = true;
+    t.outcome = t.kind === "govt" ? "completed" : "survived";
+    log.push({ text: t.kind === "govt" ? "You reach polling day with your government intact." : "You reach the next general election as a credible opposition.", cls: "good" });
+    return { log: log, over: true, outcome: t.outcome };
+  }
+  G.govDrawTurn(2);
+  return { log: log, over: false, outcome: null };
 };
 
 /* apply an effects bundle {a,e,u} (bad parts scaled by difficulty) */
@@ -1011,7 +1153,7 @@ G.startOpposition = function (res) {
     over: false, outcome: null, fellSession: null,
     history: [], byElectionSeats: []
   };
-  G.term.current = G.govDraw();
+  G.govDrawTurn(2);
   return G.term;
 };
 

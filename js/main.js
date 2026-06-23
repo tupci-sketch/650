@@ -760,17 +760,23 @@
       if (!lastResult || !lastResult.coalition || !lastResult.coalition.soloMajority) return;
       enterGovernment(lastResult);
     };
-    sel("eventChoices").addEventListener("click", function (e) {
+    sel("eventTurnCards").addEventListener("click", function (e) {
       var n = e.target;
       while (n && n !== this && !(n.classList && n.classList.contains("choice"))) n = n.parentNode;
       if (!n || !n.classList || !n.classList.contains("choice")) return;
       if (!G.term || G.term.over) return;
-      var idx = parseInt(n.getAttribute("data-idx"), 10);
-      var r = (G.term.kind === "opp") ? G.oppChoose(idx) : G.govChoose(idx);
-      G.UI.pushGovLog(r.log);
-      G.UI.afterChoice();
-      if (r.over) endTerm();
+      var turnIdx = parseInt(n.getAttribute("data-turn-idx"), 10);
+      var choiceIdx = parseInt(n.getAttribute("data-choice-idx"), 10);
+      G.stageChoice(turnIdx, choiceIdx);
+      G.UI.renderTurnEvents();
     });
+    sel("govConfirmBtn").onclick = function () {
+      if (!G.allChoicesStaged()) return;
+      var r = G.confirmTurn();
+      G.UI.pushGovLog(r.log);
+      G.UI.afterConfirm();
+      if (r.over) endTerm();
+    };
     /* once-a-term reshuffle: pick two seats to swap */
     var resel = [];
     sel("reshuffleBtn").onclick = function () {
@@ -902,12 +908,14 @@
           seats: lastResult.seats,
           voteShare: lastResult.voteShare,
           tier: lastResult.tier && lastResult.tier.key,
-          pmName: lastResult.pmName || "—"
+          pmName: lastResult.pmName || "—",
+          electionYear: lastResult.electionYear || G.state.gameYear || 2025
         });
       }
       /* start the next parliament with carry-over cabinet */
       currentVerdict = null; submitting = false;
       setLbBtns(false, "★ Post to leaderboard");
+      var nextYear = (G.state.gameYear || 2025) + 4 + Math.floor(Math.random() * 2);
       G.newGame({
         mode: G.career.mode,
         lineage: G.career.lineage || null,
@@ -917,7 +925,8 @@
         watch: G.state ? G.state.watch : true,
         cabinetSize: G.career.cabinetSize || "standard",
         carryOver: carryOver,
-        custom: G.state ? G.state.custom : null
+        custom: G.state ? G.state.custom : null,
+        gameYear: nextYear
       });
       G.UI.show("screen-draft");
       G.UI.renderDraft();

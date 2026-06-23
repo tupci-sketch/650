@@ -635,12 +635,14 @@ G.runElection = function (cabinet, opts) {
     else if (!leadOpp) leadOpp = bd[bi];
   }
   if (!tier.govt && tier.key === "opposition") {
-    if (youRank === 2) {
+    if (youRank === 1) {
+      tier = { key: "largest", label: "Largest party — hung parliament", govt: false, role: "largest" };
+    } else if (youRank === 2) {
       tier = { key: "opposition", label: "Official Opposition", govt: false, role: "opposition" };
     } else if (campaign.seats <= 0) {
       tier = { key: "wipeout", label: "Wiped Out — not a single seat", govt: false, role: "minor" };
     } else {
-      tier = { key: "minor", label: "A Minor Party — " + G.ordinal(youRank || bd.length) + " largest",
+      tier = { key: "minor", label: "Minor party — " + G.ordinal(youRank || bd.length) + " largest",
                govt: false, role: "minor" };
     }
   } else if (!tier.role) {

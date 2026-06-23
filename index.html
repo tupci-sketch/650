@@ -391,8 +391,13 @@
             <div class="wiki-nat-row"><span>Turnout</span><span id="wikiTurnout"></span></div>
           </div>
 
+          <div id="wikiHungNote" class="wiki-hung-note" style="display:none"></div>
+
           <div class="wiki-comp-head">Composition of the House of Commons after the election</div>
           <div id="wikiComposition" class="wiki-comp"></div>
+
+          <div class="wiki-results-head">Results by party</div>
+          <div id="wikiFullResults" class="wiki-full-results"></div>
 
           <div class="wiki-pmrow">
             <div class="wiki-pm-cell"><span class="wiki-pm-label">Prime Minister before</span><span id="wikiPmBefore"></span></div>
@@ -469,9 +474,9 @@
       </div>
       <div class="career-banner" id="careerBanner" style="display:none"></div>
       <div class="panel gov-meters">
-        <div class="meter" id="meterApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
-        <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
-        <div class="meter" id="meterUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
+        <div class="meter" id="meterApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span><span class="meter-status"></span></div>
+        <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span><span class="meter-status"></span></div>
+        <div class="meter" id="meterUnity"><span class="meter-label">Party unity</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span><span class="meter-status"></span></div>
         <div class="gov-seats"><b id="govSeats">0</b> seats held <span class="gov-seats-sub" id="govSeatsSub"></span></div>
         <div class="pledge-strip" id="pledgeStrip" style="display:none"></div>
         <div class="btn-row gov-actions">
@@ -493,10 +498,12 @@
         </div>
         <button class="btn force-btn" id="forceBtn" disabled>⚡ Force the election</button>
       </div>
-      <div class="panel event-card" id="eventCard">
-        <div class="event-head"><span class="event-icon" id="eventIcon"></span><span class="event-title" id="eventTitle"></span></div>
-        <p class="event-text" id="eventText"></p>
-        <div class="event-choices" id="eventChoices"></div>
+      <div class="panel" id="eventTurn">
+        <p class="section-label" style="margin-top:0">This session's issues — choose your response to each, then confirm</p>
+        <div id="eventTurnCards"></div>
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn-primary" id="govConfirmBtn" disabled>Make your choices above to continue</button>
+        </div>
       </div>
       <div class="panel">
         <p class="section-label">Despatches</p>

@@ -412,10 +412,16 @@ G.UI.filterExplore = function (term) {
 /* ============================================================== GOVERN === */
 G.UI.setMeter = function (id, value) {
   var el = $(id); if (!el) return;
-  var fill = el.querySelector(".meter-fill"), num = el.querySelector(".meter-num");
+  var fill = el.querySelector(".meter-fill"), num = el.querySelector(".meter-num"), status = el.querySelector(".meter-status");
   var col = value < 34 ? "var(--oxblood,#862231)" : value < 55 ? "var(--brass,#b3862f)" : "var(--green,#2f5d3a)";
   if (fill) { fill.style.width = Math.max(0, Math.min(100, value)) + "%"; fill.style.background = col; }
   if (num) num.textContent = Math.round(value);
+  if (status) {
+    if (value < 30) { status.textContent = "Critical"; status.className = "meter-status ms-critical"; }
+    else if (value < 45) { status.textContent = "Weak"; status.className = "meter-status ms-weak"; }
+    else if (value < 65) { status.textContent = "Stable"; status.className = "meter-status ms-stable"; }
+    else { status.textContent = "Strong"; status.className = "meter-status ms-strong"; }
+  }
 };
 G.UI.updateGovSeats = function () {
   var t = G.term, maj = t.seats - G.CONFIG.majority;
@@ -423,17 +429,35 @@ G.UI.updateGovSeats = function () {
   $("govSeatsSub").textContent = maj >= 0 ? "(majority of " + maj + ")" : "(minority — " + Math.abs(maj) + " short)";
 };
 G.UI.showEvent = function (ev) {
-  $("eventIcon").textContent = ev.icon || "◆";
-  $("eventTitle").textContent = ev.title;
-  $("eventText").textContent = ev.text;
-  var box = $("eventChoices"); box.innerHTML = "";
-  ev.choices.forEach(function (c, i) {
-    var b = document.createElement("button");
-    b.className = "choice"; b.setAttribute("data-idx", i);
-    b.innerHTML = '<span class="choice-label">' + c.label + '</span>' +
-                  '<span class="choice-sub">' + (c.text || "") + '</span>';
-    box.appendChild(b);
+  /* legacy no-op: events are now rendered by renderTurnEvents */
+};
+G.UI.renderTurnEvents = function () {
+  var t = G.term, box = $("eventTurnCards"); if (!box || !t || !t.turnEvents) return;
+  box.innerHTML = "";
+  t.turnEvents.forEach(function (te, idx) {
+    var ev = te.event, staged = te.stagedChoice;
+    var card = document.createElement("div");
+    card.className = "tc-card";
+    var choicesHtml = ev.choices.map(function (c, ci) {
+      var isSel = (staged === ci);
+      return '<button class="choice' + (isSel ? " choice-staged" : "") + '" data-turn-idx="' + idx + '" data-choice-idx="' + ci + '">' +
+        '<span class="choice-label">' + G.UI._esc(c.label) + '</span>' +
+        '<span class="choice-sub">' + G.UI._esc(c.text || "") + '</span>' +
+        '</button>';
+    }).join("");
+    card.innerHTML = '<div class="event-head"><span class="event-icon">' + G.UI._esc(ev.icon || "◆") + '</span>' +
+      '<span class="event-title">' + G.UI._esc(ev.title) + '</span></div>' +
+      '<p class="event-text">' + G.UI._esc(ev.text) + '</p>' +
+      '<div class="event-choices">' + choicesHtml + '</div>';
+    box.appendChild(card);
   });
+  G.UI.updateConfirmBtn();
+};
+G.UI.updateConfirmBtn = function () {
+  var btn = $("govConfirmBtn"); if (!btn) return;
+  var staged = G.allChoicesStaged && G.allChoicesStaged();
+  btn.disabled = !staged;
+  btn.textContent = staged ? "Confirm choices →" : "Make your choices above to continue";
 };
 G.UI._meterLabel = function (meterId, text) {
   var el = $(meterId); if (!el) return;
@@ -507,7 +531,7 @@ G.UI.renderGovern = function () {
   G.UI.refreshGovActions();
   $("govLog").innerHTML = '<div class="feed-line muted">' +
     (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
-  G.UI.showEvent(t.current);
+  G.UI.renderTurnEvents();
   G.UI.show("screen-govern");
 };
 G.UI.pushGovLog = function (lines) {
@@ -520,7 +544,7 @@ G.UI.pushGovLog = function (lines) {
   });
   while (feed.children.length > 9) feed.removeChild(feed.lastChild);
 };
-G.UI.afterChoice = function () {
+G.UI.afterConfirm = function () {
   var t = G.term;
   G.UI.setMeter("meterApproval", t.meters.approval);
   G.UI.setMeter("meterEconomy", t.meters.economy);
@@ -528,7 +552,10 @@ G.UI.afterChoice = function () {
   G.UI.updateGovSeats();
   G.UI.refreshGovActions();
   $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
-  if (!t.over) G.UI.showEvent(t.current);
+  if (!t.over) G.UI.renderTurnEvents();
+};
+G.UI.afterChoice = function () {
+  G.UI.afterConfirm();
 };
 G.UI.legacyText = function (v) {
   if (v.kind === "opp") {
@@ -574,8 +601,8 @@ G.UI.renderLegacy = function (v) {
   v.history.forEach(function (h) {
     var row = document.createElement("div"); row.className = "tr-row";
     row.innerHTML = '<span class="tr-s">S' + h.session + '</span>' +
-                    '<span class="tr-t">' + h.title + '</span>' +
-                    '<span class="tr-c">' + h.choice + '</span>';
+                    '<span class="tr-t">' + G.UI._esc(h.titles || h.title || "") + '</span>' +
+                    '<span class="tr-c">' + G.UI._esc(h.choices || h.choice || "") + '</span>';
     box.appendChild(row);
   });
   G.UI.show("screen-legacy");
