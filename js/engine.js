@@ -375,6 +375,8 @@ G.hold = function () {
   res.manifest = manifest;
   res.mode = st.mode;
   res.cabinetSize = st.cabinetSize;
+  res.pmName = (st.cabinet && st.cabinet.pm) ? st.cabinet.pm.name : "—";
+  res.blocLabel = res.campaign && res.campaign.blocLabel;
   return res;
 };
 

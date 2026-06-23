@@ -1092,25 +1092,32 @@ G.UI.renderWikiParliament = function (res, state, career) {
   G.UI.show("screen-wiki");
   var C = G.CONFIG || {};
   var baseline = C.baseline2024 || {};
+  var govt2024 = C.govt2024 || { party: "Labour", seats: 411, vote: 33.7, leader: "Keir Starmer" };
   var year = new Date().getFullYear();
   var el = document.getElementById("wikiYear"); if (el) el.textContent = year;
   var dateEl = document.getElementById("wikiDate");
   if (dateEl) dateEl.textContent = "General election · United Kingdom";
 
   /* turnout (simulated: 60–72%) */
-  var turnout = (58 + Math.round(res.voteShare * 40)).toFixed(1) + "%";
+  var turnout = (58 + Math.round((res.voteShare || 0) * 40)).toFixed(1) + "%";
   var turnEl = document.getElementById("wikiTurnout"); if (turnEl) turnEl.textContent = turnout;
 
-  /* the player's bloc */
+  /* ---- Player (RIGHT column) ---- */
   var bd = res.breakdown || [];
-  var youEntry = null, outEntry = null;
-  bd.forEach(function (b) { if (b.isYou) youEntry = b; else if (!outEntry) outEntry = b; });
-  var playerPm = (state && state.cabinet && state.cabinet.pm) ? state.cabinet.pm.name : "—";
-  var youParty  = (youEntry && youEntry.party)  || (res.blocLabel)  || "Your Party";
-  var youSeats  = (youEntry && youEntry.seats)  || res.seats || 0;
-  var youVote   = (Math.round((res.voteShare || 0) * 1000) / 10).toFixed(1);
+  /* find player entry via isYou flag; fall back to blocLabel match */
+  var youEntry = null;
+  bd.forEach(function (b) { if (b.isYou) youEntry = b; });
+  if (!youEntry && res.blocLabel) {
+    bd.forEach(function (b) { if (!youEntry && b.party === res.blocLabel) youEntry = b; });
+  }
 
-  /* prior baseline */
+  /* PM name at election time (stored in res.pmName by G.hold) */
+  var playerPm = res.pmName || (state && state.cabinet && state.cabinet.pm ? state.cabinet.pm.name : "—");
+  var youParty = (youEntry && youEntry.party) || res.blocLabel || "Your Party";
+  var youSeats = youEntry ? youEntry.seats : (res.seats || 0);
+  var youVote  = (Math.round((res.voteShare || 0) * 1000) / 10).toFixed(1);
+
+  /* prior data for the right column's "seats before" / "swing" rows */
   var priorData = null;
   if (career && career.active && career.electionHistory && career.electionHistory.length >= 1) {
     var ph = career.electionHistory[career.electionHistory.length - 1];
@@ -1123,86 +1130,121 @@ G.UI.renderWikiParliament = function (res, state, career) {
   var seatDelta  = priorData ? (youSeats - priorData.seats) : null;
   var voteDelta  = priorData ? ((res.voteShare * 100) - parseFloat(priorData.vote)) : null;
 
-  /* outgoing (opposition) */
-  var outParty  = (outEntry && outEntry.party) || "—";
-  var outSeats  = (outEntry && outEntry.seats) || 0;
-  var outLeader = "—";
-  if (res.opposition && res.opposition[outParty] && res.opposition[outParty].bench && res.opposition[outParty].bench.length) {
-    outLeader = res.opposition[outParty].bench[0].name;
+  /* ---- Previous Government (LEFT column) ---- *
+   * Career parliament 2+: player's own prior election result.
+   * Otherwise (parliament 1 or non-career): the real 2024 UK government (Labour). */
+  var prevParl = null;
+  if (career && career.active && career.electionHistory && career.electionHistory.length >= 1) {
+    prevParl = career.electionHistory[career.electionHistory.length - 1];
   }
-  var outPrior = baseline[outParty] || null;
-  var outPriorSeats = outPrior ? outPrior.seats : "—";
-  var outPriorVote  = outPrior ? outPrior.vote  : "—";
-  var outSeatDelta  = outPrior ? (outSeats - outPrior.seats) : null;
-  var outVoteDelta  = outPrior ? ((res.breakdown.filter(function (b) { return b.party === outParty; })[0] || {}).seats / 650 * 100 - parseFloat(outPriorVote)) : null;
-  var outVoteShare  = outPrior ? (Math.round(outSeats / 650 * 1000) / 10).toFixed(1) : "—";
 
-  function sign(n) { return n >= 0 ? "+" + n : String(n); }
+  var leftParty, leftSeats, leftVote, leftLeader, leftHead, leftPriorSeats, leftPriorVote, leftSeatDelta, leftVoteDelta;
+  if (prevParl) {
+    /* previous parliament — player's own prior result */
+    leftParty  = youParty;
+    leftLeader = prevParl.pmName || "—";
+    leftSeats  = prevParl.seats;
+    leftVote   = (prevParl.voteShare * 100).toFixed(1);
+    leftHead   = "Parliament " + (prevParl.parliament || (career.parliament - 1));
+    /* compare previous to 2024 baseline */
+    var lb = baseline[youParty] || govt2024;
+    leftPriorSeats = lb ? lb.seats : "—";
+    leftPriorVote  = lb ? lb.vote  : "—";
+    leftSeatDelta  = (lb && lb.seats != null) ? (leftSeats - lb.seats) : null;
+    leftVoteDelta  = (lb && lb.vote  != null) ? (parseFloat(leftVote) - parseFloat(lb.vote)) : null;
+  } else {
+    /* no history: show 2024 Labour government as the baseline outgoing govt */
+    leftParty  = govt2024.party;
+    leftLeader = govt2024.leader;
+    leftSeats  = govt2024.seats;
+    leftVote   = String(govt2024.vote);
+    leftHead   = "2024 General Election";
+    leftPriorSeats = "—";
+    leftPriorVote  = "—";
+    leftSeatDelta  = null;
+    leftVoteDelta  = null;
+  }
+
+  function sign(n) { return n >= 0 ? "+" + Math.round(n) : String(Math.round(n)); }
   function signF(n, dp) { var v = Math.round(n * Math.pow(10, dp || 1)) / Math.pow(10, dp || 1); return (v >= 0 ? "+" : "") + v.toFixed(dp || 1) + "%"; }
 
-  function buildTable(rows) {
-    return '<table class="wiki-table"><tbody>' +
-      rows.map(function (r) {
-        return '<tr><td class="wt-label">' + G.UI._esc(r[0]) + '</td><td class="wt-value">' + G.UI._esc(String(r[1])) + '</td></tr>';
-      }).join("") + '</tbody></table>';
+  function buildRows(rows) {
+    return rows.map(function (r) {
+      return '<tr><td class="wt-label">' + G.UI._esc(r[0]) + '</td><td class="wt-value">' + G.UI._esc(String(r[1])) + '</td></tr>';
+    }).join("");
   }
 
-  /* incoming (player) column */
-  var inHead = document.getElementById("wikiInHead"); if (inHead) inHead.textContent = res.tier && res.tier.govt ? "Incoming government" : "Official Opposition";
+  /* ---- Right column: player's current result ---- */
+  var inHeadEl = document.getElementById("wikiInHead");
+  var inLabel = res.tier && res.tier.govt ? "Incoming government"
+              : (res.tier && res.tier.key === "opposition") ? "Official Opposition"
+              : (res.tier && res.tier.key === "wipeout") ? "Wiped out"
+              : "Minor party";
+  if (inHeadEl) inHeadEl.textContent = inLabel;
+
   var inRows = [
-    ["Leader", playerPm],
-    ["Party", youParty],
+    ["Leader",      playerPm],
+    ["Party",       youParty],
     ["Seats before", priorSeats],
-    ["Seats won", youSeats],
+    ["Seats won",   youSeats],
     ["Seat change", seatDelta != null ? sign(seatDelta) : "—"],
-    ["Vote share", youVote + "%"],
-    ["Swing", voteDelta != null ? signF(voteDelta) : "—"]
+    ["Vote share",  youVote + "%"],
+    ["Swing",       voteDelta != null ? signF(voteDelta) : "—"]
   ];
-  var tableIn = document.getElementById("wikiTableIn"); if (tableIn) tableIn.outerHTML = buildTable(inRows);
+  var tableIn = document.getElementById("wikiTableIn");
+  if (tableIn) tableIn.innerHTML = '<tbody>' + buildRows(inRows) + '</tbody>';
 
-  /* load portrait for player's PM */
-  var inPortEl = document.getElementById("wikiInPortrait");
-  var inInitEl = document.getElementById("wikiInInit");
+  /* portrait for player's PM */
+  var inPortEl  = document.getElementById("wikiInPortrait");
+  var inInitEl  = document.getElementById("wikiInInit");
   if (inInitEl) inInitEl.textContent = G.UI._initials(playerPm);
-  if (inPortEl && playerPm !== "—") {
-    inPortEl.onerror = function () { this.style.display = "none"; };
-    var ovr = (G.PHOTO && G.PHOTO[playerPm]) || null;
-    var wikiTitle = (ovr && ovr.wiki) ? ovr.wiki : playerPm;
-    fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(wikiTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { inPortEl.src = src; inPortEl.style.display = ""; if (inInitEl) inInitEl.style.display = "none"; } })
-      .catch(function () {});
+  if (inPortEl) {
+    inPortEl.style.display = "none";
+    if (playerPm && playerPm !== "—") {
+      inPortEl.onerror = function () { this.style.display = "none"; };
+      var ovr = (G.PHOTO && G.PHOTO[playerPm]) || null;
+      var wikiTitle = (ovr && ovr.wiki) ? ovr.wiki : playerPm;
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(wikiTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { inPortEl.src = src; inPortEl.style.display = ""; if (inInitEl) inInitEl.style.display = "none"; } })
+        .catch(function () {});
+    }
   }
 
-  /* outgoing column */
-  var outRows = [
-    ["Leader", outLeader],
-    ["Party", outParty],
-    ["Seats before", outPriorSeats],
-    ["Seats won", outSeats],
-    ["Seat change", outSeatDelta != null ? sign(outSeatDelta) : "—"],
-    ["Vote share", outVoteShare + "%"],
-    ["Swing", outVoteDelta != null ? signF(outVoteDelta) : "—"]
-  ];
-  var outHead = document.getElementById("wikiOutHead");
-  if (outHead) outHead.textContent = res.tier && res.tier.govt ? "Outgoing opposition" : "Governing party";
-  var tableOut = document.getElementById("wikiTableOut"); if (tableOut) tableOut.outerHTML = buildTable(outRows);
+  /* ---- Left column: previous government ---- */
+  var outHeadEl = document.getElementById("wikiOutHead");
+  if (outHeadEl) outHeadEl.textContent = leftHead;
 
-  /* portrait for outgoing leader */
+  var outRows = [
+    ["Leader",      leftLeader],
+    ["Party",       leftParty],
+    ["Seats before", leftPriorSeats],
+    ["Seats won",   leftSeats],
+    ["Seat change", leftSeatDelta != null ? sign(leftSeatDelta) : "—"],
+    ["Vote share",  leftVote + "%"],
+    ["Swing",       leftVoteDelta != null ? signF(leftVoteDelta) : "—"]
+  ];
+  var tableOut = document.getElementById("wikiTableOut");
+  if (tableOut) tableOut.innerHTML = '<tbody>' + buildRows(outRows) + '</tbody>';
+
+  /* portrait for left column leader */
   var outPortEl = document.getElementById("wikiOutPortrait");
   var outInitEl = document.getElementById("wikiOutInit");
-  if (outInitEl) outInitEl.textContent = G.UI._initials(outLeader);
-  if (outPortEl && outLeader !== "—") {
-    outPortEl.onerror = function () { this.style.display = "none"; };
-    var oovr = (G.PHOTO && G.PHOTO[outLeader]) || null;
-    var oTitle = (oovr && oovr.wiki) ? oovr.wiki : outLeader;
-    fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(oTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { outPortEl.src = src; outPortEl.style.display = ""; if (outInitEl) outInitEl.style.display = "none"; } })
-      .catch(function () {});
+  if (outInitEl) outInitEl.textContent = G.UI._initials(leftLeader);
+  if (outPortEl) {
+    outPortEl.style.display = "none";
+    if (leftLeader && leftLeader !== "—") {
+      outPortEl.onerror = function () { this.style.display = "none"; };
+      var oovr = (G.PHOTO && G.PHOTO[leftLeader]) || null;
+      var oTitle = (oovr && oovr.wiki) ? oovr.wiki : leftLeader;
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(oTitle.replace(/ /g, "_")), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { var src = d && d.thumbnail && d.thumbnail.source; if (src) { outPortEl.src = src; outPortEl.style.display = ""; if (outInitEl) outInitEl.style.display = "none"; } })
+        .catch(function () {});
+    }
   }
 
-  /* 650-dot composition grid */
+  /* 650-dot composition grid (always from the current election breakdown) */
   var compEl = document.getElementById("wikiComposition");
   if (compEl) {
     var sorted = bd.slice().sort(function (a, b) { return b.seats - a.seats; });
@@ -1212,20 +1254,17 @@ G.UI.renderWikiParliament = function (res, state, career) {
         dots.push('<span class="wiki-dot" style="background:' + (party.colour || "#6b6b6b") + '" title="' + G.UI._esc(party.party) + '"></span>');
       }
     });
-    /* legend below dots */
     var legend = sorted.slice(0, 6).map(function (p) {
       return '<span class="wiki-dot-leg"><span class="wiki-dot-swatch" style="background:' + (p.colour || "#6b6b6b") + '"></span>' + G.UI._esc(p.party) + ' ' + p.seats + '</span>';
     }).join("");
     compEl.innerHTML = '<div class="wiki-dots">' + dots.join("") + '</div><div class="wiki-dot-legend">' + legend + '</div>';
   }
 
-  /* PM before/after */
+  /* PM before/after strip */
   var pmBefore = document.getElementById("wikiPmBefore");
   var pmAfter  = document.getElementById("wikiPmAfter");
-  /* best guess at previous PM: the outgoing leader if they were governing, or a historical guess */
-  var prevPm = outLeader !== "—" ? outLeader : "—";
-  if (pmBefore) pmBefore.textContent = prevPm;
-  if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : outLeader;
+  if (pmBefore) pmBefore.textContent = leftLeader;
+  if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : "—";
 };
 
 /* ========================================================= RETIREMENT SCREEN
