@@ -209,7 +209,14 @@ G.newGame = function (opts) {
     pity: { uses: pityUses, used: 0 },      // the grandees' remaining interventions
     dealInfo: null,                         // { tiers:[..], boost } for the last deal
     policyOn: !!opts.policyOn,              // optional manifesto/programme layer
+    campaignOn: !!opts.campaignOn,          // optional campaign trail phase
     policy: null,                           // chosen manifesto stances (set at the manifesto step)
+    campaign: null,                         // campaign state (set when campaign phase begins)
+    campaignOutputs: null,                  // computed outputs folded into seed
+    scenarioKey: opts.scenarioKey || null,  // active scenario
+    _scenarioLandscape: null,               // per-run landscape override (set by applyScenario)
+    _scenarioBlocSupport: null,             // per-run bloc starting point
+    ministerState: {},                      // single-election minister morale table
     contestable: G.contestableSeats(mode, lineage),
     pool: pool,              // the exact draftable figures for this run (by reference)
     draftedNames: draftedNames,
@@ -364,14 +371,44 @@ G.hold = function () {
   var st = G.state;
   var runId = G.newRunId();
   var manifest = G.cabinetManifest();
+
+  /* resolve bloc support: term snapshot → career baseline → freshly seeded */
+  var blocSupport = null;
+  if (G.term && G.term.blocSupport) {
+    blocSupport = G.term.blocSupport;
+  } else if (G.career && G.career.blocSupport && Object.keys(G.career.blocSupport).length) {
+    blocSupport = G.career.blocSupport;
+  } else if (G.electorateInit) {
+    var align = G.playerAlignValue ? G.playerAlignValue(st.mode, st.lineage, st.custom) : 0;
+    blocSupport = G.electorateInit(align, st.policy);
+  }
+
+  /* apply campaign outputs (bloc shifts + extra region tilt) if available */
+  var campOut = st.campaignOutputs || null;
+  if (campOut && campOut.blocDeltas && blocSupport && G.electorateShift) {
+    blocSupport = G.electorateShift(JSON.parse(JSON.stringify(blocSupport)), campOut.blocDeltas);
+  }
+  var regionTilt = (campOut && campOut.regionTilt) || null;
+  var campaignVoteDelta = (campOut && campOut.voteDelta) || 0;
+
+  /* fold bloc snapshot + campaign sig into seed for full reproducibility */
+  var blocSig = blocSupport && G.ELECTORATE_BLOCS
+    ? G.ELECTORATE_BLOCS.map(function (b) { return Math.round(blocSupport[b.key] || 50); }).join(".")
+    : "baseline";
+  var campaignSig = campOut ? campOut.sig : "nocampaign";
   var seed = G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
-                      "|" + st.mode + "|" + st.difficulty + "|" + st.cabinetSize);
+                      "|" + st.mode + "|" + st.difficulty + "|" + st.cabinetSize +
+                      "|" + blocSig + "|" + campaignSig);
+
   var res = G.runElection(st.cabinet, {
     mode: st.mode, lineage: st.lineage,
     difficulty: st.difficulty, govern: st.govern,
     policy: st.policy, custom: st.custom,
     draftedNames: st.draftedNames,
-    runId: runId, seed: seed
+    runId: runId, seed: seed,
+    blocSupport: blocSupport,
+    regionTilt: regionTilt,
+    campaignVoteDelta: campaignVoteDelta
   });
   res.manifest = manifest;
   res.mode = st.mode;
@@ -379,6 +416,8 @@ G.hold = function () {
   res.pmName = (st.cabinet && st.cabinet.pm) ? st.cabinet.pm.name : "—";
   res.blocLabel = res.campaign && res.campaign.blocLabel;
   res.electionYear = st.gameYear || 2026;
+  res.blocSupport = blocSupport;
+  res.scenarioKey = st.scenarioKey || null;
   return res;
 };
 
@@ -609,7 +648,11 @@ G.careerInit = function (opts) {
     retiredMinsters: {},      /* names removed from future pool */
     /* history for the election-record screen */
     electionHistory: [],      /* [{parliament, seats, voteShare, tier}] */
-    termHistory: []           /* [{parliament, kind, outcome, legacy, sessionsServed}] */
+    termHistory: [],          /* [{parliament, kind, outcome, legacy, sessionsServed}] */
+    /* Grand Expansion state (persists across parliaments) */
+    blocSupport: {},          /* {key: 0–100} — carries between elections */
+    ministerState: {},        /* {name: {loyalty,ambition,traits,rivalry}} */
+    achievements: []          /* earned objective keys */
   };
   return G.career;
 };
@@ -667,6 +710,11 @@ G.careerRecordTerm = function (result, termVerdict) {
     if (finalApproval >= 65) mod += 0.012;
     G.career.voteModifier = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + mod));
     G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + (leg - 50) * 0.4));
+  }
+
+  /* persist bloc support from the term into the career baseline */
+  if (G.term && G.term.blocSupport) {
+    G.career.blocSupport = JSON.parse(JSON.stringify(G.term.blocSupport));
   }
 
   /* record in history */

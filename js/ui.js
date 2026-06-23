@@ -12,7 +12,7 @@ var $ = function (id) { return document.getElementById(id); };
 /* role -> name colour class (admin dark red, moderator dark blue, user black) */
 G.UI.roleClass = function (level) { return (level >= 9) ? "role-admin" : (level >= 5) ? "role-mod" : "role-user"; };
 
-var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
+var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-campaign", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
 
 G.UI.show = function (screenId) {
   SCREENS.forEach(function (s) {
@@ -532,7 +532,9 @@ G.UI.renderGovern = function () {
   $("govLog").innerHTML = '<div class="feed-line muted">' +
     (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
   G.UI.renderSessionTrack();
+  G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderTurnEvents();
+  G.UI.renderObjectiveBanner();
   G.UI.show("screen-govern");
 };
 G.UI.pushGovLog = function (lines) {
@@ -554,6 +556,7 @@ G.UI.afterConfirm = function () {
   G.UI.refreshGovActions();
   $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
   G.UI.renderSessionTrack();
+  G.UI.renderElectorate(t && t.blocSupport);
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {
@@ -1474,4 +1477,160 @@ G.UI.renderCareerBanner = function (career) {
   var rep = career.reputationScore != null ? Math.round(career.reputationScore) : 50;
   el.innerHTML = '<span class="cb-arrow">' + arrow + '</span> Career outlook: <b>' + G.UI._esc(modTxt) + '</b> · Reputation <b>' + rep + '/100</b> · Parliament <b>' + (career.parliament || 1) + '</b>';
   el.style.display = "";
+};
+
+/* =========================================================== ELECTORATE UI
+   G.UI.renderElectorate(blocSupport)
+   Renders the "Coalition of voters" bloc bars on the govern screen.           */
+G.UI.renderElectorate = function (blocSupport) {
+  var panel = $("electoratePanel");
+  var list  = $("blocList");
+  if (!panel || !list) return;
+  if (!blocSupport || !G.ELECTORATE_BLOCS) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+  var html = "";
+  G.ELECTORATE_BLOCS.forEach(function (b) {
+    var s = Math.round(blocSupport[b.key] != null ? blocSupport[b.key] : 50);
+    var cls = s >= 58 ? "bloc-good" : s < 42 ? "bloc-bad" : "bloc-mid";
+    var pct = s + "%";
+    html += '<div class="bloc-row">' +
+      '<span class="bloc-name">' + G.UI._esc(b.name) + '</span>' +
+      '<span class="bloc-bar-wrap"><span class="bloc-bar ' + cls + '" style="width:' + pct + '"></span></span>' +
+      '<span class="bloc-num">' + s + '</span>' +
+      '</div>';
+  });
+  list.innerHTML = html;
+};
+
+/* =========================================================== OBJECTIVE BANNER
+   Shows the current scenario's objective on the govern screen.                */
+G.UI.renderObjectiveBanner = function () {
+  var el = $("govObjectiveBanner"); if (!el) return;
+  var scKey = G.state && G.state.scenarioKey;
+  if (!scKey || !G.SCENARIOS) { el.style.display = "none"; return; }
+  var sc = G.SCENARIOS.filter(function (s) { return s.key === scKey; })[0];
+  if (!sc || !sc.objective) { el.style.display = "none"; return; }
+  el.innerHTML = '<span class="obj-icon">🎯</span> <b>Scenario objective:</b> ' + G.UI._esc(sc.objective.label);
+  el.style.display = "";
+};
+
+/* =========================================================== ACHIEVEMENTS
+   G.UI.showAchievements(keys) — flash newly unlocked objectives.             */
+G.UI.showAchievements = function (keys) {
+  if (!keys || !keys.length || !G.OBJECTIVES) return;
+  var strip = $("objectivesStrip") || $("legacyObjectivesStrip");
+  if (!strip) return;
+  var all = G.OBJECTIVES.concat((G.SCENARIOS || []).map(function (s) {
+    return { key: "scenario_" + s.key, label: s.name + " — Objective Complete" };
+  }));
+  var html = keys.map(function (k) {
+    var obj = all.filter(function (o) { return o.key === k; })[0];
+    return '<span class="achievement-badge">' + G.UI._esc(obj ? obj.label : k) + ' ✓</span>';
+  }).join("");
+  if (html) {
+    strip.innerHTML = "<b>Achievements unlocked:</b> " + html;
+    strip.style.display = "";
+  }
+};
+
+/* =========================================================== CAMPAIGN SCREEN
+   G.UI.renderCampaign() — the campaign trail phase screen.                    */
+G.UI.renderCampaign = function () {
+  var c = G.state && G.state.campaign;
+  if (!c) return;
+
+  /* update days left */
+  var dlEl = $("campaignDaysLeft"); if (dlEl) dlEl.textContent = c.daysLeft;
+  var titleEl = $("campaignTitle"); if (titleEl) titleEl.textContent = "The Campaign Trail · " + (G.state.gameYear || 2026);
+
+  /* region allocation chips */
+  var rAlloc = $("campaignRegionAlloc");
+  if (rAlloc && G.REGIONS) {
+    var html = '<p class="section-label" style="margin-top:0">Spend days in key regions</p>';
+    html += '<div class="camp-alloc-grid">';
+    G.REGIONS.forEach(function (r) {
+      var days = c.allocation["region_" + r.id] || 0;
+      html += '<div class="camp-slot" data-slot="region_' + r.id + '">' +
+        '<span class="camp-slot-name">' + G.UI._esc(r.name) + '</span>' +
+        '<div class="camp-stepper">' +
+        '<button class="camp-step-btn" data-dir="-1" data-slot="region_' + r.id + '">−</button>' +
+        '<span class="camp-days" id="campdays_region_' + r.id + '">' + days + '</span>' +
+        '<button class="camp-step-btn" data-dir="1" data-slot="region_' + r.id + '">+</button>' +
+        '</div></div>';
+    });
+    html += '</div>';
+    rAlloc.innerHTML = html;
+  }
+
+  /* bloc allocation chips */
+  var bAlloc = $("campaignBlocAlloc");
+  if (bAlloc && G.ELECTORATE_BLOCS) {
+    var html2 = '<p class="section-label">Spend days courting voter blocs</p>';
+    html2 += '<div class="camp-alloc-grid">';
+    G.ELECTORATE_BLOCS.forEach(function (b) {
+      var days2 = c.allocation["bloc_" + b.key] || 0;
+      html2 += '<div class="camp-slot" data-slot="bloc_' + b.key + '">' +
+        '<span class="camp-slot-name">' + G.UI._esc(b.name) + '</span>' +
+        '<div class="camp-stepper">' +
+        '<button class="camp-step-btn" data-dir="-1" data-slot="bloc_' + b.key + '">−</button>' +
+        '<span class="camp-days" id="campdays_bloc_' + b.key + '">' + days2 + '</span>' +
+        '<button class="camp-step-btn" data-dir="1" data-slot="bloc_' + b.key + '">+</button>' +
+        '</div></div>';
+    });
+    html2 += '</div>';
+    bAlloc.innerHTML = html2;
+  }
+
+  /* themes */
+  var themes = $("campaignThemes");
+  if (themes && G.CAMPAIGN_THEMES) {
+    themes.innerHTML = G.CAMPAIGN_THEMES.map(function (t) {
+      var sel = c.theme === t.key;
+      return '<button class="camp-theme-btn' + (sel ? " sel" : "") + '" data-theme="' + t.key + '">' +
+        '<b>' + G.UI._esc(t.label) + '</b><br><small>' + G.UI._esc(t.desc) + '</small></button>';
+    }).join("");
+  }
+
+  /* debate button */
+  var debBtn = $("campaignDebateBtn");
+  var debRes = $("campaignDebateResult");
+  if (debBtn && debRes) {
+    if (c.debateWon !== null) {
+      debBtn.style.display = "none";
+      debRes.style.display = "";
+      debRes.textContent = c.debateWon ? "✓ You won the debate!" : "✗ You lost the debate.";
+      debRes.className = c.debateWon ? "camp-debate-win" : "camp-debate-loss";
+    } else {
+      debBtn.style.display = "";
+      debRes.style.display = "none";
+    }
+  }
+
+  /* launch button */
+  var launchBtn = $("campaignLaunchBtn");
+  if (launchBtn) launchBtn.disabled = false;
+
+  G.UI.show("screen-campaign");
+};
+
+/* =========================================================== SCENARIO PICKER
+   G.UI.renderScenarioPicker(chosen) — builds the scenario cards in the wizard. */
+G.UI.renderScenarioPicker = function (chosen) {
+  var el = $("scenarioCards"); if (!el || !G.SCENARIOS) return;
+  el.innerHTML = G.SCENARIOS.map(function (s) {
+    var isSel = chosen === s.key || (!chosen && s.key === "freshstart");
+    var lockInfo = "";
+    if (s.mode || s.difficulty) {
+      var parts = [];
+      if (s.mode) parts.push(s.mode);
+      if (s.difficulty) parts.push(s.difficulty);
+      lockInfo = '<small class="sc-lock">Locks: ' + G.UI._esc(parts.join(", ")) + '</small>';
+    }
+    return '<div class="scenario-card' + (isSel ? " sel" : "") + '" data-scenario="' + s.key + '">' +
+      '<h4>' + G.UI._esc(s.name) + '</h4>' +
+      '<p>' + G.UI._esc(s.desc) + '</p>' +
+      (s.objective ? '<p class="sc-obj">🎯 ' + G.UI._esc(s.objective.label) + '</p>' : '') +
+      lockInfo +
+      '</div>';
+  }).join("");
 };

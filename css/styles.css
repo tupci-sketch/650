@@ -1042,3 +1042,63 @@ body::before {
 .cps-parl  { font-family: var(--mono, monospace); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft, #6b6256); }
 .cps-seats { font-family: var(--display, serif); font-weight: 700; font-size: 18px; color: var(--ink, #241f17); line-height: 1.1; }
 .cps-year  { font-family: var(--mono, monospace); font-size: 9px; color: var(--ink-soft, #6b6256); }
+
+/* =====================================================================
+   GRAND EXPANSION — voter blocs, cabinet morale, campaign trail,
+   scenarios & objectives
+   ===================================================================== */
+
+/* ---- Voter Bloc Bars ------------------------------------------------ */
+.bloc-list { display: flex; flex-direction: column; gap: 6px; }
+.bloc-row  { display: flex; align-items: center; gap: 8px; }
+.bloc-name { font-size: 12px; min-width: 140px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bloc-bar-wrap { flex: 1; background: var(--line-soft); border-radius: 3px; height: 10px; overflow: hidden; }
+.bloc-bar  { height: 10px; border-radius: 3px; transition: width .4s ease; }
+.bloc-good { background: var(--green, #2f5d3a); }
+.bloc-mid  { background: var(--brass, #b3862f); }
+.bloc-bad  { background: var(--oxblood, #862231); }
+.bloc-num  { font-size: 12px; min-width: 28px; text-align: right; color: var(--ink-soft); font-family: var(--mono, monospace); }
+
+/* ---- Scenario Cards ------------------------------------------------ */
+.scenario-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 8px; }
+.scenario-card  { padding: 12px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; transition: border-color .15s, background .15s; }
+.scenario-card h4 { margin: 0 0 4px; font-size: 13px; }
+.scenario-card p  { margin: 0 0 4px; font-size: 12px; color: var(--ink-soft); }
+.scenario-card.sel { border-color: var(--green); background: rgba(47,93,58,.07); }
+.sc-obj  { color: var(--green-deep, #244a2e) !important; font-size: 11px !important; }
+.sc-lock { display: block; font-size: 10px; color: var(--oxblood); margin-top: 4px; }
+
+/* ---- Objective Banner (govern screen) ------------------------------ */
+.objective-banner { background: rgba(47,93,58,.12); border: 1px solid var(--green); border-radius: 6px; padding: 7px 12px; margin: 6px 0; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.obj-icon { font-size: 16px; }
+
+/* ---- Objectives/Achievements Strip --------------------------------- */
+.objectives-strip { margin: 12px 0; padding: 10px 14px; background: rgba(47,93,58,.08); border: 1px solid var(--green); border-radius: 6px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.achievement-badge { display: inline-block; background: var(--green); color: #fff; border-radius: 12px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
+
+/* ---- Campaign Trail Screen ----------------------------------------- */
+.campaign-alloc { margin-bottom: 12px; }
+.camp-alloc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 8px; }
+.camp-slot { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); gap: 8px; }
+.camp-slot-name { font-size: 12px; flex: 1; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.camp-stepper { display: flex; align-items: center; gap: 6px; }
+.camp-step-btn { width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); cursor: pointer; font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; }
+.camp-step-btn:hover { background: var(--paper-2); }
+.camp-days { font-family: var(--mono, monospace); font-size: 13px; min-width: 16px; text-align: center; }
+.campaign-themes { display: flex; flex-direction: column; gap: 8px; }
+.camp-theme-btn { width: 100%; text-align: left; padding: 10px 12px; border: 2px solid var(--line); border-radius: 6px; background: var(--paper); cursor: pointer; transition: border-color .15s; }
+.camp-theme-btn.sel { border-color: var(--green); background: rgba(47,93,58,.07); }
+.camp-theme-btn b { font-size: 13px; display: block; margin-bottom: 2px; }
+.camp-theme-btn small { font-size: 11px; color: var(--ink-soft); }
+.camp-debate-win  { color: var(--green-deep); font-weight: 700; }
+.camp-debate-loss { color: var(--oxblood); font-weight: 700; }
+
+/* ---- Minister Morale / Traits ------------------------------------- */
+.min-morale { display: inline-flex; gap: 4px; vertical-align: middle; }
+.min-pip { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.min-pip-loyal    { background: var(--green); }
+.min-pip-ambition { background: var(--brass); }
+.min-pip-low      { background: var(--oxblood); }
+.min-trait  { display: inline-block; background: var(--line-soft); border-radius: 8px; padding: 1px 6px; font-size: 10px; margin: 2px 1px; color: var(--ink-soft); }
+.min-trait.rival  { background: var(--oxblood); color: #fff; }
+.min-trait.rising { background: var(--green); color: #fff; }
