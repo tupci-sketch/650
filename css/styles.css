@@ -905,23 +905,23 @@ body::before {
 .wiki-hung-note { padding: 7px 14px; background: #fef6e4; border-left: 3px solid #c8972a;
   font-size: 12.5px; color: #3d2b00; border-bottom: 1px solid #a2a9b1; }
 
-/* full party results table */
+/* full party results table — Wikipedia style */
 .wiki-results-head { padding: 10px 14px 4px; font-size: 12px; font-weight: 700; color: #54595d; border-top: 1px solid #a2a9b1; }
 .wiki-full-results { padding: 0 0 4px; border-bottom: 1px solid #a2a9b1; overflow-x: auto; }
 .wiki-full-results table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .wiki-full-results th { background: #eaeff4; color: #54595d; font-weight: 600; text-align: left;
   padding: 5px 10px; border-bottom: 2px solid #a2a9b1; white-space: nowrap; }
-.wiki-full-results th:not(:first-child) { text-align: right; }
-.wiki-full-results td { padding: 4px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
-.wiki-full-results td:not(:first-child) { text-align: right; }
-.wiki-full-results tr.wiki-you-row td { background: rgba(234,243,251,.6); font-weight: 600; }
+.wiki-full-results td { padding: 5px 10px; border-bottom: 1px solid #e8e8e8; vertical-align: middle; }
+.wiki-full-results tr.wiki-you-row td { background: rgba(234,243,251,.6); }
 .wiki-full-results tr:last-child td { border-bottom: none; }
+.wfr-bar { width: 5px; padding: 0 !important; }
+.wfr-party { font-weight: 600; }
+.wfr-leader { color: #54595d; font-style: italic; min-width: 110px; }
 .wfr-num { text-align: right; font-family: var(--mono, monospace); }
-.wfr-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px;
-  vertical-align: middle; margin-right: 6px; flex-shrink: 0; }
-.wfr-party-cell { display: flex; align-items: center; }
-.wfr-gain { color: #2f5d3a; }
-.wfr-loss { color: #862231; }
+.wfr-you-badge { font-size: 10px; background: #2f5d3a; color: #fff; padding: 1px 5px;
+  border-radius: 8px; vertical-align: middle; margin-left: 5px; font-style: normal; font-weight: 400; }
+.wfr-gain { color: #2f5d3a; text-align: right; font-family: var(--mono, monospace); }
+.wfr-loss { color: #862231; text-align: right; font-family: var(--mono, monospace); }
 
 /* ========================== Career banner ================================ */
 .career-banner { display: flex; align-items: center; gap: 10px; padding: 8px 14px;

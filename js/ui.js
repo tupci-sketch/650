@@ -1300,37 +1300,45 @@ G.UI.renderWikiParliament = function (res, state, career) {
     compEl.innerHTML = '<div class="wiki-dots">' + dots.join("") + '</div><div class="wiki-dot-legend">' + legend + '</div>';
   }
 
-  /* Full "Results by party" table */
+  /* Full "Results by party" table — Wikipedia style with colour bar + leader */
   var fullEl = document.getElementById("wikiFullResults");
   if (fullEl && bd.length) {
-    /* seat changes: player vs their prior (career) or vs 2024 baseline (real parties).
-       Custom party never appears in baseline so always shows "—" for change. */
+    /* seat-change baseline: player vs prior parliament (career) or vs 2024 for real parties */
     var priorSeatsMap = {};
     if (career && career.active && career.electionHistory && career.electionHistory.length >= 1) {
-      /* career: compare right column (player) to their previous parliament */
       priorSeatsMap[youParty] = career.electionHistory[career.electionHistory.length - 1].seats;
     }
     Object.keys(baseline).forEach(function (p) { if (!priorSeatsMap[p]) priorSeatsMap[p] = baseline[p].seats; });
 
-    var rows = bd.map(function (b) {
+    var wfrRows = bd.map(function (b) {
       var prior = priorSeatsMap[b.party];
       var delta = (prior != null) ? (b.seats - prior) : null;
-      var deltaCell = delta != null
-        ? '<td class="wfr-num ' + (delta > 0 ? "wfr-gain" : delta < 0 ? "wfr-loss" : "") + '">' + (delta > 0 ? "+" : "") + delta + '</td>'
-        : '<td class="wfr-num">—</td>';
-      /* vote share: actual for player; baseline for known real parties; — otherwise */
+      var deltaTxt = delta != null ? ((delta > 0 ? "+" : "") + delta) : "—";
+      var deltaCls = "wfr-num" + (delta > 0 ? " wfr-gain" : delta < 0 ? " wfr-loss" : "");
+      /* leader: player uses election-time PM; known real parties use baseline; others "—" */
+      var leader = b.isYou ? playerPm : (baseline[b.party] ? (baseline[b.party].leader || "—") : "—");
+      /* vote: player gets actual; known parties get 2024 baseline; others "—" */
       var voteStr = b.isYou ? youVote + "%" : (baseline[b.party] ? baseline[b.party].vote.toFixed(1) + "%" : "—");
+      var youBadge = b.isYou ? ' <span class="wfr-you-badge">you</span>' : "";
       return '<tr' + (b.isYou ? ' class="wiki-you-row"' : '') + '>' +
-        '<td><span class="wfr-swatch" style="background:' + (b.colour || "#999") + '"></span>' +
-        G.UI._esc(b.party) + (b.isYou ? ' <span style="font-size:10px;background:#2f5d3a;color:#fff;padding:1px 5px;border-radius:8px;vertical-align:middle;margin-left:4px">you</span>' : '') + '</td>' +
+        '<td class="wfr-bar" style="background:' + (b.colour || "#999") + '"></td>' +
+        '<td class="wfr-party">' + G.UI._esc(b.party) + youBadge + '</td>' +
+        '<td class="wfr-leader">' + G.UI._esc(leader) + '</td>' +
         '<td class="wfr-num">' + b.seats + '</td>' +
-        deltaCell +
+        '<td class="' + deltaCls + '">' + deltaTxt + '</td>' +
         '<td class="wfr-num">' + voteStr + '</td>' +
         '</tr>';
     }).join("");
-    fullEl.innerHTML = '<table><thead><tr>' +
-      '<th>Party</th><th class="wfr-num">Seats</th><th class="wfr-num">±</th><th class="wfr-num">Vote</th>' +
-      '</tr></thead><tbody>' + rows + '</tbody></table>';
+    fullEl.innerHTML = '<table>' +
+      '<thead><tr>' +
+        '<th class="wfr-bar"></th>' +
+        '<th class="wfr-party">Party</th>' +
+        '<th class="wfr-leader">Leader</th>' +
+        '<th class="wfr-num">Seats</th>' +
+        '<th class="wfr-num">±</th>' +
+        '<th class="wfr-num">Vote</th>' +
+      '</tr></thead>' +
+      '<tbody>' + wfrRows + '</tbody></table>';
   } else if (fullEl) {
     fullEl.innerHTML = "";
   }
