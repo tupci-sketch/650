@@ -872,6 +872,20 @@
     /* career: record this term and prepare retirement screen */
     if (G.career && G.career.active && G.careerRecordTerm) {
       G.careerRecordTerm(lastResult, currentVerdict);
+      /* push election history NOW (before legacy screen opens) so the wiki
+         button on the legacy screen can show the correct prior-parliament data.
+         careerRecordTerm already incremented G.career.parliament, so -1 gives
+         the number of the parliament that just finished. */
+      if (lastResult && G.career.electionHistory.length < G.career.parliament - 1) {
+        G.career.electionHistory.push({
+          parliament: G.career.parliament - 1,
+          seats: lastResult.seats,
+          voteShare: lastResult.voteShare,
+          tier: lastResult.tier && lastResult.tier.key,
+          pmName: lastResult.pmName || "—",
+          electionYear: lastResult.electionYear || G.state.gameYear || 2026
+        });
+      }
     }
     if (G.career && G.career.active) {
       var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = "→ Next Parliament";
@@ -901,21 +915,22 @@
         var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
         if (!isRetiring) carryOver[key] = pol;
       });
-      /* record election history entry for career */
-      if (lastResult) {
+      /* record election history entry for career (guard: endTerm() may have
+         already pushed this parliament's entry when the legacy screen opened) */
+      if (lastResult && G.career.electionHistory.length < G.career.parliament - 1) {
         G.career.electionHistory.push({
           parliament: G.career.parliament - 1,
           seats: lastResult.seats,
           voteShare: lastResult.voteShare,
           tier: lastResult.tier && lastResult.tier.key,
           pmName: lastResult.pmName || "—",
-          electionYear: lastResult.electionYear || G.state.gameYear || 2025
+          electionYear: lastResult.electionYear || G.state.gameYear || 2026
         });
       }
       /* start the next parliament with carry-over cabinet */
       currentVerdict = null; submitting = false;
       setLbBtns(false, "★ Post to leaderboard");
-      var nextYear = (G.state.gameYear || 2025) + 4 + Math.floor(Math.random() * 2);
+      var nextYear = (G.state.gameYear || 2026) + 4 + Math.floor(Math.random() * 2);
       G.newGame({
         mode: G.career.mode,
         lineage: G.career.lineage || null,

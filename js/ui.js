@@ -1315,8 +1315,12 @@ G.UI.renderWikiParliament = function (res, state, career) {
       var delta = (prior != null) ? (b.seats - prior) : null;
       var deltaTxt = delta != null ? ((delta > 0 ? "+" : "") + delta) : "—";
       var deltaCls = "wfr-num" + (delta > 0 ? " wfr-gain" : delta < 0 ? " wfr-loss" : "");
-      /* leader: player uses election-time PM; known real parties use baseline; others "—" */
-      var leader = b.isYou ? playerPm : (baseline[b.party] ? (baseline[b.party].leader || "—") : "—");
+      /* leader: player uses election-time PM; NPC parties use their actually-drafted bench leader,
+         falling back to 2024 baseline only if the bench is unavailable */
+      var npcBench = res.opposition && res.opposition[b.party] && res.opposition[b.party].bench;
+      var leader = b.isYou ? playerPm
+                 : (npcBench && npcBench.length ? npcBench[0].name
+                    : (baseline[b.party] ? baseline[b.party].leader : "—") || "—");
       /* vote: player gets actual; known parties get 2024 baseline; others "—" */
       var voteStr = b.isYou ? youVote + "%" : (baseline[b.party] ? baseline[b.party].vote.toFixed(1) + "%" : "—");
       var youBadge = b.isYou ? ' <span class="wfr-you-badge">you</span>' : "";
