@@ -135,6 +135,11 @@
           <button class="opt sel" data-policy="false"><h4>Off</h4><p>Just build the cabinet and fight the election.</p></button>
           <button class="opt" data-policy="true"><h4>On</h4><p>Write a manifesto before the vote, a programme in office.</p></button>
         </div>
+        <p class="sub-label">Campaign trail</p>
+        <div class="choice-row" id="campaignRow">
+          <button class="opt sel" data-campaign="false"><h4>Off</h4><p>Hold the election straight from the draft.</p></button>
+          <button class="opt" data-campaign="true"><h4>On</h4><p>Spend campaign days, pick a theme, fight the TV debate.</p></button>
+        </div>
       </div>
 
       <!-- Step 5: After the election -->
@@ -157,7 +162,7 @@
         </div>
       </div>
 
-      <!-- Step 6: Career mode -->
+      <!-- Step 6: Career mode + Scenarios -->
       <div class="wizard-step" id="wstep-6">
         <p class="section-label">6 · Run</p>
         <div class="choice-row" id="careerRow">
@@ -165,6 +170,9 @@
           <button class="opt" data-career="true"><h4>Career mode</h4><p>Your cabinet carries over between parliaments. Ministers retire. Governing choices shape the next election.</p></button>
         </div>
         <p id="careerNote" class="mini-help" style="display:none">Your cabinet carries over between parliaments. Ministers retire after 2–3 terms. Governing choices accumulate into a real vote swing going into the next election.</p>
+        <p class="sub-label" style="margin-top:20px">Scenario (optional)</p>
+        <p class="mini-help">Pick a historical or challenge start-state. Choosing a scenario may lock mode and difficulty.</p>
+        <div class="scenario-cards" id="scenarioCards"></div>
       </div>
 
       <!-- Step 7: Ready -->
@@ -341,6 +349,7 @@
         <div class="cabinet-roll" id="cabinetRoll"></div>
       </div>
 
+      <div id="objectivesStrip" class="objectives-strip" style="display:none"></div>
       <p class="pb-note" id="pbNote"></p>
 
       <div class="btn-row">
@@ -459,6 +468,34 @@
       </div>
     </section>
 
+    <!-- ================================================== CAMPAIGN TRAIL == -->
+    <section id="screen-campaign" class="screen">
+      <div class="result-head">
+        <div class="govt-banner" id="campaignTitle">The Campaign Trail</div>
+        <p class="policy-intro" id="campaignIntro">The election is days away. Spend your campaign days wisely.</p>
+      </div>
+      <div class="panel" id="campaignDaysPanel">
+        <p class="section-label">Campaign days remaining: <b id="campaignDaysLeft">12</b></p>
+        <div class="campaign-alloc" id="campaignRegionAlloc"></div>
+        <div class="campaign-alloc" id="campaignBlocAlloc"></div>
+      </div>
+      <div class="panel">
+        <p class="section-label">Choose a campaign theme (optional)</p>
+        <div class="campaign-themes" id="campaignThemes"></div>
+      </div>
+      <div class="panel" id="campaignDebatePanel">
+        <p class="section-label">TV Debate</p>
+        <p class="mini-help" id="campaignDebateInfo">The debate outcome will be determined by your PM's oratory skill when you launch the campaign.</p>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-ghost" id="campaignDebateBtn">⚡ Go into the debate</button>
+          <span id="campaignDebateResult" style="display:none;margin-left:12px;font-weight:600"></span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="campaignLaunchBtn" disabled>Launch the campaign →</button>
+      </div>
+    </section>
+
     <!-- ====================================================== GOVERN === -->
     <!-- ====================================================== POLICY ==== -->
     <section id="screen-policy" class="screen">
@@ -476,6 +513,7 @@
         <span class="gov-modetag" id="govModeTag"></span>
       </div>
       <div class="career-banner" id="careerBanner" style="display:none"></div>
+      <div class="objective-banner" id="govObjectiveBanner" style="display:none"></div>
       <div class="panel gov-meters">
         <div class="meter" id="meterApproval"><span class="meter-label">Approval</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span><span class="meter-status"></span></div>
         <div class="meter" id="meterEconomy"><span class="meter-label">Economy</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span><span class="meter-status"></span></div>
@@ -489,6 +527,11 @@
           <button class="btn btn-ghost" id="oppPressConfBtn" style="display:none">📣 Press conference (once)</button>
         </div>
         <div class="reshuffle-panel" id="reshufflePanel" style="display:none"></div>
+      </div>
+      <!-- voter blocs coalition panel -->
+      <div class="panel" id="electoratePanel" style="display:none">
+        <p class="section-label">Coalition of voters</p>
+        <div class="bloc-list" id="blocList"></div>
       </div>
       <div class="panel opp-gov" id="oppGovPanel" style="display:none">
         <p class="section-label" id="oppGovName">The government</p>
@@ -531,6 +574,7 @@
         <div class="pledge-strip" id="legacyPledges" style="display:none"></div>
       </div>
       <div class="panel"><p class="section-label">Term in review</p><div class="term-review" id="termReview"></div></div>
+      <div id="legacyObjectivesStrip" class="objectives-strip" style="display:none"></div>
       <div class="btn-row">
         <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
         <button class="btn btn-ghost" id="legacyXBtn">𝕏 Post on X</button>
@@ -682,10 +726,13 @@ note: One line on them (optional)"></textarea>
   <script src="js/filter.js"></script>
   <script src="js/hexmap.js"></script>
   <script src="js/data.mps.js"></script>
+  <script src="js/electorate.js"></script>
   <script src="js/election.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/data.expansion2.js"></script>
+  <script src="js/scenarios.js"></script>
   <script src="js/govern.js"></script>
+  <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/platform.js"></script>

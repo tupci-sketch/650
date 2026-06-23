@@ -90,27 +90,31 @@ G.EVENTS = [
           success:{a:3,e:0,u:1}, fail:{a:-4,e:0,u:-2}},
         careerEffect:{voteShift:-0.004,repShift:-1} }
     ]},
-  { id:"immigration", dept:"home", title:"Borders & Asylum", icon:"⚓",
+  { id:"immigration", dept:"home", title:"Borders & Asylum", icon:"⚓", axis:"imm",
     text:"Crossings dominate the news and your own party is split on the answer.",
     choices:[
       { label:"A tough new enforcement plan", text:"Hard-edged and headline-grabbing.",
-        base:{a:4,e:-2,u:-3}, careerEffect:{voteShift:0.010,repShift:-2} },
+        base:{a:4,e:-2,u:-3}, axisDir:+1,
+        careerEffect:{voteShift:0.010,repShift:-2,blocShift:{redwall:+4,reform:+6,pensioners:+3,urbanprog:-5,students:-4}} },
       { label:"A managed, legalistic approach", text:"Your Home Secretary navigates the courts.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"home",
           success:{a:5,e:1,u:3}, fail:{a:-5,e:-1,u:-3}},
         careerEffect:{voteShift:0.004,repShift:1} },
       { label:"Lead a humane reform", text:"Principle over polls.",
-        base:{a:-4,e:0,u:4}, careerEffect:{voteShift:-0.008,repShift:3} }
+        base:{a:-4,e:0,u:4}, axisDir:-1,
+        careerEffect:{voteShift:-0.008,repShift:3,blocShift:{urbanprog:+5,students:+4,nationalist:+3,redwall:-4,reform:-7,pensioners:-3}} }
     ]},
-  { id:"costofliving", dept:"chancellor", title:"Cost of Living", icon:"£",
+  { id:"costofliving", dept:"chancellor", title:"Cost of Living", icon:"£", axis:"tax",
     text:"Prices bite. Households are hurting and they want to know whose side you're on.",
     choices:[
       { label:"Direct cash support", text:"Help now, borrow for it.",
-        base:{a:7,e:-6,u:0}, careerEffect:{voteShift:0.012,repShift:4} },
+        base:{a:7,e:-6,u:0}, axisDir:-1,
+        careerEffect:{voteShift:0.012,repShift:4,blocShift:{redwall:+5,pensioners:+4,students:+3,business:-4,shires:-3}} },
       { label:"Targeted help for the poorest", text:"Careful and defensible.",
         base:{a:2,e:-2,u:1}, careerEffect:{voteShift:0.004,repShift:2} },
       { label:"Hold firm on discipline", text:"Promise it will pass.",
-        base:{a:-6,e:4,u:-1}, careerEffect:{voteShift:-0.010,repShift:-4} }
+        base:{a:-6,e:4,u:-1}, axisDir:+1,
+        careerEffect:{voteShift:-0.010,repShift:-4,blocShift:{business:+4,shires:+3,redwall:-5,pensioners:-4,students:-3}} }
     ]},
   { id:"reshuffle", dept:"pm", title:"A Reshuffle Beckons", icon:"♻",
     text:"The commentariat says your top team looks tired. You could refresh it.",
@@ -128,9 +132,11 @@ G.EVENTS = [
     text:"A generation can't afford a home. Everyone agrees something must be done; no one agrees what.",
     choices:[
       { label:"Build, build, build", text:"Override objections to get spades in the ground.",
-        base:{a:3,e:5,u:-4}, careerEffect:{voteShift:0.010,repShift:3} },
+        base:{a:3,e:5,u:-4},
+        careerEffect:{voteShift:0.010,repShift:3,blocShift:{students:+5,urbanprog:+4,redwall:+3,shires:-4,pensioners:-2}} },
       { label:"Protect the green belt", text:"Side with the shire associations.",
-        base:{a:-1,e:-3,u:4}, careerEffect:{voteShift:-0.006,repShift:-2} },
+        base:{a:-1,e:-3,u:4},
+        careerEffect:{voteShift:-0.006,repShift:-2,blocShift:{shires:+5,pensioners:+3,students:-4,urbanprog:-3,redwall:-2}} },
       { label:"A grand delivery programme", text:"Stake real money and credibility on it.",
         base:{a:0,e:0,u:0}, gamble:{stat:"statecraft", dept:"business",
           success:{a:6,e:6,u:1}, fail:{a:-5,e:-4,u:-2}},
@@ -408,11 +414,93 @@ G.EVENTS = [
 /* Called once per choice in career mode. Accumulates voteShift and repShift
    into G.career; the totals feed the next election via G.careerApplyVoteMod. */
 G.applyCareerEffect = function (effect) {
-  if (!G.career || !G.career.active || !effect) return;
-  var shift = effect.voteShift || 0;
-  var rep   = effect.repShift  || 0;
-  G.career.voteModifier    = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + shift));
-  G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + rep));
+  if (!effect) return;
+  if (G.career && G.career.active) {
+    var shift = effect.voteShift || 0;
+    var rep   = effect.repShift  || 0;
+    G.career.voteModifier    = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + shift));
+    G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + rep));
+  }
+  /* apply bloc support shifts (always, even in single-election mode) */
+  if (effect.blocShift && G.term && G.term.blocSupport && G.electorateShift) {
+    G.electorateShift(G.term.blocSupport, effect.blocShift);
+    if (G.career && G.career.blocSupport) G.electorateShift(G.career.blocSupport, effect.blocShift);
+  }
+};
+
+/* ============================================================ LIVING CABINET ==
+   Minister state lives in a name-keyed side-table (never on the politician
+   object itself — those are shared references into G.POLITICIANS).
+   State table: G.career.ministerState (persists) or G.state.ministerState
+   (single-election mode).                                                      */
+
+G._minStateTable = function () {
+  if (G.career && G.career.active) return G.career.ministerState || (G.career.ministerState = {});
+  return G.state.ministerState || (G.state.ministerState = {});
+};
+
+G.initMinisterState = function (pol) {
+  if (!pol) return { loyalty: 55, ambition: 45, traits: [], rivalry: false };
+  var pm = (pol.fits || []).indexOf("pm") >= 0;
+  return {
+    loyalty:  Math.max(20, Math.min(90, Math.round(55 + ((pol.stats && pol.stats.partyMgmt || 50) - 50) * 0.4))),
+    ambition: Math.max(10, Math.min(95, Math.round(45 + ((pol.stats && pol.stats.appeal   || 50) - 50) * 0.5 + (pm ? 15 : 0)))),
+    traits:   [],
+    rivalry:  false
+  };
+};
+
+/* Get or create minister state for a politician (by name). */
+G.minState = function (name) {
+  if (!name) return G.initMinisterState(null);
+  var tbl = G._minStateTable();
+  if (!tbl[name]) {
+    /* look up the politician to seed the initial state */
+    var pol = null;
+    if (G.state && G.state.cabinet) {
+      Object.keys(G.state.cabinet).forEach(function (k) {
+        if (G.state.cabinet[k] && G.state.cabinet[k].name === name) pol = G.state.cabinet[k];
+      });
+    }
+    if (!pol && G.POLITICIANS) pol = G.POLITICIANS.filter(function (p) { return p.name === name; })[0] || null;
+    tbl[name] = G.initMinisterState(pol);
+  }
+  return tbl[name];
+};
+
+/* ---- minister dynamics: update state after a choice is applied ------------ */
+G.ministerDynamics = function (ev, choice, gambleWon) {
+  var t = G.term;
+  if (!t || !G.state || !G.state.cabinet) return;
+  /* find the minister for this event's department */
+  var portfolioKey = ev.dept;
+  var pol = G.state.cabinet[portfolioKey];
+  if (!pol) return;
+  var ms = G.minState(pol.name);
+
+  if (choice.gamble) {
+    if (gambleWon) {
+      /* competent trait progress */
+      if (ms.traits.indexOf("competent") < 0 && Math.random() < 0.4) ms.traits.push("competent");
+      if (ms.ambition < 60) ms.loyalty = Math.min(90, ms.loyalty + 3);
+      else ms.ambition = Math.min(95, ms.ambition + 4);
+    } else {
+      ms.loyalty = Math.max(20, ms.loyalty - 5);
+      if (ms.traits.indexOf("gaffe-prone") < 0 && Math.random() < 0.25) ms.traits.push("gaffe-prone");
+    }
+  }
+  if (choice.resign) {
+    ms.loyalty = Math.max(20, ms.loyalty - 8);
+  }
+  /* low unity triggers rivalry for high-ambition/low-loyalty ministers */
+  if (t.meters && t.meters.unity < 35 && ms.ambition > 65 && ms.loyalty < 45) {
+    ms.rivalry = true;
+    if (ms.traits.indexOf("schemer") < 0) ms.traits.push("schemer");
+  }
+  /* rising star: sustained gamble wins across terms */
+  if (ms.traits.indexOf("competent") >= 0 && ms.traits.indexOf("rising-star") < 0 && Math.random() < 0.2) {
+    ms.traits.push("rising-star");
+  }
 };
 
 /* ---- helpers ------------------------------------------------------------- */
@@ -474,6 +562,20 @@ G.startTerm = function (res, opts) {
       return opt ? { axis: ax.key, title: ax.title, label: opt.label, status: "open" } : null;
     }).filter(Boolean) : null
   };
+  /* seed voter-bloc support for this term */
+  if (G.electorateInit) {
+    var careerBlocs = G.career && G.career.blocSupport && Object.keys(G.career.blocSupport).length
+                      ? G.career.blocSupport : null;
+    var scenBlocs   = G.state && G.state._scenarioBlocSupport;
+    if (careerBlocs) {
+      G.term.blocSupport = JSON.parse(JSON.stringify(careerBlocs));
+    } else if (scenBlocs) {
+      G.term.blocSupport = JSON.parse(JSON.stringify(scenBlocs));
+    } else {
+      var pAlign = G.playerAlignValue ? G.playerAlignValue(mode, G.state && G.state.lineage, G.state && G.state.custom) : 0;
+      G.term.blocSupport = G.electorateInit(pAlign, G.state && G.state.policy);
+    }
+  }
   G.govDrawTurn(2);
   return G.term;
 };
@@ -584,6 +686,11 @@ G._applyChoiceEffects = function (ev, choice, log) {
   log.push({ text: ev.title + " — " + choice.label, cls: "head" });
   G._apply(choice.base, true);
   G.applyCareerEffect(choice.careerEffect);
+  /* implicit bloc nudge: if the event has an issue axis and the choice has a
+     known direction (hand-authored axisDir), apply a small automatic shift    */
+  if (ev.axis && choice.axisDir && G.term && G.term.blocSupport && G.electorateIssueNudge) {
+    G.electorateIssueNudge(ev.axis, choice.axisDir, G.term.blocSupport);
+  }
   var gambleWon = false;
   if (choice.gamble) {
     var g = choice.gamble, stat = G.ministerStat(g.dept, g.stat);
@@ -592,6 +699,7 @@ G._applyChoiceEffects = function (ev, choice, log) {
     G._apply(gambleWon ? g.success : g.fail, true);
     log.push({ text: (gambleWon ? "✓ " : "✗ ") + G.ministerName(g.dept) + (gambleWon ? " pulls it off." : " can't make it land."), cls: gambleWon ? "good" : "bad" });
   }
+  if (G.ministerDynamics) G.ministerDynamics(ev, choice, gambleWon);
   if (choice.deliver || choice.water || choice.shelve) {
     var ax = choice.deliver || choice.water || choice.shelve;
     (G.term.pledges || []).forEach(function (pl) {

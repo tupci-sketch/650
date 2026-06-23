@@ -392,7 +392,7 @@ G.simulateCampaign = function (params) {
   var seats = 0, byRegion = [], results = [];
   G.REGIONS.forEach(function (r) {
     var list = geo.byRegion[r.id] || [];
-    var landscape = G.LANDSCAPE[r.id] || G.LANDSCAPE.EE;
+    var landscape = (G.activeLandscape ? G.activeLandscape(r.id) : null) || G.LANDSCAPE[r.id] || G.LANDSCAPE.EE;
     var lean = G.regionLeanFor(params.mode, params.lineage, r.id);
     var rec = { id: r.id, name: r.name, total: list.length, won: 0, winnable: lean !== null };
     if (lean === null) {
@@ -405,6 +405,7 @@ G.simulateCampaign = function (params) {
     }
     if (params.mode !== "dynasty") lean = G.gaussR(rnd) * C.unityLeanSpread; // mild local colour
     lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);         // the modest politics tilt
+    lean += (params.regionTilt && params.regionTilt[r.id]) || 0;             // electorate/campaign regional tilt
     var regSwing = G.gaussR(rnd) * rswing;
     list.forEach(function (c) {
       var incumbBonus = (params.heldSeats && params.heldSeats[c.gss]) ? (C.incumbencyLean || 0) : 0;
@@ -443,6 +444,7 @@ G.estimateSeats = function (params) {
     if (lean === null) return;
     if (params.mode !== "dynasty") lean = G.gaussR(rnd) * C.unityLeanSpread;
     lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);
+    lean += (params.regionTilt && params.regionTilt[r.id]) || 0;
     var p = G.sigmoid(baseLogit + lean + nat + G.gaussR(rnd) * rswing);
     var mean = r.seats * p, sd = Math.sqrt(Math.max(0.0001, r.seats * p * (1 - p)));
     var wins = Math.round(mean + G.gaussR(rnd) * sd);
@@ -462,6 +464,7 @@ G.expectedSeats = function (params) {
     if (lean === null) return;
     if (params.mode !== "dynasty") lean = 0;
     lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);
+    lean += (params.regionTilt && params.regionTilt[r.id]) || 0;
     total += r.seats * G.sigmoid(baseLogit + lean);
   });
   return Math.round(total);
@@ -585,6 +588,12 @@ G.runElection = function (cabinet, opts) {
   vote = Math.max(0.05, Math.min(0.62, vote + G.policyVoteMod(opts.policy)));   // manifesto nudge (if any)
   /* career vote modifier: accumulated from prior term performance (one-shot) */
   if (G.careerApplyVoteMod) vote = G.careerApplyVoteMod(vote);
+  /* electorate vote nudge: bloc support → ≈ ±0.06 national vote shift */
+  if (G.electorateVoteMod && opts.blocSupport)
+    vote = Math.max(0.05, Math.min(0.62, vote + G.electorateVoteMod(opts.blocSupport)));
+  /* campaign vote delta (debate win/loss + theme) */
+  if (opts.campaignVoteDelta)
+    vote = Math.max(0.05, Math.min(0.62, vote + opts.campaignVoteDelta));
   var contestable = G.contestableSeats(mode, lineage);
   var align = G.playerAlignValue(mode, opts.lineage, custom);
   var bloc = G.playerBloc(mode, opts.lineage, custom);
@@ -601,9 +610,15 @@ G.runElection = function (cabinet, opts) {
     G.career.heldSeats.forEach(function (gss) { heldSeats[gss] = true; });
   }
 
+  /* compute regional tilt from electorate + campaign (deterministic, pre-RNG) */
+  var regionTilt = opts.regionTilt || null;
+  if (!regionTilt && G.electorateRegionTilt && opts.blocSupport)
+    regionTilt = G.electorateRegionTilt(opts.blocSupport);
+
   var params = { vote: vote, mode: mode, lineage: lineage, midShift: diff.midShift,
                  noiseMul: diff.noiseMul, custom: custom, align: align,
-                 opposition: opposition, heldSeats: heldSeats, rnd: rnd };
+                 opposition: opposition, heldSeats: heldSeats, rnd: rnd,
+                 regionTilt: regionTilt };
 
   var expected = G.expectedSeats(params);
 

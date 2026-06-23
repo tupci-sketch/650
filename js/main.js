@@ -21,10 +21,10 @@
   /* setup selections (defaults match the .sel buttons in the markup) */
   var choice = { mode: "unity", lineage: null, eras: [], difficulty: "normal",
                  hard: false, govern: true, watch: true, speed: "normal",
-                 redos: 1, cabinetSize: "standard", policy: false,
+                 redos: 1, cabinetSize: "standard", policy: false, campaignOn: false,
                  casts: { insider: true, novelty: false },
                  partyName: "", partyAlign: "centre", partyColour: "",
-                 careerMode: false };
+                 careerMode: false, scenarioKey: "freshstart" };
 
   var lastResult = null;   // kept for re-run / download / copy
   var watch = null;        // live-count animation state
@@ -86,6 +86,7 @@
     wireGovern();
     wireCoalition();
     wirePolicy();
+    wireCampaign();
     wireExplore();
     wireLeaderboard();
     wireRetirement();
@@ -246,11 +247,31 @@
     bindRow("speedRow",  "data-speed",  function (v) { choice.speed  = v; });
     bindRow("redoRow",   "data-redos",  function (v) { choice.redos = parseInt(v, 10); });
     bindRow("sizeRow",   "data-size",   function (v) { choice.cabinetSize = v; buildDynastyChips(); updateHint(); updateEligibility(); });
-    bindRow("policyRow", "data-policy", function (v) { choice.policy = (v === "true"); });
-    bindRow("careerRow", "data-career", function (v) {
+    bindRow("policyRow",   "data-policy",   function (v) { choice.policy     = (v === "true"); });
+    bindRow("campaignRow", "data-campaign", function (v) { choice.campaignOn = (v === "true"); });
+    bindRow("careerRow",   "data-career",   function (v) {
       choice.careerMode = (v === "true");
       var n = sel("careerNote"); if (n) n.style.display = choice.careerMode ? "" : "none";
     });
+
+    /* scenario picker */
+    if (G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey);
+    var scCards = sel("scenarioCards");
+    if (scCards) {
+      scCards.addEventListener("click", function (e) {
+        var card = e.target && e.target.closest ? e.target.closest(".scenario-card") : null;
+        if (!card) return;
+        var key = card.getAttribute("data-scenario");
+        choice.scenarioKey = key;
+        each(scCards.querySelectorAll(".scenario-card"), function (c) { c.classList.toggle("sel", c === card); });
+        /* if the scenario locks mode/difficulty, apply them */
+        if (G.SCENARIOS) {
+          var sc = G.SCENARIOS.filter(function (s) { return s.key === key; })[0];
+          if (sc && sc.mode) { choice.mode = sc.mode; setSel("modeRow", "data-mode", sc.mode); updateEligibility(); }
+          if (sc && sc.difficulty) { choice.difficulty = sc.difficulty; setSel("diffRow", "data-diff", sc.difficulty); }
+        }
+      });
+    }
 
     /* wizard navigation */
     sel("wstepNextBtn").onclick = function () { goWizardStep(wizardStep + 1); };
@@ -295,11 +316,14 @@
         redos: choice.redos,
         cabinetSize: choice.cabinetSize,
         policyOn: choice.policy,
+        campaignOn: choice.campaignOn || false,
         casts: { insider: !!choice.casts.insider, novelty: !!choice.casts.novelty },
         custom: choice.mode === "dynasty" ? null : {
           name: choice.partyName, align: choice.partyAlign, colour: choice.partyColour
         }
       });
+      /* apply scenario if one was chosen */
+      if (choice.scenarioKey && G.applyScenario) G.applyScenario(choice.scenarioKey);
       G.UI.show("screen-draft");
       G.UI.renderDraft();
     };
@@ -413,9 +437,17 @@
   function runElectionFlow() {
     if (!G.isComplete()) return;
     if (G.state.policyOn && !G.state.policy) { G.UI.renderPolicy("manifesto"); return; }
+    /* campaign trail gate — if enabled and not yet done */
+    if (G.state.campaignOn && !G.state.campaign) { G.campaignInit && G.campaignInit(); }
+    if (G.state.campaignOn && G.state.campaign && !G.state.campaign.done) {
+      if (G.UI.renderCampaign) G.UI.renderCampaign();
+      return;
+    }
     proceedElection();
   }
   function proceedElection() {
+    /* finalise campaign if pending */
+    if (G.state.campaign && !G.state.campaign.done && G.campaignFinalise) G.campaignFinalise();
     lastResult = G.hold();
     if (G.state.watch) startWatch(lastResult);
     else showResult(lastResult);
@@ -423,6 +455,17 @@
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
+    /* check objectives and achievements */
+    if (G.checkObjectives && G.unlockAchievements) {
+      var ctx = {
+        seats: res.seats,
+        byRegion: res.campaign && res.campaign.byRegion,
+        blocSupport: res.blocSupport,
+        scenario: res.scenarioKey || (G.state && G.state.scenarioKey)
+      };
+      var unlocked = G.unlockAchievements(G.checkObjectives(ctx));
+      if (unlocked.length && G.UI.showAchievements) G.UI.showAchievements(unlocked);
+    }
     try {
       if (G.LB && G.LB.recordLocalRun) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
@@ -747,12 +790,66 @@
       G.POLICY_AXES.forEach(function (ax) { sel2[ax.key] = G.UI._policySel[ax.key]; });
       if (G.UI._policyMode === "manifesto") {
         G.state.policy = sel2;
-        proceedElection();
+        runElectionFlow();   /* may proceed to campaign or election */
       } else {
         G.applyProgramme(sel2);
         G.UI.renderGovern();
       }
     };
+  }
+
+  function wireCampaign() {
+    var screen = document.getElementById("screen-campaign"); if (!screen) return;
+    /* stepper buttons for region/bloc day allocation */
+    screen.addEventListener("click", function (e) {
+      var btn = e.target;
+      if (!btn.classList.contains("camp-step-btn")) return;
+      var slot = btn.getAttribute("data-slot");
+      var dir  = parseInt(btn.getAttribute("data-dir"), 10);
+      var c = G.state && G.state.campaign; if (!c) return;
+      var cur = c.allocation[slot] || 0;
+      var newVal = Math.max(0, cur + dir);
+      if (dir > 0 && c.daysLeft <= 0) return; /* no days left */
+      if (G.campaignAllocate) G.campaignAllocate(slot, newVal);
+      /* update displayed day count */
+      var numEl = document.getElementById("campdays_" + slot);
+      if (numEl) numEl.textContent = c.allocation[slot] || 0;
+      var dlEl = document.getElementById("campaignDaysLeft");
+      if (dlEl) dlEl.textContent = c.daysLeft;
+    });
+    /* theme selection */
+    var themesEl = document.getElementById("campaignThemes");
+    if (themesEl) {
+      themesEl.addEventListener("click", function (e) {
+        var btn = e.target.closest ? e.target.closest(".camp-theme-btn") : null; if (!btn) return;
+        var key = btn.getAttribute("data-theme");
+        var c = G.state && G.state.campaign; if (!c) return;
+        c.theme = (c.theme === key) ? null : key; /* toggle */
+        each(themesEl.querySelectorAll(".camp-theme-btn"), function (b) { b.classList.toggle("sel", b.getAttribute("data-theme") === c.theme); });
+      });
+    }
+    /* debate button */
+    var debBtn = document.getElementById("campaignDebateBtn");
+    if (debBtn) {
+      debBtn.onclick = function () {
+        var won = G.resolveDebate ? G.resolveDebate() : false;
+        var debRes = document.getElementById("campaignDebateResult");
+        if (debRes) {
+          debRes.style.display = "";
+          debRes.textContent = won ? "✓ You won the debate!" : "✗ You lost the debate.";
+          debRes.className = won ? "camp-debate-win" : "camp-debate-loss";
+        }
+        debBtn.style.display = "none";
+      };
+    }
+    /* launch button */
+    var launchBtn = document.getElementById("campaignLaunchBtn");
+    if (launchBtn) {
+      launchBtn.onclick = function () {
+        if (G.campaignFinalise) G.campaignFinalise();
+        proceedElection();
+      };
+    }
   }
 
   function wireGovern() {
@@ -869,6 +966,33 @@
     currentVerdict = G.govVerdict();
     G.UI.renderLegacy(currentVerdict);
     recordLegacy(currentVerdict);
+    /* check term-level objectives (legacy, pledges, approval, blocs) */
+    if (G.checkObjectives && G.unlockAchievements) {
+      var termCtx = {
+        legacy: currentVerdict && currentVerdict.legacy,
+        pledges: G.term && G.term.pledges,
+        approvalEnd: currentVerdict && currentVerdict.meters && currentVerdict.meters.approval,
+        termGovt: G.term && G.term.kind === "govt",
+        blocSupport: G.term && G.term.blocSupport,
+        byRegion: lastResult && lastResult.campaign && lastResult.campaign.byRegion,
+        seats: lastResult && lastResult.seats,
+        scenario: G.state && G.state.scenarioKey
+      };
+      var tUnlocked = G.unlockAchievements(G.checkObjectives(termCtx));
+      if (tUnlocked.length) {
+        var legStrip = document.getElementById("legacyObjectivesStrip");
+        if (legStrip) {
+          var all = (G.OBJECTIVES || []).concat((G.SCENARIOS || []).map(function (s) {
+            return { key: "scenario_" + s.key, label: s.name + " — Objective Complete" };
+          }));
+          legStrip.innerHTML = "<b>Achievements unlocked:</b> " + tUnlocked.map(function (k) {
+            var obj = all.filter(function (o) { return o.key === k; })[0];
+            return '<span class="achievement-badge">' + G.UI._esc(obj ? obj.label : k) + ' ✓</span>';
+          }).join("");
+          legStrip.style.display = "";
+        }
+      }
+    }
     /* career: record this term and prepare retirement screen */
     if (G.career && G.career.active && G.careerRecordTerm) {
       G.careerRecordTerm(lastResult, currentVerdict);
