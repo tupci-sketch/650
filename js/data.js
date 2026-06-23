@@ -590,14 +590,18 @@ G.CONFIG = {
   /* 2024 general election baseline — used by the Wikipedia election screen
      to show "seats before" and vote-share swing vs the most recent real result. */
   baseline2024: {
-    "Labour":           { seats: 411, vote: 33.7 },
-    "Conservative":     { seats: 121, vote: 23.7 },
-    "Liberal Democrat": { seats:  72, vote: 12.2 },
-    "Reform UK":        { seats:   5, vote: 14.3 },
-    "SNP":              { seats:   9, vote:  2.5 },
-    "Plaid Cymru":      { seats:   4, vote:  3.5 },
-    "Green":            { seats:   4, vote:  6.7 }
-  }
+    "Labour":           { seats: 411, vote: 33.7, leader: "Keir Starmer" },
+    "Conservative":     { seats: 121, vote: 23.7, leader: "Rishi Sunak" },
+    "Liberal Democrat": { seats:  72, vote: 12.2, leader: "Ed Davey" },
+    "Reform UK":        { seats:   5, vote: 14.3, leader: "Nigel Farage" },
+    "SNP":              { seats:   9, vote:  2.5, leader: "John Swinney" },
+    "Plaid Cymru":      { seats:   4, vote:  3.5, leader: "Rhun ap Iorwerth" },
+    "Green":            { seats:   4, vote:  6.7, leader: "Carla Denyer" }
+  },
+
+  /* Fallback "previous government" for the wiki left column when no career
+     history exists — always the real 2024 UK government (Labour). */
+  govt2024: { party: "Labour", seats: 411, vote: 33.7, leader: "Keir Starmer" }
 };
 
 /* ====================================================== ALIGNMENT (v5) ==== */

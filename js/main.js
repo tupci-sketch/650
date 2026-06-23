@@ -901,7 +901,8 @@
           parliament: G.career.parliament - 1,
           seats: lastResult.seats,
           voteShare: lastResult.voteShare,
-          tier: lastResult.tier && lastResult.tier.key
+          tier: lastResult.tier && lastResult.tier.key,
+          pmName: lastResult.pmName || "—"
         });
       }
       /* start the next parliament with carry-over cabinet */
