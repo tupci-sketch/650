@@ -916,6 +916,7 @@ body::before {
 .wiki-full-results td:not(:first-child) { text-align: right; }
 .wiki-full-results tr.wiki-you-row td { background: rgba(234,243,251,.6); font-weight: 600; }
 .wiki-full-results tr:last-child td { border-bottom: none; }
+.wfr-num { text-align: right; font-family: var(--mono, monospace); }
 .wfr-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px;
   vertical-align: middle; margin-right: 6px; flex-shrink: 0; }
 .wfr-party-cell { display: flex; align-items: center; }

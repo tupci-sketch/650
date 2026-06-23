@@ -378,7 +378,7 @@ G.hold = function () {
   res.cabinetSize = st.cabinetSize;
   res.pmName = (st.cabinet && st.cabinet.pm) ? st.cabinet.pm.name : "—";
   res.blocLabel = res.campaign && res.campaign.blocLabel;
-  res.electionYear = st.gameYear || 2025;
+  res.electionYear = st.gameYear || 2026;
   return res;
 };
 

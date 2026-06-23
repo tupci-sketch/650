@@ -1120,7 +1120,7 @@ G.UI.renderWikiParliament = function (res, state, career) {
   var C = G.CONFIG || {};
   var baseline = C.baseline2024 || {};
   var govt2024 = C.govt2024 || { party: "Labour", seats: 411, vote: 33.7, leader: "Keir Starmer" };
-  var year = new Date().getFullYear();
+  var year = res.electionYear || new Date().getFullYear();
   var el = document.getElementById("wikiYear"); if (el) el.textContent = year;
   var dateEl = document.getElementById("wikiDate");
   if (dateEl) dateEl.textContent = "General election · United Kingdom";
@@ -1167,18 +1167,18 @@ G.UI.renderWikiParliament = function (res, state, career) {
 
   var leftParty, leftSeats, leftVote, leftLeader, leftHead, leftPriorSeats, leftPriorVote, leftSeatDelta, leftVoteDelta;
   if (prevParl) {
-    /* previous parliament — player's own prior result */
+    /* previous parliament — player's own prior result.
+       No meaningful "seats before" exists for the player's first parliament
+       (there is no prior result to compare against), so always show "—". */
     leftParty  = youParty;
     leftLeader = prevParl.pmName || "—";
     leftSeats  = prevParl.seats;
     leftVote   = (prevParl.voteShare * 100).toFixed(1);
     leftHead   = "Parliament " + (prevParl.parliament || (career.parliament - 1));
-    /* compare previous to 2024 baseline */
-    var lb = baseline[youParty] || govt2024;
-    leftPriorSeats = lb ? lb.seats : "—";
-    leftPriorVote  = lb ? lb.vote  : "—";
-    leftSeatDelta  = (lb && lb.seats != null) ? (leftSeats - lb.seats) : null;
-    leftVoteDelta  = (lb && lb.vote  != null) ? (parseFloat(leftVote) - parseFloat(lb.vote)) : null;
+    leftPriorSeats = "—";
+    leftPriorVote  = "—";
+    leftSeatDelta  = null;
+    leftVoteDelta  = null;
   } else {
     /* no history: show 2024 Labour government as the baseline outgoing govt */
     leftParty  = govt2024.party;
@@ -1203,11 +1203,24 @@ G.UI.renderWikiParliament = function (res, state, career) {
 
   /* ---- Right column: player's current result ---- */
   var inHeadEl = document.getElementById("wikiInHead");
-  var inLabel = res.tier && res.tier.govt ? "Incoming government"
-              : (res.tier && res.tier.key === "opposition") ? "Official Opposition"
-              : (res.tier && res.tier.key === "wipeout") ? "Wiped out"
-              : "Minor party";
+  var inLabel = !res.tier ? "Result"
+              : res.tier.govt ? "Incoming government"
+              : res.tier.key === "largest"    ? "Largest party — hung parliament"
+              : res.tier.key === "opposition" ? "Official Opposition"
+              : res.tier.key === "wipeout"    ? "Wiped out"
+              : res.tier.label || "Minor party";
   if (inHeadEl) inHeadEl.textContent = inLabel;
+
+  /* hung-parliament note */
+  var hungNote = document.getElementById("wikiHungNote");
+  if (hungNote) {
+    if (res.tier && res.tier.key === "largest") {
+      hungNote.style.display = "";
+      hungNote.textContent = "No party won an outright majority. " + youParty + " is the largest party with " + youSeats + " seats — " + (G.CONFIG.majority - youSeats) + " short of a majority.";
+    } else {
+      hungNote.style.display = "none";
+    }
+  }
 
   var inRows = [
     ["Leader",      playerPm],
@@ -1287,11 +1300,46 @@ G.UI.renderWikiParliament = function (res, state, career) {
     compEl.innerHTML = '<div class="wiki-dots">' + dots.join("") + '</div><div class="wiki-dot-legend">' + legend + '</div>';
   }
 
+  /* Full "Results by party" table */
+  var fullEl = document.getElementById("wikiFullResults");
+  if (fullEl && bd.length) {
+    /* seat changes: player vs their prior (career) or vs 2024 baseline (real parties).
+       Custom party never appears in baseline so always shows "—" for change. */
+    var priorSeatsMap = {};
+    if (career && career.active && career.electionHistory && career.electionHistory.length >= 1) {
+      /* career: compare right column (player) to their previous parliament */
+      priorSeatsMap[youParty] = career.electionHistory[career.electionHistory.length - 1].seats;
+    }
+    Object.keys(baseline).forEach(function (p) { if (!priorSeatsMap[p]) priorSeatsMap[p] = baseline[p].seats; });
+
+    var rows = bd.map(function (b) {
+      var prior = priorSeatsMap[b.party];
+      var delta = (prior != null) ? (b.seats - prior) : null;
+      var deltaCell = delta != null
+        ? '<td class="wfr-num ' + (delta > 0 ? "wfr-gain" : delta < 0 ? "wfr-loss" : "") + '">' + (delta > 0 ? "+" : "") + delta + '</td>'
+        : '<td class="wfr-num">—</td>';
+      /* vote share: actual for player; baseline for known real parties; — otherwise */
+      var voteStr = b.isYou ? youVote + "%" : (baseline[b.party] ? baseline[b.party].vote.toFixed(1) + "%" : "—");
+      return '<tr' + (b.isYou ? ' class="wiki-you-row"' : '') + '>' +
+        '<td><span class="wfr-swatch" style="background:' + (b.colour || "#999") + '"></span>' +
+        G.UI._esc(b.party) + (b.isYou ? ' <span style="font-size:10px;background:#2f5d3a;color:#fff;padding:1px 5px;border-radius:8px;vertical-align:middle;margin-left:4px">you</span>' : '') + '</td>' +
+        '<td class="wfr-num">' + b.seats + '</td>' +
+        deltaCell +
+        '<td class="wfr-num">' + voteStr + '</td>' +
+        '</tr>';
+    }).join("");
+    fullEl.innerHTML = '<table><thead><tr>' +
+      '<th>Party</th><th class="wfr-num">Seats</th><th class="wfr-num">±</th><th class="wfr-num">Vote</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  } else if (fullEl) {
+    fullEl.innerHTML = "";
+  }
+
   /* PM before/after strip */
   var pmBefore = document.getElementById("wikiPmBefore");
   var pmAfter  = document.getElementById("wikiPmAfter");
   if (pmBefore) pmBefore.textContent = leftLeader;
-  if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : "—";
+  if (pmAfter)  pmAfter.textContent  = (res.tier && res.tier.govt) ? playerPm : (res.tier && res.tier.key === "largest") ? playerPm + " (acting)" : "—";
 };
 
 /* ========================================================= RETIREMENT SCREEN
