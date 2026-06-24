@@ -1335,26 +1335,64 @@ G.UI.renderAbout = function () {
 G.UI._esc = function (s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
 G.UI._lbView = "communal";
 G.UI._lbCache = { top: [], communal: false };
+
 G.UI._cabinetInner = function (e) {
   var rows = (e.cabinet || []).map(function (s) {
     return '<div class="lbd-seat"><span class="role">' + G.UI._esc(s.seat) + '</span><span class="who">' + G.UI._esc(s.name) + ' <span class="lb-sub">' + G.UI._esc(s.party) + '</span></span></div>';
   }).join("");
-  var bd = (e.breakdown && e.breakdown.length) ? '<div class="lbd-bd">Commons: ' + e.breakdown.slice(0,6).map(function(b){ return G.UI._esc(b.party) + " " + (b.seats|0); }).join(" \u00b7 ") + '</div>' : "";
+  var isIntl = e.electoralSystem && e.electoralSystem !== "fptp_uk";
+  var ctx = "";
+  if (isIntl) {
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[e.electoralSystem];
+    var sysLabel = sys ? (sys.flag + " " + sys.name) : e.electoralSystem;
+    var total = e.totalSeats || 650;
+    var pct = total > 0 ? (e.seats / total * 100).toFixed(1) : "?";
+    ctx = '<div class="lbd-bd">' + G.UI._esc(sysLabel);
+    if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+      var sc = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+      ctx += " · " + G.UI._esc(sc ? sc.name : e.scenarioKey);
+    }
+    ctx += " · " + (e.seats | 0) + "/" + total + " (" + pct + "%)</div>";
+  } else if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+    var sc2 = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+    ctx = '<div class="lbd-bd">🇬🇧 ' + G.UI._esc(sc2 ? sc2.name : e.scenarioKey) + '</div>';
+  }
+  var bd = (e.breakdown && e.breakdown.length) ? '<div class="lbd-bd">' + e.breakdown.slice(0,6).map(function(b){ return G.UI._esc(b.party) + " " + (b.seats|0); }).join(" · ") + '</div>' : "";
   var party = e.partyName ? '<div class="lbd-bd">Standing as <b>' + G.UI._esc(e.partyName) + '</b>' +
-        (e.partyAlign && G.alignLabel ? ' \u00b7 ' + G.UI._esc(G.alignLabel(e.partyAlign)) : '') + '</div>' : "";
+        (e.partyAlign && G.alignLabel ? ' · ' + G.UI._esc(G.alignLabel(e.partyAlign)) : '') + '</div>' : "";
   if (!rows) rows = '<p class="lb-sub">No cabinet stored for this entry.</p>';
-  return party + rows + bd;
+  return ctx + party + rows + bd;
 };
+
 G.UI._lbRowEl = function (e, rank) {
+  var isAllPct = G.UI._lbView === "allpct";
   var row = document.createElement("div");
-  row.className = "lb-row expandable" + (rank <= 3 && G.UI._lbView === "communal" ? " top" : "");
+  row.className = "lb-row expandable" + (rank <= 3 && G.UI._lbView !== "personal" ? " top" : "");
   var leg = (e.legacy === null || e.legacy === undefined) ? "—" : ("" + e.legacy);
-  var tag = (e.mode || "") + (e.govt ? " \u00b7 govt" : "");
+  var isIntl = e.electoralSystem && e.electoralSystem !== "fptp_uk";
+  var tag;
+  if (isIntl) {
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[e.electoralSystem];
+    tag = (sys ? sys.flag + " " + sys.name : e.electoralSystem);
+  } else if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+    var sc3 = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+    tag = "🇬🇧 " + (sc3 ? sc3.name : e.scenarioKey);
+  } else {
+    tag = (e.mode || "") + (e.govt ? " · govt" : "");
+  }
+  var seatsDisplay;
+  if (isAllPct) {
+    var total2 = e.totalSeats || 650;
+    var pct2 = e.pct != null ? e.pct : (total2 > 0 ? e.seats / total2 * 100 : 0);
+    seatsDisplay = pct2.toFixed(1) + "%";
+  } else {
+    seatsDisplay = (e.seats | 0);
+  }
   row.innerHTML =
     '<span class="lb-rk">' + rank + '</span>' +
     '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '">' + G.UI._esc(e.name || "—") + '</span>' +
     '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
-    '<span class="lb-seats">' + (e.seats | 0) + '</span>' +
+    '<span class="lb-seats">' + seatsDisplay + '</span>' +
     '<span class="lb-leg">' + leg + '</span>';
   var detail = null;
   row.onclick = function () {
@@ -1364,46 +1402,69 @@ G.UI._lbRowEl = function (e, rank) {
   };
   return row;
 };
+
 G.UI._drawLb = function () {
   var box = $("lbTable"); if (!box) return;
   box.innerHTML = "";
   var tabs = document.createElement("div"); tabs.className = "lb-tabs";
-  [["communal", "Communal"], ["personal", "Your runs"]].forEach(function (t) {
+  [["communal", "Hardest (UK)"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
     var b = document.createElement("button");
     b.className = "lb-tab" + (G.UI._lbView === t[0] ? " sel" : "");
     b.textContent = t[1];
-    b.onclick = function () { G.UI._lbView = t[0]; G.UI._drawLb(); };
+    b.onclick = function () {
+      G.UI._lbView = t[0];
+      if (t[0] === "allpct" && !(G.LB._overallPct && G.LB._overallPct.length) && G.LB.fetchOverallPct) {
+        G.LB.fetchOverallPct(function (top) { G.LB._overallPct = top || []; G.UI._drawLb(); });
+        return;
+      }
+      G.UI._drawLb();
+    };
     tabs.appendChild(b);
   });
   box.appendChild(tabs);
-  function head() { var h = document.createElement("div"); h.className = "lb-row lb-head"; h.innerHTML = '<span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Ticket</span><span class="lb-seats">Seats</span><span class="lb-leg">Legacy</span>'; return h; }
-  function section(title, rows) {
+  var seatsHeader = G.UI._lbView === "allpct" ? "%" : "Seats";
+  function head() {
+    var h = document.createElement("div"); h.className = "lb-row lb-head";
+    h.innerHTML = '<span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Election</span><span class="lb-seats">' + seatsHeader + '</span><span class="lb-leg">Legacy</span>';
+    return h;
+  }
+  function section(title, entries) {
     if (title) { var p = document.createElement("p"); p.className = "section-label"; p.style.marginTop = "14px"; p.textContent = title; box.appendChild(p); }
     box.appendChild(head());
-    if (!rows.length) { var e = document.createElement("p"); e.className = "pool-empty"; e.textContent = "No runs yet."; box.appendChild(e); return; }
-    rows.forEach(function (en, i) { box.appendChild(G.UI._lbRowEl(en, i + 1)); });
+    if (!entries.length) { var emp = document.createElement("p"); emp.className = "pool-empty"; emp.textContent = "No runs yet."; box.appendChild(emp); return; }
+    entries.forEach(function (en, i) { box.appendChild(G.UI._lbRowEl(en, i + 1)); });
   }
   if (G.UI._lbView === "communal") {
     section(null, (G.UI._lbCache.top || []).slice(0, G.LB.MAX_SHOW));
+  } else if (G.UI._lbView === "allpct") {
+    var pctData = (G.LB._overallPct || []).slice(0, G.LB.MAX_SHOW);
+    section(null, pctData);
+    if (!pctData.length) {
+      var note = document.createElement("p"); note.className = "lb-sub"; note.style.padding = "8px 0";
+      note.textContent = "Loading cross-system rankings…";
+      box.appendChild(note);
+      if (G.LB.fetchOverallPct) G.LB.fetchOverallPct(function (top) { G.LB._overallPct = top || []; G.UI._drawLb(); });
+    }
   } else {
     section("Your best 10", (G.LB.localTop ? G.LB.localTop(10) : []));
     var worst = (G.LB.localBottom ? G.LB.localBottom(10) : []);
     if (worst.length) section("Your worst 10", worst);
   }
 };
+
 G.UI.renderLeaderboard = function (top, communal, error) {
   var status = $("lbStatus");
   if (status) status.textContent =
-      error === "not hardest mode" ? "Only the hardest mode (Wildcard \u00b7 Hard \u00b7 Expanded) is ranked \u2014 that run wasn\u2019t added to the board."
-    : error === "duplicate" ? "You\u2019ve already posted this exact run \u2014 it wasn\u2019t added again."
+      error === "not hardest mode" ? "Only the hardest mode (Wildcard · Hard · Expanded) is ranked — that run wasn’t added to the board."
+    : error === "duplicate" ? "You’ve already posted this exact run — it wasn’t added again."
     : error === "name taken" ? "That name is claimed by another player (on another device). Pick a different name to post."
-    : error === "login" ? "The public board is for registered players \u2014 sign in (free) and your runs post under your account name."
-    : error === "legacy required" ? "The board needs a fully governed term \u2014 finish a term to rank."
-    : error ? "Couldn\u2019t reach the shared board \u2014 showing your local runs. Tap a row to see the cabinet."
-    : communal ? "A shared, worldwide board \u2014 hardest mode, one best run per player. Tap a row to see the cabinet."
+    : error === "login" ? "The public board is for registered players — sign in (free) and your runs post under your account name."
+    : error === "legacy required" ? "The board needs a fully governed term — finish a term to rank."
+    : error ? "Couldn’t reach the shared board — showing your local runs. Tap a row to see the cabinet."
+    : communal ? "Worldwide board — one best run per player per election type. Tap a row for the cabinet."
                : "A local board on this device. Tap a row to see the cabinet.";
   G.UI._lbCache = { top: top || [], communal: !!communal };
-  if (G.UI._lbView !== "personal") G.UI._lbView = "communal";
+  if (G.UI._lbView !== "personal" && G.UI._lbView !== "allpct") G.UI._lbView = "communal";
   G.UI._drawLb();
 };
 

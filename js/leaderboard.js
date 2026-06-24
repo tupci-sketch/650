@@ -76,25 +76,38 @@ G.LB._cabinet = function (c) {
 };
 G.LB._breakdown = function (b) {
   if (!b || !b.length) return [];
-  return b.slice(0, 8).map(function (x) { return { party: String(x.party || "").slice(0, 28), seats: G.LB.clampInt(x.seats, 0, 650) }; });
+  return b.slice(0, 8).map(function (x) { return { party: String(x.party || "").slice(0, 28), seats: G.LB.clampInt(x.seats, 0, 3000) }; });
 };
 G.LB.cleanEntry = function (e) {
   var legacy = (e.legacy === null || e.legacy === undefined || e.legacy === "") ? null : G.LB.clampInt(e.legacy, 0, 100);
   var partyName = String(e.partyName || "").replace(/[<>&"']/g, "").replace(/\s+/g, " ").trim().slice(0, 28);
-  if (partyName && G.FILTER && G.FILTER.hit(partyName)) partyName = "";   // belt and braces
+  if (partyName && G.FILTER && G.FILTER.hit(partyName)) partyName = "";
+  var totalSeats = G.LB.clampInt(e.totalSeats || 650, 1, 3000);
+  var seats = G.LB.clampInt(e.seats, 0, 3000);
   return {
-    name: G.LB.normName(e.name), seats: G.LB.clampInt(e.seats, 0, 650), legacy: legacy,
+    name: G.LB.normName(e.name), seats: seats, legacy: legacy,
     govt: !!e.govt, mode: String(e.mode || "unity").slice(0, 12),
     difficulty: String(e.difficulty || "normal").slice(0, 8),
     cabinetSize: String(e.cabinetSize || "standard").slice(0, 10),
     runId: String(e.runId || "").slice(0, 32),
     partyName: partyName,
     partyAlign: String(e.partyAlign || "").slice(0, 14),
+    scenarioKey: String(e.scenarioKey || "").slice(0, 40),
+    electoralSystem: String(e.electoralSystem || "").slice(0, 40),
+    totalSeats: totalSeats,
+    pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
     cabinet: G.LB._cabinet(e.cabinet), breakdown: G.LB._breakdown(e.breakdown), ts: Date.now()
   };
 };
-G.LB.rank   = function (a, b) { if (b.seats !== a.seats) return b.seats - a.seats; return (b.legacy || -1) - (a.legacy || -1); };
+G.LB.rank    = function (a, b) { if (b.seats !== a.seats) return b.seats - a.seats; return (b.legacy || -1) - (a.legacy || -1); };
+G.LB.rankPct = function (a, b) {
+  var pa = a.pct != null ? a.pct : (a.totalSeats > 0 ? a.seats / a.totalSeats * 100 : 0);
+  var pb = b.pct != null ? b.pct : (b.totalSeats > 0 ? b.seats / b.totalSeats * 100 : 0);
+  if (Math.abs(pb - pa) > 0.0001) return pb - pa;
+  return (b.legacy || -1) - (a.legacy || -1);
+};
 G.LB.better = function (a, b) { return G.LB.rank(a, b) < 0; };
+G.LB._overallPct = [];   /* cached on last fetch/submit */
 
 /* ---- communal board (server, with local fallback) ---------------------- */
 G.LB._load = function () { try { var v = window.localStorage.getItem(G.LB.KEY_BOARD); return v ? JSON.parse(v) : []; } catch (e) { return []; } };
@@ -131,28 +144,51 @@ G.LB.submit = function (raw, cb, opts) {
                   seats: e.seats, legacy: e.legacy, govt: e.govt,
                   mode: e.mode, difficulty: e.difficulty, cabinetSize: e.cabinetSize,
                   runId: e.runId, partyName: e.partyName, partyAlign: e.partyAlign,
+                  scenarioKey: e.scenarioKey, electoralSystem: e.electoralSystem, totalSeats: e.totalSeats,
                   cabinet: e.cabinet, breakdown: e.breakdown };
   if (G.LB.URL) {
     G.LB._post(payload, function (d) {
-      if (d && d.ownerToken) G.LB.setOwner(d.ownerToken);     // claim/confirm name ownership
+      if (d && d.ownerToken) G.LB.setOwner(d.ownerToken);
+      if (d && d.overallPct) G.LB._overallPct = d.overallPct;
       if (d && d.top) {
-        G.LB.markSent(sig);                                    // server responded — don't resend
+        G.LB.markSent(sig);
         var ok = d.ok !== false;
         cb(d.top, ok, ok ? null : (d.error || "rejected"));
-      } else {                                                 // network failure: allow a retry
+      } else {
         var top = G.LB._mergeBest(G.LB._load(), e); G.LB._save(top);
         cb(top, false, "offline");
       }
     });
   } else { var top = G.LB._mergeBest(G.LB._load(), e); G.LB._save(top); G.LB.markSent(sig); cb(top, false); }
 };
-/* fetch the board — cb(top, communal, error?) */
+/* fetch the hardest UK board — cb(top, communal, error?) */
 G.LB.fetchTop = function (cb) {
   if (G.LB.URL && typeof fetch === "function") {
     fetch(G.LB.URL, { method: "GET" }).then(function (r) { return r.json(); })
-      .then(function (d) { if (d && d.top) cb(d.top, true); else throw new Error("bad"); })
+      .then(function (d) {
+        if (d && d.overallPct) G.LB._overallPct = d.overallPct;
+        if (d && d.top) cb(d.top, true);
+        else throw new Error("bad");
+      })
       .catch(function (err) { cb(G.LB._load(), false, err); });
   } else cb(G.LB._load(), false);
+};
+/* fetch a specific board by key (e.g. "scenario:usa_ec_2024") — cb(top, communal, error?) */
+G.LB.fetchBoard = function (boardKey, cb) {
+  if (!G.LB.URL || typeof fetch !== "function") { cb([], false, "offline"); return; }
+  G.LB._post({ game: "650", kind: "board", mode: boardKey }, function (d) {
+    if (d && d.top) cb(d.top, true);
+    else cb([], false, d && d.error || "offline");
+  });
+};
+/* fetch the All Results % board — cb(top, communal, error?) */
+G.LB.fetchOverallPct = function (cb) {
+  if (G.LB._overallPct && G.LB._overallPct.length) { cb(G.LB._overallPct, true); return; }
+  if (!G.LB.URL || typeof fetch !== "function") { cb([], false, "offline"); return; }
+  G.LB._post({ game: "650", kind: "overall_pct" }, function (d) {
+    if (d && d.top) { G.LB._overallPct = d.top; cb(d.top, true); }
+    else cb([], false, d && d.error || "offline");
+  });
 };
 
 /* ---- personal board: every TURN, once, on this device ------------------- */
@@ -183,7 +219,9 @@ G.LB.recordLocalRun = function (raw) {
      only — the server upserts by the same run identity). */
   G.LB._post({ game: "650", kind: "log", owner: G.LB.getOwner(), token: (G.NET && G.NET.token) ? G.NET.token() : "", name: e.name, seats: e.seats, legacy: e.legacy, govt: e.govt,
                mode: e.mode, difficulty: e.difficulty, cabinetSize: e.cabinetSize, runId: e.runId,
-               partyName: e.partyName, partyAlign: e.partyAlign, cabinet: e.cabinet, breakdown: e.breakdown }, null);
+               partyName: e.partyName, partyAlign: e.partyAlign,
+               scenarioKey: e.scenarioKey, electoralSystem: e.electoralSystem, totalSeats: e.totalSeats,
+               cabinet: e.cabinet, breakdown: e.breakdown }, null);
   return e;
 };
 G.LB.localTop = function (n) { return G.LB._loadRuns().slice().sort(G.LB.rank).slice(0, n || 10); };
