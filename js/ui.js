@@ -522,6 +522,9 @@ G.UI.renderGovern = function () {
     : (t.mode === "dynasty" ? (G.state.lineage + " government") : t.mode === "wildcard" ? "Wildcard government" : "Cabinet of all the talents");
   if (t.coalition) modeLabel += " · coalition";
   else if (t.minority) modeLabel += " · minority";
+  /* country context when governing abroad */
+  var govSys = (t.systemKey && t.systemKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[t.systemKey] : null;
+  if (govSys) modeLabel = (govSys.flag ? govSys.flag + " " : "") + govSys.country + " · " + modeLabel;
   $("govModeTag").textContent = modeLabel + " · " + (t.difficulty || "normal");
   G.UI._meterLabel("meterApproval", opp ? "Public support" : "Approval");
   G.UI._meterLabel("meterEconomy", opp ? "Momentum" : "Economy");

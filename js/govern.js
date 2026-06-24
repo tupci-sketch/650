@@ -530,7 +530,12 @@ G.startTerm = function (res, opts) {
   var approval = G._clampM(38 + (res.voteShare - 0.33) * 120 + (res.tier.govt ? 4 : 0));
   approval = Math.max(cfg.startApprovalMin, Math.min(cfg.startApprovalMax, approval));
   var economy = G._clampM(46 + (G.ministerStat("chancellor", "statecraft") - 50) * 0.30);
-  var maj = seats - C.majority;
+  /* governing context — the chamber you actually hold (UK or an international one) */
+  var sysKey = G.state && G.state._electoralSystemKey;
+  var termMajority  = (G.activeMajority ? G.activeMajority() : C.majority);
+  var termTotalSeats = (G.activeTotalSeats ? G.activeTotalSeats() : C.totalSeats);
+  var termDeck = (G.govDeckFor ? G.govDeckFor(sysKey) : null);
+  var maj = seats - termMajority;
   var unity = G._clampM(42 + maj / 22 + (mode === "dynasty" ? 6 : -2)
                           + (G.ministerStat("whip", "partyMgmt") - 50) * 0.25
                           + (G.ministerStat("leader", "partyMgmt") - 50) * 0.10);
@@ -549,6 +554,8 @@ G.startTerm = function (res, opts) {
     coalition: opts.coalition || null, minority: !!opts.minority,
     meters: { approval: approval, economy: economy, unity: unity },
     seats: seats, startSeats: seats,
+    majority: termMajority, totalSeats: termTotalSeats,
+    systemKey: sysKey || "fptp_uk", govDeck: termDeck,
     session: 1, length: cfg.sessions,
     mode: mode, difficulty: (G.state && G.state.difficulty) || "normal",
     caretaker: {}, drawn: [], current: null,
@@ -629,7 +636,9 @@ G.reshuffle = function (keyA, keyB) {
 
 /* pick the next crisis (avoid repeating recent ones) */
 G.govDraw = function () {
-  var t = G.term, src = (t.kind === "opp") ? G.OPP_EVENTS : G.EVENTS;
+  var t = G.term;
+  var src = (t.kind === "opp") ? G.OPP_EVENTS
+          : (G.activeGovDeckEvents ? G.activeGovDeckEvents() : G.EVENTS);
   var pool = src.filter(function (e) { return t.drawn.indexOf(e.id) === -1; });
   if (!pool.length) { t.drawn = []; pool = src.slice(); }
   var e = pool[Math.floor(Math.random() * pool.length)];
@@ -922,7 +931,7 @@ G._byElection = function (log) {
 G._rebellion = function (log) {
   var t = G.term;
   var grip = (G.ministerStat("whip", "partyMgmt") + G.ministerStat("leader", "partyMgmt")) / 2;
-  var p = 0.35 + (grip - 50) / 100 * 0.8 + (t.seats - G.CONFIG.majority) / 400;
+  var p = 0.35 + (grip - 50) / 100 * 0.8 + (t.seats - (t.majority || G.CONFIG.majority)) / 400;
   p = Math.max(0.1, Math.min(0.9, p));
   if (Math.random() < p) {
     t.meters.unity = G._clampM(t.meters.unity + 6);
@@ -937,7 +946,7 @@ G._rebellion = function (log) {
 G._confidenceAtRisk = function () {
   var m = G.term.meters;
   if (m.approval < 26 && m.unity < 40) return true;
-  if (G.term.seats < G.CONFIG.majority && m.unity < 36) return true;
+  if (G.term.seats < (G.term.majority || G.CONFIG.majority) && m.unity < 36) return true;
   if (m.unity < 18) return true;
   return false;
 };
@@ -946,7 +955,7 @@ G._confidenceVote = function (log) {
   var t = G.term, m = t.meters;
   log.push({ text: "A motion of no confidence is tabled.", cls: "head" });
   var grip = (G.ministerStat("leader", "partyMgmt") + G.ministerStat("whip", "partyMgmt") + G.ministerStat("pm", "appeal")) / 3;
-  var p = 0.40 + (m.unity - 40) / 100 + (t.seats - G.CONFIG.majority) / 220
+  var p = 0.40 + (m.unity - 40) / 100 + (t.seats - (t.majority || G.CONFIG.majority)) / 220
             + (grip - 50) / 160 - G._diff().confidence;
   p = Math.max(0.05, Math.min(0.95, p));
   if (Math.random() < p) {
@@ -980,7 +989,7 @@ G.govVerdict = function () {
   var t = G.term;
   if (t.kind === "opp") return G.oppVerdict();
   var m = t.meters;
-  var seatScore = Math.max(0, Math.min(20, t.seats / G.CONFIG.totalSeats * 20));
+  var seatScore = Math.max(0, Math.min(20, t.seats / (t.totalSeats || G.CONFIG.totalSeats) * 20));
   var pledgeScore = 0;
   if (t.pledges) t.pledges.forEach(function (pl) {
     if (pl.status === "delivered") pledgeScore += 3;
