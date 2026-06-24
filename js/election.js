@@ -376,6 +376,10 @@ G.buildOppositionField = function (opts, rnd) {
    returns { seats, byRegion:[{id,name,total,won,winnable}],
              results:[{id,gss,name,region,won,winner}], breakdown, … }      */
 G.simulateCampaign = function (params) {
+  /* Route to active international electoral system if one is set */
+  var _sys = G.activeElectoralSystem && G.activeElectoralSystem();
+  if (_sys && _sys.simulate) return _sys.simulate(params, params.rnd || Math.random);
+
   var C = G.CONFIG, geo = G.buildGeo();
   var rnd = params.rnd || Math.random;
   var opposition = params.opposition || null;
@@ -432,6 +436,10 @@ G.simulateCampaign = function (params) {
 
 /* ---- fast seat-total estimate for one campaign (for the odds loop) ------- */
 G.estimateSeats = function (params) {
+  /* Route to active international electoral system if one is set */
+  var _sys2 = G.activeElectoralSystem && G.activeElectoralSystem();
+  if (_sys2 && _sys2.estimateFn) return _sys2.estimateFn(params, params.rnd || Math.random);
+
   var C = G.CONFIG;
   var rnd = params.rnd || Math.random;
   var pressure = params.opposition ? (params.opposition._pressure || 0) : 0;
@@ -622,23 +630,38 @@ G.runElection = function (cabinet, opts) {
 
   var expected = G.expectedSeats(params);
 
+  /* use system-specific thresholds for odds */
+  var _activeSys = G.activeElectoralSystem && G.activeElectoralSystem();
+  var _majority = (_activeSys && _activeSys.majority) || C.majority;
+  var _totalSeats = (_activeSys && _activeSys.totalSeats) || C.totalSeats;
+  var _landslide = Math.round(_totalSeats * (C.tierLandslide / (C.totalSeats || 650)));
+  var _super = Math.round(_totalSeats * (C.tierSuper / (C.totalSeats || 650)));
+
   /* odds distribution */
   var counts = { majority: 0, landslide: 0, supermajority: 0, sweep: 0 };
   var samples = [];
   for (var i = 0; i < C.trials; i++) {
     var s = G.estimateSeats(params);
     samples.push(s);
-    if (s >= C.majority)      counts.majority++;
-    if (s >= C.tierLandslide) counts.landslide++;
-    if (s >= C.tierSuper)     counts.supermajority++;
-    if (s >= C.totalSeats)    counts.sweep++;
+    if (s >= _majority)    counts.majority++;
+    if (s >= _landslide)   counts.landslide++;
+    if (s >= _super)       counts.supermajority++;
+    if (s >= _totalSeats)  counts.sweep++;
   }
   samples.sort(function (a, b) { return a - b; });
   var pct = function (p) { return samples[Math.min(samples.length - 1, Math.floor(p * samples.length))]; };
 
   /* the headline campaign that actually gets watched / shown */
   var campaign = G.simulateCampaign(params);
-  var tier = G.tierFor(campaign.seats, contestable);
+  /* use active system's tier function if available, else existing G.tierFor */
+  var tier;
+  if (_activeSys && _activeSys.tierLabel) {
+    var _tierLabel = _activeSys.tierLabel(campaign.seats, _totalSeats);
+    tier = { key: "govt", label: _tierLabel, govt: campaign.seats >= _majority,
+             role: campaign.seats >= _majority ? "majority" : "coalition" };
+  } else {
+    tier = G.tierFor(campaign.seats, contestable);
+  }
   var coalition = G.coalitionOptions(campaign.seats, campaign, align);
 
   /* where the player actually finished among the parties (v4). With a tiny

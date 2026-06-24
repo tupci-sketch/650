@@ -1102,3 +1102,74 @@ body::before {
 .min-trait  { display: inline-block; background: var(--line-soft); border-radius: 8px; padding: 1px 6px; font-size: 10px; margin: 2px 1px; color: var(--ink-soft); }
 .min-trait.rival  { background: var(--oxblood); color: #fff; }
 .min-trait.rising { background: var(--green); color: #fff; }
+
+/* ---- International / Scenario Picker Tabs ----------------------------- */
+.sc-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.sc-tab  { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+           padding: 5px 10px; border-radius: 3px; border: 1px solid var(--line); background: var(--paper);
+           cursor: pointer; transition: .15s; white-space: nowrap; }
+.sc-tab:hover  { border-color: var(--ink-soft); }
+.sc-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.sc-despot { display: block; font-size: 10px; color: var(--oxblood); margin-top: 4px; font-style: italic; }
+.scenario-cards { margin-top: 8px; }
+
+/* ---- International Result Styling ------------------------------------ */
+.intl-breakdown { margin: 12px 0; }
+.intl-breakdown .party-bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.intl-breakdown .pb-label { font-size: 12px; min-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.intl-breakdown .pb-bar  { flex: 1; height: 12px; border-radius: 2px; }
+.intl-breakdown .pb-count { font-size: 11px; font-family: var(--mono); min-width: 40px; text-align: right; }
+
+/* ---- Electoral College State Grid ------------------------------------ */
+.ec-state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin: 10px 0; }
+.ec-state { padding: 6px 8px; border-radius: 4px; font-size: 11px; }
+.ec-state.won  { background: rgba(47,93,58,.15); border: 1px solid var(--green); }
+.ec-state.lost { background: rgba(134,34,49,.10); border: 1px solid var(--oxblood); }
+.ec-state b { display: block; font-size: 13px; }
+.ec-state-ev { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+
+/* ---- Despot / Guided Democracy result -------------------------------- */
+.despot-result { text-align: center; padding: 20px; }
+.despot-pct    { font-size: 64px; font-weight: 900; color: var(--green); font-family: var(--serif); line-height: 1; }
+.despot-label  { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+.despot-warning{ display: inline-block; margin-top: 12px; padding: 6px 14px; background: rgba(134,34,49,.12);
+                 border: 1px solid var(--oxblood); border-radius: 4px; font-size: 12px; color: var(--oxblood); }
+
+/* ---- Button centering fix ------------------------------------------- */
+.btn-row   { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.menu-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+.wizard-btn-row { display: flex; gap: 10px; justify-content: space-between; margin-top: 20px; align-items: center; }
+
+/* ---- PR Coalition Display ------------------------------------------- */
+.coalition-bar { height: 20px; border-radius: 3px; overflow: hidden; display: flex; margin: 8px 0; }
+.coalition-seg { height: 100%; transition: width .3s; }
+.coalition-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; margin-top: 4px; }
+.coal-leg-item { display: flex; align-items: center; gap: 4px; }
+.coal-leg-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ---- International result map panels -------------------------------- */
+.ec-map-panel    { width: 100%; }
+.ec-summary      { text-align: center; padding: 8px; font-size: 16px; font-family: var(--mono); margin-top: 6px; }
+.ec-name         { display: block; font-size: 10px; color: inherit; opacity: .9; }
+.ec-ev           { font-size: 13px; font-weight: 700; font-family: var(--mono); }
+.pr-coalition-panel { width: 100%; }
+.pr-list         { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.pr-row          { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 3px 0; }
+.pr-row.you      { font-weight: 700; }
+.pr-sw           { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+.pr-name         { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-seats        { font-family: var(--mono); min-width: 36px; text-align: right; }
+.pr-pct          { font-family: var(--mono); min-width: 44px; text-align: right; color: var(--ink-soft); font-size: 11px; }
+.region-summary-panel { width: 100%; }
+
+/* ---- Despot banner -------------------------------------------------- */
+.despot-banner   { background: #5a1a1a !important; color: #f3e8c0 !important; }
+
+/* ---- Objective badges ----------------------------------------------- */
+.objective-badge { display: inline-block; padding: 4px 10px; margin: 4px;
+                   background: rgba(47,93,58,.12); border: 1px solid var(--green);
+                   border-radius: 12px; font-size: 12px; color: var(--green); }
+.objective-badge.new { background: var(--green); color: #fff; animation: badge-pop .4s ease; }
+@keyframes badge-pop { 0%{transform:scale(.8);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+.objectives-strip { padding: 12px 0; display: flex; flex-wrap: wrap; gap: 6px; }
