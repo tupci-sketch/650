@@ -1083,12 +1083,39 @@ body::before {
 .bloc-bad  { background: var(--oxblood, #862231); }
 .bloc-num  { font-size: 12px; min-width: 28px; text-align: right; color: var(--ink-soft); font-family: var(--mono, monospace); }
 
+/* ---- Country Picker (wizard step 1) -------------------------------- */
+.country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 8px 0; }
+.country-card {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 8px 12px; border: 2px solid var(--line); border-radius: 10px;
+  background: var(--paper-2); cursor: pointer; text-align: center;
+  transition: border-color .15s, background .15s, transform .12s ease;
+  color: var(--ink);
+}
+.country-card:hover { border-color: var(--brass); background: var(--paper-3); transform: translateY(-2px); }
+.country-card.sel   { border-color: var(--green); background: rgba(61,200,136,.08); box-shadow: 0 0 0 2px rgba(61,200,136,.15); }
+.cc-flag { font-size: 2em; line-height: 1.1; display: block; margin-bottom: 6px; }
+.cc-name { font-size: 12px; font-weight: 700; color: var(--ink); display: block; margin: 0 0 2px; line-height: 1.2; }
+.cc-note { font-size: 10px; color: var(--ink-soft); display: block; line-height: 1.3; }
+.country-group-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+                        color: var(--ink-soft); font-family: var(--mono, monospace); margin: 14px 0 6px; }
+.country-subsys { display: none; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.country-subsys.show { display: flex; }
+.subsys-btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line);
+              background: var(--paper-2); color: var(--ink); cursor: pointer; font-size: 13px;
+              transition: border-color .15s, background .15s; }
+.subsys-btn:hover { border-color: var(--brass); background: var(--paper-3); }
+.subsys-btn.sel  { border-color: var(--green); background: rgba(61,200,136,.08); }
+.subsys-btn small { color: var(--ink-soft); }
+
 /* ---- Scenario Cards ------------------------------------------------ */
-.scenario-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 8px; }
-.scenario-card  { padding: 12px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--paper); cursor: pointer; transition: border-color .15s, background .15s; }
-.scenario-card h4 { margin: 0 0 4px; font-size: 13px; }
+.scenario-cards { margin-top: 8px; }
+.sc-grid        { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.scenario-card  { padding: 12px 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--paper-2); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+.scenario-card h4 { margin: 0 0 4px; font-size: 13px; color: var(--ink); }
 .scenario-card p  { margin: 0 0 4px; font-size: 12px; color: var(--ink-soft); }
-.scenario-card.sel { border-color: var(--green); background: rgba(47,93,58,.07); }
+.scenario-card:hover { border-color: var(--brass); background: var(--paper-3); }
+.scenario-card.sel { border-color: var(--green); background: rgba(61,200,136,.08); }
 .sc-obj  { color: var(--green-deep, #244a2e) !important; font-size: 11px !important; }
 .sc-lock { display: block; font-size: 10px; color: var(--oxblood); margin-top: 4px; }
 
@@ -1128,15 +1155,7 @@ body::before {
 .min-trait.rising { background: var(--green); color: #fff; }
 
 /* ---- International / Scenario Picker Tabs ----------------------------- */
-.sc-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.sc-tab  { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
-           padding: 5px 10px; border-radius: 3px; border: 1px solid var(--line); background: var(--paper);
-           cursor: pointer; transition: .15s; white-space: nowrap; }
-.sc-tab:hover  { border-color: var(--ink-soft); }
-.sc-tab.active { background: var(--green); color: #fff; border-color: var(--green); }
-.sc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .sc-despot { display: block; font-size: 10px; color: var(--oxblood); margin-top: 4px; font-style: italic; }
-.scenario-cards { margin-top: 8px; }
 
 /* ---- International Result Styling ------------------------------------ */
 .intl-breakdown { margin: 12px 0; }
@@ -1381,4 +1400,179 @@ body::before {
 .country-hexsvg polygon[data-state="won"], .country-hexsvg polygon[data-state="lost"] { stroke: rgba(10,15,26,.6); }
 .country-hexsvg polygon:hover { stroke: var(--brass); stroke-width: 1.4; }
 @media (max-width: 560px){ .country-hexsvg { height: 52vh; } }
-@media (max-width: 560px){ .country-hexsvg { height: 52vh; } }
+
+/* =============================================================================
+   LIGHT THEME — opt-in via <html class="theme-light"> (toggle in the footer).
+   Everything is variable-driven, so re-pointing the tokens reskins the site.
+   ============================================================================= */
+html.theme-light {
+  --paper:      #f5edd9;
+  --paper-2:    #fbf6ea;
+  --paper-3:    #ece2c9;
+  --ink:        #241f17;
+  --ink-soft:   #6b6256;
+  --line:       #d8cdb0;
+  --line-soft:  #e7decd;
+  --green:      #2f6d44;
+  --green-deep: #234e30;
+  --oxblood:    #9a2334;
+  --oxblood-2:  #7a1c2a;
+  --brass:      #9a6f1e;
+  --brass-lite: #b3862f;
+  --gold-glow:  rgba(179,134,47,.16);
+  --teal:       #1f6f8b;
+  --shadow:     0 8px 24px -8px rgba(70,55,30,.18);
+  --shadow-lg:  0 18px 42px -16px rgba(70,55,30,.30);
+}
+html.theme-light body {
+  background-color: #ece2c9;
+  background-image:
+    radial-gradient(900px 450px at 75% -5%,  rgba(47,109,68,.06),  transparent 60%),
+    radial-gradient(700px 350px at -5% 105%, rgba(154,35,52,.05),  transparent 55%);
+}
+html.theme-light body::before { opacity: .06; }
+/* the masthead "650" reads dark→oxblood→brass on parchment */
+html.theme-light .title-650 {
+  background: linear-gradient(175deg, var(--ink) 0%, var(--oxblood) 58%, var(--brass) 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(154,35,52,.18));
+}
+/* glass fills that were white-tinted for dark look better as faint ink on light */
+html.theme-light .opt,
+html.theme-light .choice,
+html.theme-light .policy-opt { background: rgba(0,0,0,.025); }
+html.theme-light .opt:hover { background: rgba(0,0,0,.05); }
+html.theme-light .panel { background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,.2)); background-color: var(--paper-2); }
+html.theme-light .era-chip,
+html.theme-light .chip,
+html.theme-light .btn-ghost:hover { background: rgba(0,0,0,.03); }
+html.theme-light .lb-input,
+html.theme-light .lb-mini,
+html.theme-light .explore-search input,
+html.theme-light .adm-area { background: #fff; }
+html.theme-light .country-hexsvg polygon { stroke: rgba(60,50,30,.4); }
+html.theme-light .country-hexsvg polygon[data-state] { stroke: rgba(60,50,30,.5); }
+
+/* ---- the theme toggle control (footer) ---- */
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font-family: var(--mono, monospace); font-size: 13px;
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--paper-2); color: var(--ink);
+  transition: transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.theme-toggle:hover { background: var(--paper-3); border-color: var(--brass); transform: translateY(-1px); }
+
+/* =============================================================================
+   DARK THEME — Phase 7 fixes: wiki box, align chips, remaining hardcoded colours
+   ============================================================================= */
+
+/* ---- Wikipedia-style election record box -------------------------------- */
+.wiki-box { border-color: var(--line) !important; background: var(--paper-2) !important; color: var(--ink) !important; }
+.wiki-title { background: var(--paper-3) !important; color: var(--ink) !important; border-bottom-color: var(--line) !important; }
+.wiki-year { color: var(--ink-soft) !important; }
+.wiki-date { background: rgba(255,255,255,.04) !important; color: var(--ink-soft) !important; border-bottom-color: var(--line) !important; }
+.wiki-cols  { border-bottom-color: var(--line) !important; }
+.wiki-divider { background: var(--line) !important; }
+.wiki-col-head { background: var(--paper-3) !important; color: var(--ink) !important; border-bottom-color: var(--line) !important; }
+.wiki-portrait-init { background: var(--paper-3) !important; color: var(--ink-soft) !important; border-color: var(--line) !important; }
+.wiki-portrait { border-color: var(--line) !important; }
+.wiki-table tr:nth-child(even) { background: rgba(255,255,255,.04) !important; }
+.wt-label { color: var(--ink-soft) !important; }
+.wiki-national { border-bottom-color: var(--line) !important; }
+.wiki-nat-row:nth-child(even) { background: rgba(255,255,255,.03) !important; }
+.wiki-comp-head { color: var(--ink) !important; }
+.wiki-comp { border-bottom-color: var(--line) !important; }
+.wiki-results-head { color: var(--ink) !important; border-top-color: var(--line) !important; }
+.wiki-full-results { border-bottom-color: var(--line) !important; }
+.wiki-full-results th { background: var(--paper-3) !important; color: var(--ink-soft) !important; }
+.wiki-full-results td { border-bottom-color: var(--line) !important; }
+.wiki-full-results tr.wiki-you-row td { background: rgba(61,200,136,.07) !important; }
+.wiki-pm-label { color: var(--ink-soft) !important; }
+.wiki-pmrow { background: var(--paper-3) !important; border-top-color: var(--line) !important; }
+.wiki-pm-cell:first-child { border-right-color: var(--line) !important; }
+.wiki-hung-note { background: rgba(232,160,48,.08) !important; border-left-color: var(--brass) !important; color: var(--brass-lite) !important; }
+
+/* ---- Align chips in party setup ----------------------------------------- */
+.align-chip { color: var(--ink); }
+.align-chip.sel { background: var(--paper-3) !important; color: var(--green) !important; border-color: var(--green) !important; box-shadow: inset 0 0 0 1px var(--green) !important; }
+
+/* ---- Tier chips (deal cards) -------------------------------------------- */
+.tier-chip.t-a { color: var(--brass-lite) !important; background: rgba(232,160,48,.12) !important; border-color: rgba(232,160,48,.4) !important; }
+.dc-flag { color: var(--brass-lite) !important; background: rgba(232,160,48,.08) !important; border-color: rgba(232,160,48,.3) !important; }
+
+/* ---- Vote-share mini-bars (wiki / result) -------------------------------- */
+.share-bar-wrap  { background: rgba(255,255,255,.07); }
+.share-bar-label { color: var(--ink-soft); }
+.mini-bar-wrap   { background: rgba(255,255,255,.07); }
+
+/* ---- Session track dots (st-dot = the actual class used by ui.js) -------- */
+.st-dot.st-future { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); }
+
+/* ---- Grandees / stat boxes in deal cards --------------------------------- */
+.stat-row { color: var(--ink-soft); }
+.stat-key  { color: var(--ink-soft); }
+.stat-val  { color: var(--ink); }
+
+/* ---- Era chip in deal cards ---------------------------------------------- */
+.era-chip { background: var(--paper-3); border-color: var(--line); color: var(--ink-soft); }
+.era-chip.sel { background: var(--green-deep); border-color: var(--green); color: #fff; }
+.era-chip b { color: var(--ink); }
+
+/* ---- reshuffle panel min/trait tags --------------------------------------- */
+.min-name   { color: var(--ink); }
+.min-role   { color: var(--ink-soft); }
+.min-bar-bg { background: rgba(255,255,255,.08); }
+.min-bar-fill.good  { background: var(--green); }
+.min-bar-fill.ok    { background: var(--brass); }
+.min-bar-fill.poor  { background: var(--oxblood); }
+
+/* ---- Watch screen feed lines -------------------------------------------- */
+.feed-line  { color: var(--ink-soft); }
+.feed-line b { color: var(--ink); }
+.feed-line.win-line { color: var(--green); }
+.feed-line.lose-line { color: var(--oxblood); }
+
+/* ---- career parl strip items -------------------------------------------- */
+.cps-parl  { color: var(--brass-lite); }
+.cps-seats { color: var(--ink); }
+
+/* ---- Light-theme wiki overrides ------------------------------------------ */
+html.theme-light .wiki-box { border-color: #a2a9b1 !important; background: #f8f9fa !important; color: #202122 !important; }
+html.theme-light .wiki-title { background: #cee0f2 !important; color: #202122 !important; border-bottom-color: #a2a9b1 !important; }
+html.theme-light .wiki-date { background: #eaf3fb !important; color: #54595d !important; }
+html.theme-light .wiki-col-head { background: #cee0f2 !important; color: #202122 !important; }
+html.theme-light .wiki-portrait-init { background: #e8e8e8 !important; color: #54595d !important; }
+html.theme-light .wiki-pmrow { background: #cee0f2 !important; }
+html.theme-light .wiki-full-results th { background: #eaeff4 !important; color: #54595d !important; }
+html.theme-light .wt-label { color: #54595d !important; }
+html.theme-light .wiki-hung-note { background: #fef6e4 !important; border-left-color: #c8972a !important; color: #7a5d14 !important; }
+html.theme-light .align-chip.sel { background: #fff !important; color: var(--green) !important; }
+html.theme-light .tier-chip.t-a { color: #7a5d14 !important; background: rgba(176,141,47,.18) !important; }
+html.theme-light .country-card { background: rgba(255,255,255,.7); }
+html.theme-light .country-card:hover { background: rgba(255,255,255,.9); }
+html.theme-light .country-card.sel  { background: rgba(47,109,68,.07); }
+
+/* ---- Continue card (saved game restore) ---------------------------------- */
+.continue-card { border: 2px solid var(--green); border-radius: 10px; background: rgba(61,200,136,.06); padding: 14px 16px; margin: 8px 0 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.cont-body { flex: 1 1 auto; min-width: 0; }
+.cont-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--green); margin: 0 0 4px; font-family: var(--mono, monospace); }
+.cont-desc  { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 3px; }
+.cont-at    { font-size: 12px; color: var(--ink-soft); margin: 0; }
+.cont-btns  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.cont-dismiss { font-size: 12px; color: var(--ink-soft); background: none; border: none; cursor: pointer; padding: 4px 0; }
+.cont-dismiss:hover { color: var(--ink); }
+
+/* ---- Save badge (fixed bottom corner) ----------------------------------- */
+.save-badge { position: fixed; bottom: 66px; right: 14px; background: var(--green); color: #fff; font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; z-index: 300; pointer-events: none; letter-spacing: .03em; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+
+/* ---- Player run history (account screen) -------------------------------- */
+.runs-list  { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+.run-row    { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line); gap: 8px; }
+.run-seats  { font-size: 18px; font-weight: 800; color: var(--ink); font-family: var(--mono, monospace); }
+.run-meta   { font-size: 12px; color: var(--ink-soft); }
+.run-legacy { color: var(--brass-lite); }
+.run-right  { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.run-pct    { font-size: 14px; font-weight: 700; color: var(--green); font-family: var(--mono, monospace); }
+.run-tag    { font-size: 11px; color: var(--ink-soft); }
+.run-date   { font-size: 11px; color: var(--ink-soft); }

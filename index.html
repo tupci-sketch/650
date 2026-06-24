@@ -48,6 +48,10 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
+      <!-- Saved game continue card (hidden until signed in with a save) -->
+      <div class="continue-card" id="continueCard" style="display:none"></div>
+      <!-- Save indicator (fixed bottom-right) -->
+      <span class="save-badge" id="saveBadge" style="display:none">✓ Saved</span>
       <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, build your cabinet from across the sweep of history, then fight an election — seat by seat, under any of 13 electoral systems. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the house.</p>
 
       <!-- Wizard navigation header -->
@@ -60,13 +64,40 @@
           <span class="wp-dot" data-step="5"></span>
           <span class="wp-dot" data-step="6"></span>
           <span class="wp-dot" data-step="7"></span>
+          <span class="wp-dot" data-step="8"></span>
         </div>
-        <p class="wstep-title" id="wizardStepTitle">Choose your game</p>
+        <p class="wstep-title" id="wizardStepTitle">Choose your nation</p>
       </div>
 
-      <!-- Step 1: Game mode & party -->
+      <!-- Step 1: Nation picker -->
       <div class="wizard-step wactive" id="wstep-1">
-        <p class="section-label">1 · Choose your game</p>
+        <p class="section-label">1 · Choose your nation</p>
+        <p class="mini-help">Pick the country — this sets the parliament, the electoral system, and the seat count. Your cabinet is drawn from history across all nations.</p>
+        <p class="country-group-label">Democratic systems</p>
+        <div class="country-grid" id="countryGrid">
+          <button class="country-card sel" data-country="uk"><span class="cc-flag">🇬🇧</span><span class="cc-name">United Kingdom</span><span class="cc-note">650 seats · FPTP</span></button>
+          <button class="country-card" data-country="us"><span class="cc-flag">🇺🇸</span><span class="cc-name">United States</span><span class="cc-note">House or Electoral College</span></button>
+          <button class="country-card" data-country="de"><span class="cc-flag">🇩🇪</span><span class="cc-name">Germany</span><span class="cc-note">Bundestag or Weimar Republic</span></button>
+          <button class="country-card" data-country="fr"><span class="cc-flag">🇫🇷</span><span class="cc-name">France</span><span class="cc-note">577 seats · Two-Round</span></button>
+          <button class="country-card" data-country="au"><span class="cc-flag">🇦🇺</span><span class="cc-name">Australia</span><span class="cc-note">151 seats · Instant Runoff</span></button>
+          <button class="country-card" data-country="ca"><span class="cc-flag">🇨🇦</span><span class="cc-name">Canada</span><span class="cc-note">338 seats · FPTP</span></button>
+          <button class="country-card" data-country="jp"><span class="cc-flag">🇯🇵</span><span class="cc-name">Japan</span><span class="cc-note">465 seats · Mixed</span></button>
+          <button class="country-card" data-country="in"><span class="cc-flag">🇮🇳</span><span class="cc-name">India</span><span class="cc-note">543 seats · FPTP</span></button>
+        </div>
+        <p class="country-group-label">Guided &amp; historical</p>
+        <div class="country-grid">
+          <button class="country-card" data-country="cn"><span class="cc-flag">🇨🇳</span><span class="cc-name">China</span><span class="cc-note">2,980 seats · Guided</span></button>
+          <button class="country-card" data-country="kp"><span class="cc-flag">🇰🇵</span><span class="cc-name">North Korea</span><span class="cc-note">687 seats · Guided</span></button>
+          <button class="country-card" data-country="su"><span class="cc-flag">🚩</span><span class="cc-name">Soviet Union</span><span class="cc-note">1,143 seats · Guided</span></button>
+          <button class="country-card" data-country="cu"><span class="cc-flag">🇨🇺</span><span class="cc-name">Cuba</span><span class="cc-note">605 seats · Guided</span></button>
+        </div>
+        <!-- Sub-system picker (shown when USA or Germany is selected) -->
+        <div class="country-subsys" id="countrySubSys"></div>
+      </div>
+
+      <!-- Step 2: Game mode & party -->
+      <div class="wizard-step" id="wstep-2">
+        <p class="section-label">2 · Choose your game</p>
         <div class="choice-row quad" id="modeRow">
           <button class="opt sel" data-mode="unity">
             <h4>Greatest Cabinet</h4>
@@ -97,10 +128,10 @@
         <p class="wild-note" id="wildNote">Wildcard is satire — a rogues' gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.</p>
       </div>
 
-      <!-- Step 2: Eras & cast -->
-      <div class="wizard-step" id="wstep-2">
+      <!-- Step 3: Eras & cast -->
+      <div class="wizard-step" id="wstep-3">
         <div id="eraSection">
-          <p class="section-label">2 · Eras in play</p>
+          <p class="section-label">3 · Eras in play</p>
           <p class="mini-help">Tap to leave an era out of the draft.</p>
           <div class="era-toggles" id="eraToggles"></div>
         </div>
@@ -112,9 +143,9 @@
         </div>
       </div>
 
-      <!-- Step 3: Difficulty -->
-      <div class="wizard-step" id="wstep-3">
-        <p class="section-label">3 · Election difficulty</p>
+      <!-- Step 4: Difficulty -->
+      <div class="wizard-step" id="wstep-4">
+        <p class="section-label">4 · Election difficulty</p>
         <div class="choice-row" id="diffRow">
           <button class="opt" data-diff="easy"><h4>Easy</h4><p>Kinder swing. A majority comes more readily.</p></button>
           <button class="opt sel" data-diff="normal"><h4>Normal</h4><p>A fair fight on a realistic curve.</p></button>
@@ -122,9 +153,9 @@
         </div>
       </div>
 
-      <!-- Step 4: Draft rules -->
-      <div class="wizard-step" id="wstep-4">
-        <p class="section-label">4 · Draft information</p>
+      <!-- Step 5: Draft rules -->
+      <div class="wizard-step" id="wstep-5">
+        <p class="section-label">5 · Draft information</p>
         <div class="choice-row" id="hardRow">
           <button class="opt sel" data-hard="false"><h4>Classic</h4><p>Full ratings, fits and notes on the table.</p></button>
           <button class="opt" data-hard="true"><h4>By Reputation Alone</h4><p>Ratings hidden. Pick on memory and judgement.</p></button>
@@ -152,9 +183,9 @@
         </div>
       </div>
 
-      <!-- Step 5: After the election -->
-      <div class="wizard-step" id="wstep-5">
-        <p class="section-label">5 · After the cabinet</p>
+      <!-- Step 6: After the election -->
+      <div class="wizard-step" id="wstep-6">
+        <p class="section-label">6 · After the cabinet</p>
         <div class="choice-row" id="governRow">
           <button class="opt" data-govern="false"><h4>Just the election</h4><p>The seat result and the odds, then stop.</p></button>
           <button class="opt sel" data-govern="true"><h4>Win &amp; govern</h4><p>Then steer a full term in office through its crises.</p></button>
@@ -172,22 +203,22 @@
         </div>
       </div>
 
-      <!-- Step 6: Career mode + Scenarios -->
-      <div class="wizard-step" id="wstep-6">
-        <p class="section-label">6 · Run</p>
+      <!-- Step 7: Career mode + Scenarios (country-filtered) -->
+      <div class="wizard-step" id="wstep-7">
+        <p class="section-label">7 · Run</p>
         <div class="choice-row" id="careerRow">
           <button class="opt sel" data-career="false"><h4>Single election</h4><p>One cabinet, one election, one verdict. The classic.</p></button>
           <button class="opt" data-career="true"><h4>Career mode</h4><p>Your cabinet carries over between parliaments. Ministers retire. Governing choices shape the next election.</p></button>
         </div>
         <p id="careerNote" class="mini-help" style="display:none">Your cabinet carries over between parliaments. Ministers retire after 2–3 terms. Governing choices accumulate into a real vote swing going into the next election.</p>
-        <p class="sub-label" style="margin-top:20px">Scenario (optional)</p>
-        <p class="mini-help">Pick a historical or challenge start-state. Choosing a scenario may lock mode and difficulty.</p>
+        <p class="sub-label" style="margin-top:20px">Scenario <span id="scenarioCountryLabel"></span>(optional)</p>
+        <p class="mini-help">Pick a historical or challenge start-state for your chosen nation. Choosing a scenario may lock mode and difficulty.</p>
         <div class="scenario-cards" id="scenarioCards"></div>
       </div>
 
-      <!-- Step 7: Ready -->
-      <div class="wizard-step" id="wstep-7">
-        <p class="section-label">7 · Ready</p>
+      <!-- Step 8: Ready -->
+      <div class="wizard-step" id="wstep-8">
+        <p class="section-label">8 · Ready</p>
         <div class="ready-summary" id="readySummary"></div>
         <p class="setup-hint" id="setupHint"></p>
         <p class="elig-badge" id="lbEligBadge"></p>
@@ -622,6 +653,11 @@
         <button class="btn btn-primary" id="acctSubmit">Sign in</button>
         <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear.</p>
       </div>
+      <!-- Player's run history (shown when signed in) -->
+      <div class="panel" id="runsPanel" style="display:none">
+        <p class="sub-label">Your recent games <span class="board-note">last 25 runs</span></p>
+        <div id="runsList" class="runs-list"></div>
+      </div>
       <div class="btn-row"><button class="btn btn-ghost" id="acctBackBtn">Back to menu</button></div>
     </section>
 
@@ -722,6 +758,7 @@ note: One line on them (optional)"></textarea>
       <div class="foot-links">
         <a class="foot-link coffee" href="https://buymeacoffee.com/650game" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a>
         <a class="foot-link x" href="https://x.com/650game" target="_blank" rel="noopener noreferrer">𝕏 @650game</a>
+        <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle light/dark theme">☀ Light theme</button>
       </div>
       <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied by the same logic to every party and are not a judgement of any individual. Wildcard mode is satire, not endorsement. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
     </footer>
@@ -742,8 +779,10 @@ note: One line on them (optional)"></textarea>
   <script src="js/engine.js"></script>
   <script src="js/data.expansion2.js"></script>
   <script src="js/data.international.js"></script>
+  <script src="js/data.politicians2.js"></script>
   <script src="js/scenarios.js"></script>
   <script src="js/govern.js"></script>
+  <script src="js/govern.intl.js"></script>
   <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/country_maps.js"></script>

@@ -110,6 +110,7 @@ function doPost(e) {
       case "admin_streams":  return _adminStreams(d);
       case "admin_addpol":   return _adminAddPol(d);
       case "admin_delpol":   return _adminDelPol(d);
+      case "player_runs":    return _playerRuns(d);
       default:               return _json({ ok: false, error: "unknown kind" });
     }
   } catch (err) {
@@ -599,6 +600,33 @@ function _adminDelPol(d) {
   }
   return _json({ ok: false, error: "not found" });
 }
+/* ============================ player run history ========================== */
+function _playerRuns(d) {
+  var a = _auth(d); if (!a) return _json({ ok: false, error: "login" });
+  var rows = _rows("runs"), mine = [];
+  for (var i = rows.length - 1; i >= 0 && mine.length < 25; i--) {
+    if (_key(rows[i][1]) !== a.userKey) continue;
+    var totalSeats = Number(rows[i][16]) > 0 ? Number(rows[i][16]) : 650;
+    var seats = _clamp(rows[i][2], 0, MAX_SEATS);
+    mine.push({
+      ts:           rows[i][0],
+      seats:        seats,
+      legacy:       (rows[i][3] === "" || rows[i][3] == null) ? null : _clamp(rows[i][3], 0, 100),
+      govt:         rows[i][4] === true || rows[i][4] === "true",
+      mode:         _str(rows[i][5], 12),
+      difficulty:   _str(rows[i][6], 8),
+      cabinetSize:  _str(rows[i][7], 10),
+      kind:         _str(rows[i][8], 12),
+      partyName:    _str(rows[i][12] == null ? "" : rows[i][12], 28),
+      scenarioKey:  _str(rows[i][14] == null ? "" : rows[i][14], 40),
+      electoralSystem: _str(rows[i][15] == null ? "" : rows[i][15], 40),
+      totalSeats:   totalSeats,
+      pct:          totalSeats > 0 ? Math.round(seats / totalSeats * 1000) / 10 : 0
+    });
+  }
+  return _json({ ok: true, runs: mine });
+}
+
 function _roster() {
   return _rows("pols").map(function (r) {
     return {

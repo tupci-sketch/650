@@ -19,7 +19,7 @@
   function setLbBtns(disabled, label) { ["resultLbBtn", "legacyLbBtn"].forEach(function (id) { var b = sel(id); if (!b) return; b.disabled = !!disabled; if (label) b.textContent = label; }); }
 
   /* setup selections (defaults match the .sel buttons in the markup) */
-  var choice = { mode: "unity", lineage: null, eras: [], difficulty: "normal",
+  var choice = { country: "uk", mode: "unity", lineage: null, eras: [], difficulty: "normal",
                  hard: false, govern: true, watch: true, speed: "normal",
                  redos: 1, cabinetSize: "standard", policy: false, campaignOn: false,
                  casts: { insider: true, novelty: false },
@@ -30,18 +30,205 @@
   var watch = null;        // live-count animation state
   var currentVerdict = null; // last governing verdict (for sharing)
   var submitting = false;    // guard against double-submit while a post is in flight
+  var _saveTimer = null;     // debounce for cloud auto-save
+
+  /* ---- country data -------------------------------------------------------- */
+  var COUNTRIES = [
+    { key:"uk", flag:"🇬🇧", name:"United Kingdom",  defaultScenario:"freshstart",
+      subSystems: null },
+    { key:"us", flag:"🇺🇸", name:"United States",   defaultScenario:"usa_ec_2024",
+      subSystems:[
+        { label:"Presidential Electoral College", note:"538 electors", scenario:"usa_ec_2024"  },
+        { label:"House of Representatives",       note:"435 seats",    scenario:"usa_house_2024" }
+      ]},
+    { key:"de", flag:"🇩🇪", name:"Germany",         defaultScenario:"bundestag_2021",
+      subSystems:[
+        { label:"Modern Bundestag",  note:"736 seats", scenario:"bundestag_2021"   },
+        { label:"Weimar Republic",   note:"577 seats", scenario:"weimar_1932_jul"  }
+      ]},
+    { key:"fr", flag:"🇫🇷", name:"France",          defaultScenario:"france_2022",   subSystems:null },
+    { key:"au", flag:"🇦🇺", name:"Australia",       defaultScenario:"australia_2022",subSystems:null },
+    { key:"ca", flag:"🇨🇦", name:"Canada",          defaultScenario:"canada_2021",   subSystems:null },
+    { key:"jp", flag:"🇯🇵", name:"Japan",           defaultScenario:"japan_2021",    subSystems:null },
+    { key:"in", flag:"🇮🇳", name:"India",           defaultScenario:"india_2024",    subSystems:null },
+    { key:"cn", flag:"🇨🇳", name:"China",           defaultScenario:"china",         subSystems:null },
+    { key:"kp", flag:"🇰🇵", name:"North Korea",     defaultScenario:"north_korea",   subSystems:null },
+    { key:"su", flag:"🚩",  name:"Soviet Union",    defaultScenario:"soviet_1937",   subSystems:null },
+    { key:"cu", flag:"🇨🇺", name:"Cuba",            defaultScenario:"cuba",          subSystems:null }
+  ];
+
+  function applyCountryChoice(countryKey) {
+    choice.country = countryKey;
+    var def = COUNTRIES.filter(function (c) { return c.key === countryKey; })[0];
+    if (!def) return;
+    /* set default scenario for the country — scenarios step can refine it */
+    choice.scenarioKey = def.defaultScenario;
+    /* show sub-system picker if this country has multiple systems */
+    var sub = sel("countrySubSys");
+    if (sub) {
+      if (def.subSystems && def.subSystems.length) {
+        sub.innerHTML = def.subSystems.map(function (s, i) {
+          var sel2 = (i === 0) ? " sel" : "";
+          return '<button class="subsys-btn' + sel2 + '" data-sub-scenario="' + s.scenario + '">' +
+                 s.label + ' <small>(' + s.note + ')</small></button>';
+        }).join("");
+        sub.classList.add("show");
+        /* wire sub-system clicks */
+        each(sub.querySelectorAll(".subsys-btn"), function (btn) {
+          btn.onclick = function () {
+            choice.scenarioKey = btn.getAttribute("data-sub-scenario");
+            each(sub.querySelectorAll(".subsys-btn"), function (b) { b.classList.toggle("sel", b === btn); });
+          };
+        });
+      } else {
+        sub.innerHTML = "";
+        sub.classList.remove("show");
+      }
+    }
+    /* update scenario picker filter label */
+    var lbl = sel("scenarioCountryLabel");
+    var cf = def.flag + " " + def.name + " ";
+    if (lbl) lbl.textContent = "— " + cf;
+    /* re-render scenario picker filtered to this country */
+    if (G.UI && G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey, countryKey);
+  }
 
   /* ---- setup wizard -------------------------------------------------------- */
   var wizardStep = 1;
-  var WSTEP_TITLES = ["Choose your game", "Who's in the pool", "Election difficulty",
-                      "Draft rules", "After the election", "Career mode", "Ready to play"];
+  var WSTEP_TITLES = ["Choose your nation", "Choose your game", "Who's in the pool",
+                      "Election difficulty", "Draft rules", "After the election",
+                      "Career mode", "Ready to play"];
+  /* ---- cloud save / restore ------------------------------------------------ */
+  function buildSaveSnapshot(screenTag) {
+    if (!G.state) return null;
+    var cab = {};
+    Object.keys(G.state.cabinet || {}).forEach(function (k) {
+      var p = G.state.cabinet[k]; if (p) cab[k] = p.name;
+    });
+    return {
+      version: 1, ts: Date.now(), screen: screenTag || "draft",
+      career: G.career ? JSON.parse(JSON.stringify(G.career)) : null,
+      state: {
+        mode: G.state.mode, lineage: G.state.lineage || null,
+        eras: (G.state.eras || []).slice(), difficulty: G.state.difficulty,
+        govern: G.state.govern, watch: G.state.watch,
+        cabinetSize: G.state.cabinetSize,
+        custom: G.state.custom ? JSON.parse(JSON.stringify(G.state.custom)) : null,
+        alignValue: G.state.alignValue,
+        casts: JSON.parse(JSON.stringify(G.state.casts || { insider: true, novelty: false })),
+        policyOn: G.state.policyOn, campaignOn: G.state.campaignOn,
+        scenarioKey: G.state.scenarioKey || null,
+        gameYear: G.state.gameYear || 2026,
+        policy: G.state.policy ? JSON.parse(JSON.stringify(G.state.policy)) : null,
+        campaignOutputs: G.state.campaignOutputs ? JSON.parse(JSON.stringify(G.state.campaignOutputs)) : null,
+        cabinetNames: cab
+      }
+    };
+  }
+
+  function autoSave(screenTag) {
+    if (!G.NET || !G.NET.me || !G.state) return;
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    _saveTimer = setTimeout(function () {
+      _saveTimer = null;
+      var snap = buildSaveSnapshot(screenTag);
+      if (!snap) return;
+      G.NET.saveGame(snap);
+      var b = sel("saveBadge");
+      if (b) { b.style.display = ""; setTimeout(function () { b.style.display = "none"; }, 2500); }
+    }, 800);
+  }
+
+  function tryRestoreGame(snap) {
+    if (!snap || !snap.state) return;
+    var card = sel("continueCard"); if (!card) return;
+    var car = snap.career, st = snap.state;
+    var info = [];
+    if (car && car.parliament > 1) info.push("Parliament " + car.parliament);
+    var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
+    info.push(modeMap[st.mode] || st.mode);
+    info.push(((st.difficulty || "normal").charAt(0).toUpperCase() + (st.difficulty || "normal").slice(1)));
+    if (st.scenarioKey && st.scenarioKey !== "freshstart") {
+      var sc = G.SCENARIOS && G.SCENARIOS.filter(function (s) { return s.key === st.scenarioKey; })[0];
+      info.push(sc ? sc.name : st.scenarioKey.replace(/_/g, " "));
+    }
+    var ago = "";
+    if (snap.ts) {
+      var diff = Math.floor((Date.now() - snap.ts) / 60000);
+      if (diff < 2) ago = "just now";
+      else if (diff < 60) ago = diff + "m ago";
+      else if (diff < 1440) ago = Math.floor(diff / 60) + "h ago";
+      else ago = Math.floor(diff / 1440) + "d ago";
+    }
+    var screenMap = { result: "Election result", govern: "After governing", draft: "Mid-draft", retirement: "Between parliaments" };
+    var atLabel = (screenMap[snap.screen] || "Saved game") + (ago ? " · " + ago : "");
+    var numMins = Object.keys(st.cabinetNames || {}).length;
+    if (numMins) atLabel += " · " + numMins + " ministers";
+    card.innerHTML =
+      '<div class="cont-body">' +
+        '<p class="cont-label">Continue where you left off</p>' +
+        '<p class="cont-desc">' + G.UI._esc(info.join(" · ")) + '</p>' +
+        '<p class="cont-at">' + G.UI._esc(atLabel) + '</p>' +
+      '</div>' +
+      '<div class="cont-btns">' +
+        '<button class="btn btn-primary" id="continueBtn">Continue →</button>' +
+        '<button class="link-btn cont-dismiss" id="continueDismiss">Dismiss</button>' +
+      '</div>';
+    card.style.display = "";
+    var btn = sel("continueBtn");
+    if (btn) btn.onclick = function () { card.style.display = "none"; restoreFromSave(snap); };
+    var dis = sel("continueDismiss");
+    if (dis) dis.onclick = function () { card.style.display = "none"; if (G.NET && G.NET.me) G.NET.clearGame(); };
+  }
+
+  function restoreFromSave(snap) {
+    if (!snap || !snap.state) return;
+    var st = snap.state;
+    if (snap.career) G.career = snap.career;
+    /* rebuild carryOver from saved cabinet names */
+    var carryOver = {};
+    Object.keys(st.cabinetNames || {}).forEach(function (pKey) {
+      var name = st.cabinetNames[pKey];
+      var pol = G.POLITICIANS ? G.POLITICIANS.filter(function (p) { return p.name === name; })[0] : null;
+      if (pol) carryOver[pKey] = pol;
+    });
+    G.newGame({
+      mode: st.mode, lineage: st.lineage || null, eras: st.eras || [],
+      difficulty: st.difficulty || "normal", govern: st.govern !== false,
+      watch: st.watch !== false, cabinetSize: st.cabinetSize || "standard",
+      custom: st.custom || null, casts: st.casts || { insider: true, novelty: false },
+      policyOn: st.policyOn || false, campaignOn: st.campaignOn || false,
+      scenarioKey: st.scenarioKey || null, gameYear: st.gameYear || 2026,
+      carryOver: carryOver
+    });
+    if (st.scenarioKey && G.applyScenario) {
+      G.applyScenario(st.scenarioKey);
+      G.state.gameYear = st.gameYear || 2026;
+    }
+    /* fill any cabinet slots not covered by carryOver */
+    Object.keys(st.cabinetNames || {}).forEach(function (pKey) {
+      if (!G.state.cabinet[pKey]) {
+        var name = st.cabinetNames[pKey];
+        var pol = G.POLITICIANS ? G.POLITICIANS.filter(function (p) { return p.name === name; })[0] : null;
+        if (pol) { G.state.cabinet[pKey] = pol; G.state.draftedNames[pol.name] = pKey; }
+      }
+    });
+    if (st.policy) G.state.policy = st.policy;
+    if (st.campaignOutputs) G.state.campaignOutputs = st.campaignOutputs;
+    G.UI.show("screen-draft");
+    G.UI.renderDraft();
+  }
+
   function updateReadySummary() {
     var el = sel("readySummary"); if (!el) return;
+    var countryDef = COUNTRIES.filter(function (c) { return c.key === choice.country; })[0];
+    var countryStr = countryDef ? countryDef.flag + " " + countryDef.name : "United Kingdom";
     var modeLabels = {
       unity: "Greatest Cabinet", wildcard: "Wildcard", parl2024: "2024 Parliament",
       dynasty: "Single-Party Dynasty" + (choice.lineage ? " · " + choice.lineage : "")
     };
     var lines = [
+      "<b>Nation:</b> " + countryStr,
       "<b>Game:</b> " + (modeLabels[choice.mode] || choice.mode),
       "<b>Difficulty:</b> " + choice.difficulty.charAt(0).toUpperCase() + choice.difficulty.slice(1),
       "<b>Cabinet:</b> " + (choice.cabinetSize === "expanded" ? "Expanded (16)" : "Standard (12)") + (choice.policy ? " · policy phase on" : ""),
@@ -53,7 +240,7 @@
   function goWizardStep(n) {
     var prevEl = sel("wstep-" + wizardStep);
     if (prevEl) prevEl.classList.remove("wactive");
-    wizardStep = Math.max(1, Math.min(7, n));
+    wizardStep = Math.max(1, Math.min(8, n));
     var nextEl = sel("wstep-" + wizardStep);
     if (nextEl) nextEl.classList.add("wactive");
     each(document.querySelectorAll(".wp-dot"), function (dot) {
@@ -65,8 +252,8 @@
     if (titleEl) titleEl.textContent = WSTEP_TITLES[wizardStep - 1] || "";
     var backBtn = sel("wstepBackBtn"), nextBtn = sel("wstepNextBtn");
     if (backBtn) backBtn.style.visibility = wizardStep === 1 ? "hidden" : "";
-    if (nextBtn) { nextBtn.style.display = wizardStep === 7 ? "none" : ""; nextBtn.textContent = "Continue →"; }
-    if (wizardStep === 7) { updateReadySummary(); updateHint(); }
+    if (nextBtn) { nextBtn.style.display = wizardStep === 8 ? "none" : ""; nextBtn.textContent = "Continue →"; }
+    if (wizardStep === 8) { updateReadySummary(); updateHint(); }
     var top = sel("screen-menu"); if (top) top.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -105,10 +292,37 @@
     updateEligibility();
     updateEraVisibility();
     if (G.NET) {
-      G.NET.onAuth = function (me) { G.UI.applyAuth(me); updateLbWho(); };
+      G.NET.onAuth = function (me) {
+        G.UI.applyAuth(me); updateLbWho();
+        if (me) {
+          if (G.NET.prefs && G.NET.prefs.savedGame) tryRestoreGame(G.NET.prefs.savedGame);
+          /* load run history for the account screen */
+          if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+            var rp = sel("runsPanel"); if (!rp) return;
+            if (d && d.ok && d.runs && d.runs.length) {
+              if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(d.runs);
+              rp.style.display = "";
+            } else rp.style.display = "none";
+          });
+        } else {
+          var card = sel("continueCard"); if (card) card.style.display = "none";
+          var rp2 = sel("runsPanel"); if (rp2) rp2.style.display = "none";
+        }
+      };
       G.NET.resume();
       G.NET.loadConfig().then(function (cfg) { G.UI.renderBanner(cfg); });
       G.NET.loadRoster();
+    }
+    /* theme toggle */
+    var themeBtn = sel("themeToggleBtn");
+    if (themeBtn) {
+      var lightStored = localStorage.getItem("650_theme") === "light";
+      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.textContent = "🌙 Dark theme"; }
+      themeBtn.onclick = function () {
+        var isLight = document.documentElement.classList.toggle("theme-light");
+        themeBtn.textContent = isLight ? "🌙 Dark theme" : "☀ Light theme";
+        localStorage.setItem("650_theme", isLight ? "light" : "dark");
+      };
     }
     G.UI.show("screen-menu");
   }
@@ -256,8 +470,22 @@
       var n = sel("careerNote"); if (n) n.style.display = choice.careerMode ? "" : "none";
     });
 
+    /* country picker (step 1) */
+    var cgrid = sel("countryGrid");
+    if (cgrid) {
+      each(document.querySelectorAll("[data-country]"), function (btn) {
+        btn.onclick = function () {
+          each(document.querySelectorAll("[data-country]"), function (b) { b.classList.remove("sel"); });
+          btn.classList.add("sel");
+          applyCountryChoice(btn.getAttribute("data-country"));
+        };
+      });
+    }
+    /* initialise with default country (UK) */
+    applyCountryChoice(choice.country);
+
     /* scenario picker */
-    if (G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey);
+    if (G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey, choice.country);
     var scCards = sel("scenarioCards");
     if (scCards) {
       scCards.addEventListener("click", function (e) {
@@ -302,7 +530,8 @@
           lineage:     choice.mode === "dynasty" ? choice.lineage : null,
           difficulty:  choice.difficulty,
           cabinetSize: choice.cabinetSize,
-          eras:        choice.eras.slice()
+          eras:        choice.eras.slice(),
+          scenarioKey: choice.scenarioKey || null
         });
       } else {
         G.career = null;
@@ -457,6 +686,7 @@
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
+    autoSave("result");
     /* check objectives and achievements */
     if (G.checkObjectives && G.unlockAchievements) {
       var ctx = {
@@ -474,6 +704,15 @@
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
+  /* career "continue" button label, by the chamber you actually govern */
+  function careerNextLabel() {
+    var key = G.state && G.state._electoralSystemKey;
+    if (!key || key === "fptp_uk") return "→ Next Parliament";
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[key];
+    if (sys && (sys.despotMode || sys.coalitionStyle === "guided")) return "→ Next Term in Power";
+    return "→ Next Election";
+  }
+
   /* declaration bounds over the per-seat results list. UK uses the 650-seat
      constituency layout; international systems declare in region order, sized
      by each region's seat count. */
@@ -1041,7 +1280,7 @@
       }
     }
     if (G.career && G.career.active) {
-      var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = "→ Next Parliament";
+      var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = careerNextLabel();
       /* show career parliament history strip on the legacy screen */
       if (G.UI.renderCareerParlStrip) G.UI.renderCareerParlStrip("legacyCareerStrip", G.career);
     }
@@ -1049,6 +1288,7 @@
        filled in \u2014 the personal board (and the signed-in run history) update
        the existing record in place rather than adding a second row. */
     try { if (G.LB && G.LB.recordLocalRun && lastResult) G.LB.recordLocalRun(currentEntry()); } catch (e) {}
+    autoSave("govern");
   }
 
   /* ----------------------------------------- career retirement screen ----- */
@@ -1096,8 +1336,15 @@
         cabinetSize: G.career.cabinetSize || "standard",
         carryOver: carryOver,
         custom: G.state ? G.state.custom : null,
-        gameYear: nextYear
+        gameYear: nextYear,
+        scenarioKey: G.career.scenarioKey || null
       });
+      /* keep the same country / electoral system across the whole career; the
+         scenario sets its own year, so restore the advanced career year after. */
+      if (G.career.scenarioKey && G.applyScenario) {
+        G.applyScenario(G.career.scenarioKey);
+        G.state.gameYear = nextYear;
+      }
       G.UI.show("screen-draft");
       G.UI.renderDraft();
     };
@@ -1107,7 +1354,7 @@
   function wireLegacyCareer() {
     var legEl = sel("legacyAgainBtn"); if (!legEl) return;
     var origOnclick = legEl.onclick;
-    if (G.career && G.career.active) legEl.textContent = "→ Next Parliament";
+    if (G.career && G.career.active) legEl.textContent = careerNextLabel();
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */

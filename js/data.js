@@ -137,16 +137,95 @@ G.PORTFOLIOS_EXTRA = [
   { key: "environment", name: "Environment Secretary",       w: { appeal: .20, oratory: .15, statecraft: .35, experience: .30, partyMgmt: 0 } },
   { key: "culture",     name: "Culture Secretary",           w: { appeal: .30, oratory: .25, statecraft: .20, experience: .25, partyMgmt: 0 } }
 ];
+/* Country-specific office names. The portfolio KEYS and stat weights never
+   change (so the draft, cabinet strength and every governing gamble keep
+   working) — only the displayed titles swap to fit the country you govern.
+   Keyed by governing deck (see G.govDeckFor). */
+G.PORTFOLIO_TITLES = {
+  usa: { pm:"President", chancellor:"Treasury Secretary", foreign:"Secretary of State",
+    home:"Homeland Security Secretary", deputy:"Vice President", defence:"Defense Secretary",
+    health:"Health & Human Services Secretary", education:"Education Secretary",
+    justice:"Attorney General", business:"Commerce Secretary", whip:"Senate Majority Leader",
+    leader:"Speaker of the House", work:"Labor Secretary", transport:"Transportation Secretary",
+    environment:"EPA Administrator", culture:"Interior Secretary" },
+  weimar: { pm:"Reich Chancellor", chancellor:"Reich Finance Minister", foreign:"Foreign Minister",
+    home:"Interior Minister", deputy:"Vice-Chancellor", defence:"Reichswehr Minister",
+    health:"Health Minister", education:"Education Minister", justice:"Justice Minister",
+    business:"Economics Minister", whip:"Reichstag Floor Leader", leader:"President of the Reichstag",
+    work:"Labour & Welfare Minister", transport:"Transport Minister", environment:"Agriculture Minister",
+    culture:"Minister of Culture" },
+  germany: { pm:"Federal Chancellor", chancellor:"Finance Minister", foreign:"Foreign Minister",
+    home:"Interior Minister", deputy:"Vice-Chancellor", defence:"Defence Minister",
+    health:"Health Minister", education:"Education & Research Minister", justice:"Justice Minister",
+    business:"Economic Affairs Minister", whip:"Bundestag Whip", leader:"President of the Bundestag",
+    work:"Labour & Social Affairs Minister", transport:"Transport Minister", environment:"Environment Minister",
+    culture:"Culture Minister" },
+  france: { pm:"President of the Republic", chancellor:"Finance Minister",
+    foreign:"Minister for Europe & Foreign Affairs", home:"Interior Minister", deputy:"Prime Minister",
+    defence:"Armed Forces Minister", health:"Health Minister", education:"Education Minister",
+    justice:"Keeper of the Seals", business:"Economy Minister", whip:"Assembly Floor Leader",
+    leader:"President of the National Assembly", work:"Labour Minister", transport:"Transport Minister",
+    environment:"Ecological Transition Minister", culture:"Culture Minister" },
+  australia: { pm:"Prime Minister", chancellor:"Treasurer", foreign:"Foreign Minister",
+    home:"Home Affairs Minister", deputy:"Deputy Prime Minister", defence:"Defence Minister",
+    health:"Health Minister", education:"Education Minister", justice:"Attorney-General",
+    business:"Industry & Trade Minister", whip:"Chief Government Whip", leader:"Leader of the House",
+    work:"Social Services Minister", transport:"Infrastructure Minister", environment:"Climate & Energy Minister",
+    culture:"Arts Minister" },
+  canada: { pm:"Prime Minister", chancellor:"Minister of Finance", foreign:"Minister of Foreign Affairs",
+    home:"Public Safety Minister", deputy:"Deputy Prime Minister", defence:"National Defence Minister",
+    health:"Health Minister", education:"Families & Children Minister", justice:"Minister of Justice",
+    business:"Industry Minister", whip:"Government Whip", leader:"Government House Leader",
+    work:"Employment Minister", transport:"Transport Minister", environment:"Environment & Climate Minister",
+    culture:"Canadian Heritage Minister" },
+  india: { pm:"Prime Minister", chancellor:"Finance Minister", foreign:"External Affairs Minister",
+    home:"Home Minister", deputy:"Deputy Prime Minister", defence:"Defence Minister",
+    health:"Health Minister", education:"Education Minister", justice:"Law & Justice Minister",
+    business:"Commerce & Industry Minister", whip:"Chief Whip (Lok Sabha)", leader:"Leader of the Lok Sabha",
+    work:"Labour Minister", transport:"Railways Minister", environment:"Environment Minister",
+    culture:"Culture Minister" },
+  japan: { pm:"Prime Minister", chancellor:"Finance Minister", foreign:"Foreign Minister",
+    home:"Internal Affairs Minister", deputy:"Chief Cabinet Secretary", defence:"Defense Minister",
+    health:"Health & Welfare Minister", education:"Education Minister", justice:"Justice Minister",
+    business:"METI Minister", whip:"Diet Affairs Chief", leader:"LDP Secretary-General",
+    work:"Labour Minister", transport:"Land & Transport Minister", environment:"Environment Minister",
+    culture:"Culture Minister" },
+  authoritarian: { pm:"Supreme Leader", chancellor:"Minister of the Plan", foreign:"Foreign Minister",
+    home:"Minister of State Security", deputy:"Deputy Premier", defence:"Minister of Defence",
+    health:"Minister of Public Health", education:"Minister of Propaganda & Education",
+    justice:"Procurator-General", business:"Minister of Heavy Industry", whip:"Politburo Enforcer",
+    leader:"Party General Secretary", work:"Minister of Labour", transport:"Minister of Railways",
+    environment:"Minister of Agriculture", culture:"Minister of Culture & Propaganda" }
+};
+
+/* the title overrides for the country currently in play (or null for the UK) */
+G._activePortfolioTitles = function () {
+  var key = G.state && G.state._electoralSystemKey;
+  var deck = (G.govDeckFor ? G.govDeckFor(key) : null);
+  return (deck && G.PORTFOLIO_TITLES[deck]) ? G.PORTFOLIO_TITLES[deck] : null;
+};
+
+/* clone a portfolio, applying the active country's title (keys/weights intact) */
+G._titledPortfolio = function (p, titles) {
+  return { key: p.key, name: (titles && titles[p.key]) || p.name, w: p.w };
+};
+
+G.setCabinetSize = function (size) {
+  var titles = G._activePortfolioTitles();
+  var base = (size === "expanded")
+    ? G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA)
+    : G.PORTFOLIOS_BASE.slice();
+  G.PORTFOLIOS = base.map(function (p) { return G._titledPortfolio(p, titles); });
+  G.PORTFOLIO_BY_KEY = Object.fromEntries(
+    G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA)
+      .map(function (p) { return [p.key, G._titledPortfolio(p, titles)]; })
+  );
+  return G.PORTFOLIOS;
+};
 G.PORTFOLIOS = G.PORTFOLIOS_BASE.slice();
 G.PORTFOLIO_BY_KEY = Object.fromEntries(
   G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA).map(function (p) { return [p.key, p]; })
 );
-G.setCabinetSize = function (size) {
-  G.PORTFOLIOS = (size === "expanded")
-    ? G.PORTFOLIOS_BASE.concat(G.PORTFOLIOS_EXTRA)
-    : G.PORTFOLIOS_BASE.slice();
-  return G.PORTFOLIOS;
-};
 
 /* ----------------------------------------------------------- POLITICIANS -- */
 function P(name, party, era, fits, s, note, scope) {

@@ -522,6 +522,9 @@ G.UI.renderGovern = function () {
     : (t.mode === "dynasty" ? (G.state.lineage + " government") : t.mode === "wildcard" ? "Wildcard government" : "Cabinet of all the talents");
   if (t.coalition) modeLabel += " · coalition";
   else if (t.minority) modeLabel += " · minority";
+  /* country context when governing abroad */
+  var govSys = (t.systemKey && t.systemKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[t.systemKey] : null;
+  if (govSys) modeLabel = (govSys.flag ? govSys.flag + " " : "") + govSys.country + " · " + modeLabel;
   $("govModeTag").textContent = modeLabel + " · " + (t.difficulty || "normal");
   G.UI._meterLabel("meterApproval", opp ? "Public support" : "Approval");
   G.UI._meterLabel("meterEconomy", opp ? "Momentum" : "Economy");
@@ -1522,6 +1525,27 @@ G.UI.renderLeaderboard = function (top, communal, error) {
     if (cs) cs.disabled = !me;
   };
 
+  G.UI.renderPlayerRuns = function (runs) {
+    var el = $("runsList"); if (!el) return;
+    if (!runs || !runs.length) { el.innerHTML = '<p class="mini-help">No runs recorded yet.</p>'; return; }
+    var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
+    el.innerHTML = runs.map(function (r) {
+      var date = ""; try { date = new Date(r.ts).toLocaleDateString([], { month: "short", day: "numeric" }); } catch (e) {}
+      var mode = modeMap[r.mode] || r.mode || "";
+      var diff = r.difficulty ? (r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)) : "";
+      var sc = "";
+      if (r.scenarioKey && r.scenarioKey !== "freshstart") sc = " · " + r.scenarioKey.replace(/_/g, " ");
+      var legStr = (r.legacy != null) ? (' · <span class="run-legacy">Legacy ' + r.legacy + '</span>') : "";
+      return '<div class="run-row">' +
+        '<div><span class="run-seats">' + r.seats + '</span>' +
+        '<span class="run-meta"> / ' + r.totalSeats + ' seats' + (r.govt ? ' · governed' : '') + legStr + '</span></div>' +
+        '<div class="run-right"><span class="run-pct">' + r.pct + '%</span>' +
+        '<span class="run-meta run-tag">' + esc(mode) + (diff ? ' · ' + esc(diff) : '') + esc(sc) + '</span>' +
+        '<span class="run-date">' + esc(date) + '</span></div>' +
+        '</div>';
+    }).join("");
+  };
+
   G.UI.renderBanner = function (config) {
     var b = $("liveBanner"); if (!b) return;
     var on = config && config.banner && config.banner.active && config.banner.text;
@@ -2073,36 +2097,16 @@ G.UI.renderCampaign = function () {
 /* =========================================================== SCENARIO PICKER
    G.UI.renderScenarioPicker(chosen) — builds the scenario cards in the wizard.
    Groups scenarios by country and adds a country filter tab bar.            */
-G.UI.renderScenarioPicker = function (chosen) {
+G.UI.renderScenarioPicker = function (chosen, countryFilter) {
   var el = $("scenarioCards"); if (!el || !G.SCENARIOS) return;
 
-  /* build country group map */
-  var groups = {};
-  var groupOrder = [];
-  var groupLabel = {
-    uk: "🇬🇧 United Kingdom", us: "🇺🇸 United States", de: "🇩🇪 Germany",
-    fr: "🇫🇷 France", au: "🇦🇺 Australia", ca: "🇨🇦 Canada",
-    jp: "🇯🇵 Japan", "in": "🇮🇳 India",
-    kp: "🇰🇵 North Korea", su: "🇷🇺 Soviet Union", cu: "🇨🇺 Cuba", cn: "🇨🇳 China"
-  };
+  /* when a country filter is provided (new nation-first flow),
+     show only that country's scenarios — no tab bar needed */
+  var filterKey = countryFilter || el.getAttribute("data-group") || "uk";
 
-  G.SCENARIOS.forEach(function (s) {
-    var c = s.country || "uk";
-    if (!groups[c]) { groups[c] = []; groupOrder.push(c); }
-    groups[c].push(s);
-  });
+  var scenarios = G.SCENARIOS.filter(function (s) { return (s.country || "uk") === filterKey; });
 
-  var activeGroup = el.getAttribute("data-group") || "uk";
-  if (!groups[activeGroup]) activeGroup = groupOrder[0];
-
-  /* render filter tabs */
-  var tabs = groupOrder.map(function (c) {
-    return '<button class="sc-tab' + (c === activeGroup ? " active" : "") + '" data-group="' + c + '">' +
-      (groupLabel[c] || c.toUpperCase()) + '</button>';
-  }).join("");
-
-  /* render cards for active group */
-  var cards = (groups[activeGroup] || []).map(function (s) {
+  var cards = scenarios.map(function (s) {
     var isSel = chosen === s.key || (!chosen && s.key === "freshstart");
     var lockInfo = "";
     if (s.mode || s.difficulty) {
@@ -2120,13 +2124,6 @@ G.UI.renderScenarioPicker = function (chosen) {
       '</div>';
   }).join("");
 
-  el.innerHTML = '<div class="sc-tabs">' + tabs + '</div><div class="sc-grid">' + cards + '</div>';
-
-  /* wire tab clicks — re-render keeping chosen */
-  el.querySelectorAll(".sc-tab").forEach(function (btn) {
-    btn.onclick = function () {
-      el.setAttribute("data-group", btn.getAttribute("data-group"));
-      G.UI.renderScenarioPicker(chosen);
-    };
-  });
+  el.setAttribute("data-group", filterKey);
+  el.innerHTML = '<div class="sc-grid">' + (cards || '<p class="mini-help" style="padding:8px 0">No scenarios for this nation — use the default start.</p>') + '</div>';
 };
