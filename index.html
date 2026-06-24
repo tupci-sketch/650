@@ -48,6 +48,10 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
+      <!-- Saved game continue card (hidden until signed in with a save) -->
+      <div class="continue-card" id="continueCard" style="display:none"></div>
+      <!-- Save indicator (fixed bottom-right) -->
+      <span class="save-badge" id="saveBadge" style="display:none">✓ Saved</span>
       <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, build your cabinet from across the sweep of history, then fight an election — seat by seat, under any of 13 electoral systems. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the house.</p>
 
       <!-- Wizard navigation header -->
@@ -648,6 +652,11 @@
         <input id="acctPass" class="lb-input" type="password" maxlength="64" placeholder="Password (min 6 characters)" />
         <button class="btn btn-primary" id="acctSubmit">Sign in</button>
         <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear.</p>
+      </div>
+      <!-- Player's run history (shown when signed in) -->
+      <div class="panel" id="runsPanel" style="display:none">
+        <p class="sub-label">Your recent games <span class="board-note">last 25 runs</span></p>
+        <div id="runsList" class="runs-list"></div>
       </div>
       <div class="btn-row"><button class="btn btn-ghost" id="acctBackBtn">Back to menu</button></div>
     </section>

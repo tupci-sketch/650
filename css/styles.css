@@ -1552,3 +1552,27 @@ html.theme-light .tier-chip.t-a { color: #7a5d14 !important; background: rgba(17
 html.theme-light .country-card { background: rgba(255,255,255,.7); }
 html.theme-light .country-card:hover { background: rgba(255,255,255,.9); }
 html.theme-light .country-card.sel  { background: rgba(47,109,68,.07); }
+
+/* ---- Continue card (saved game restore) ---------------------------------- */
+.continue-card { border: 2px solid var(--green); border-radius: 10px; background: rgba(61,200,136,.06); padding: 14px 16px; margin: 8px 0 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.cont-body { flex: 1 1 auto; min-width: 0; }
+.cont-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--green); margin: 0 0 4px; font-family: var(--mono, monospace); }
+.cont-desc  { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0 0 3px; }
+.cont-at    { font-size: 12px; color: var(--ink-soft); margin: 0; }
+.cont-btns  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.cont-dismiss { font-size: 12px; color: var(--ink-soft); background: none; border: none; cursor: pointer; padding: 4px 0; }
+.cont-dismiss:hover { color: var(--ink); }
+
+/* ---- Save badge (fixed bottom corner) ----------------------------------- */
+.save-badge { position: fixed; bottom: 66px; right: 14px; background: var(--green); color: #fff; font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px; z-index: 300; pointer-events: none; letter-spacing: .03em; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+
+/* ---- Player run history (account screen) -------------------------------- */
+.runs-list  { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+.run-row    { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 12px; border-radius: 8px; background: var(--paper-2); border: 1px solid var(--line); gap: 8px; }
+.run-seats  { font-size: 18px; font-weight: 800; color: var(--ink); font-family: var(--mono, monospace); }
+.run-meta   { font-size: 12px; color: var(--ink-soft); }
+.run-legacy { color: var(--brass-lite); }
+.run-right  { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.run-pct    { font-size: 14px; font-weight: 700; color: var(--green); font-family: var(--mono, monospace); }
+.run-tag    { font-size: 11px; color: var(--ink-soft); }
+.run-date   { font-size: 11px; color: var(--ink-soft); }

@@ -48,7 +48,10 @@
       if (NET.onAuth) NET.onAuth(NET.me); return NET.me;
     });
   };
-  NET.save = function (prefs) { NET.prefs = prefs || NET.prefs; return NET._auth("save", { prefs: NET.prefs }); };
+  NET.save      = function (prefs) { NET.prefs = prefs || NET.prefs; return NET._auth("save", { prefs: NET.prefs }); };
+  NET.saveGame  = function (snapshot) { NET.prefs = NET.prefs || {}; NET.prefs.savedGame = snapshot; return NET.save(NET.prefs); };
+  NET.clearGame = function () { NET.prefs = NET.prefs || {}; delete NET.prefs.savedGame; return NET.save(NET.prefs); };
+  NET.playerRuns = function () { return NET._auth("player_runs"); };
 
   NET.loadConfig = function () { return NET._call("config").then(function (d) { if (d && d.config) NET.config = d.config; return NET.config; }); };
   NET.loadRoster = function () { return NET._call("roster").then(function (d) { if (d && d.politicians && d.politicians.length && G.mergeRoster) G.mergeRoster(d.politicians); return d; }); };

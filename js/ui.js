@@ -1525,6 +1525,27 @@ G.UI.renderLeaderboard = function (top, communal, error) {
     if (cs) cs.disabled = !me;
   };
 
+  G.UI.renderPlayerRuns = function (runs) {
+    var el = $("runsList"); if (!el) return;
+    if (!runs || !runs.length) { el.innerHTML = '<p class="mini-help">No runs recorded yet.</p>'; return; }
+    var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
+    el.innerHTML = runs.map(function (r) {
+      var date = ""; try { date = new Date(r.ts).toLocaleDateString([], { month: "short", day: "numeric" }); } catch (e) {}
+      var mode = modeMap[r.mode] || r.mode || "";
+      var diff = r.difficulty ? (r.difficulty.charAt(0).toUpperCase() + r.difficulty.slice(1)) : "";
+      var sc = "";
+      if (r.scenarioKey && r.scenarioKey !== "freshstart") sc = " · " + r.scenarioKey.replace(/_/g, " ");
+      var legStr = (r.legacy != null) ? (' · <span class="run-legacy">Legacy ' + r.legacy + '</span>') : "";
+      return '<div class="run-row">' +
+        '<div><span class="run-seats">' + r.seats + '</span>' +
+        '<span class="run-meta"> / ' + r.totalSeats + ' seats' + (r.govt ? ' · governed' : '') + legStr + '</span></div>' +
+        '<div class="run-right"><span class="run-pct">' + r.pct + '%</span>' +
+        '<span class="run-meta run-tag">' + esc(mode) + (diff ? ' · ' + esc(diff) : '') + esc(sc) + '</span>' +
+        '<span class="run-date">' + esc(date) + '</span></div>' +
+        '</div>';
+    }).join("");
+  };
+
   G.UI.renderBanner = function (config) {
     var b = $("liveBanner"); if (!b) return;
     var on = config && config.banner && config.banner.active && config.banner.text;

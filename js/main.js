@@ -30,6 +30,7 @@
   var watch = null;        // live-count animation state
   var currentVerdict = null; // last governing verdict (for sharing)
   var submitting = false;    // guard against double-submit while a post is in flight
+  var _saveTimer = null;     // debounce for cloud auto-save
 
   /* ---- country data -------------------------------------------------------- */
   var COUNTRIES = [
@@ -97,6 +98,127 @@
   var WSTEP_TITLES = ["Choose your nation", "Choose your game", "Who's in the pool",
                       "Election difficulty", "Draft rules", "After the election",
                       "Career mode", "Ready to play"];
+  /* ---- cloud save / restore ------------------------------------------------ */
+  function buildSaveSnapshot(screenTag) {
+    if (!G.state) return null;
+    var cab = {};
+    Object.keys(G.state.cabinet || {}).forEach(function (k) {
+      var p = G.state.cabinet[k]; if (p) cab[k] = p.name;
+    });
+    return {
+      version: 1, ts: Date.now(), screen: screenTag || "draft",
+      career: G.career ? JSON.parse(JSON.stringify(G.career)) : null,
+      state: {
+        mode: G.state.mode, lineage: G.state.lineage || null,
+        eras: (G.state.eras || []).slice(), difficulty: G.state.difficulty,
+        govern: G.state.govern, watch: G.state.watch,
+        cabinetSize: G.state.cabinetSize,
+        custom: G.state.custom ? JSON.parse(JSON.stringify(G.state.custom)) : null,
+        alignValue: G.state.alignValue,
+        casts: JSON.parse(JSON.stringify(G.state.casts || { insider: true, novelty: false })),
+        policyOn: G.state.policyOn, campaignOn: G.state.campaignOn,
+        scenarioKey: G.state.scenarioKey || null,
+        gameYear: G.state.gameYear || 2026,
+        policy: G.state.policy ? JSON.parse(JSON.stringify(G.state.policy)) : null,
+        campaignOutputs: G.state.campaignOutputs ? JSON.parse(JSON.stringify(G.state.campaignOutputs)) : null,
+        cabinetNames: cab
+      }
+    };
+  }
+
+  function autoSave(screenTag) {
+    if (!G.NET || !G.NET.me || !G.state) return;
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    _saveTimer = setTimeout(function () {
+      _saveTimer = null;
+      var snap = buildSaveSnapshot(screenTag);
+      if (!snap) return;
+      G.NET.saveGame(snap);
+      var b = sel("saveBadge");
+      if (b) { b.style.display = ""; setTimeout(function () { b.style.display = "none"; }, 2500); }
+    }, 800);
+  }
+
+  function tryRestoreGame(snap) {
+    if (!snap || !snap.state) return;
+    var card = sel("continueCard"); if (!card) return;
+    var car = snap.career, st = snap.state;
+    var info = [];
+    if (car && car.parliament > 1) info.push("Parliament " + car.parliament);
+    var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
+    info.push(modeMap[st.mode] || st.mode);
+    info.push(((st.difficulty || "normal").charAt(0).toUpperCase() + (st.difficulty || "normal").slice(1)));
+    if (st.scenarioKey && st.scenarioKey !== "freshstart") {
+      var sc = G.SCENARIOS && G.SCENARIOS.filter(function (s) { return s.key === st.scenarioKey; })[0];
+      info.push(sc ? sc.name : st.scenarioKey.replace(/_/g, " "));
+    }
+    var ago = "";
+    if (snap.ts) {
+      var diff = Math.floor((Date.now() - snap.ts) / 60000);
+      if (diff < 2) ago = "just now";
+      else if (diff < 60) ago = diff + "m ago";
+      else if (diff < 1440) ago = Math.floor(diff / 60) + "h ago";
+      else ago = Math.floor(diff / 1440) + "d ago";
+    }
+    var screenMap = { result: "Election result", govern: "After governing", draft: "Mid-draft", retirement: "Between parliaments" };
+    var atLabel = (screenMap[snap.screen] || "Saved game") + (ago ? " · " + ago : "");
+    var numMins = Object.keys(st.cabinetNames || {}).length;
+    if (numMins) atLabel += " · " + numMins + " ministers";
+    card.innerHTML =
+      '<div class="cont-body">' +
+        '<p class="cont-label">Continue where you left off</p>' +
+        '<p class="cont-desc">' + G.UI._esc(info.join(" · ")) + '</p>' +
+        '<p class="cont-at">' + G.UI._esc(atLabel) + '</p>' +
+      '</div>' +
+      '<div class="cont-btns">' +
+        '<button class="btn btn-primary" id="continueBtn">Continue →</button>' +
+        '<button class="link-btn cont-dismiss" id="continueDismiss">Dismiss</button>' +
+      '</div>';
+    card.style.display = "";
+    var btn = sel("continueBtn");
+    if (btn) btn.onclick = function () { card.style.display = "none"; restoreFromSave(snap); };
+    var dis = sel("continueDismiss");
+    if (dis) dis.onclick = function () { card.style.display = "none"; if (G.NET && G.NET.me) G.NET.clearGame(); };
+  }
+
+  function restoreFromSave(snap) {
+    if (!snap || !snap.state) return;
+    var st = snap.state;
+    if (snap.career) G.career = snap.career;
+    /* rebuild carryOver from saved cabinet names */
+    var carryOver = {};
+    Object.keys(st.cabinetNames || {}).forEach(function (pKey) {
+      var name = st.cabinetNames[pKey];
+      var pol = G.POLITICIANS ? G.POLITICIANS.filter(function (p) { return p.name === name; })[0] : null;
+      if (pol) carryOver[pKey] = pol;
+    });
+    G.newGame({
+      mode: st.mode, lineage: st.lineage || null, eras: st.eras || [],
+      difficulty: st.difficulty || "normal", govern: st.govern !== false,
+      watch: st.watch !== false, cabinetSize: st.cabinetSize || "standard",
+      custom: st.custom || null, casts: st.casts || { insider: true, novelty: false },
+      policyOn: st.policyOn || false, campaignOn: st.campaignOn || false,
+      scenarioKey: st.scenarioKey || null, gameYear: st.gameYear || 2026,
+      carryOver: carryOver
+    });
+    if (st.scenarioKey && G.applyScenario) {
+      G.applyScenario(st.scenarioKey);
+      G.state.gameYear = st.gameYear || 2026;
+    }
+    /* fill any cabinet slots not covered by carryOver */
+    Object.keys(st.cabinetNames || {}).forEach(function (pKey) {
+      if (!G.state.cabinet[pKey]) {
+        var name = st.cabinetNames[pKey];
+        var pol = G.POLITICIANS ? G.POLITICIANS.filter(function (p) { return p.name === name; })[0] : null;
+        if (pol) { G.state.cabinet[pKey] = pol; G.state.draftedNames[pol.name] = pKey; }
+      }
+    });
+    if (st.policy) G.state.policy = st.policy;
+    if (st.campaignOutputs) G.state.campaignOutputs = st.campaignOutputs;
+    G.UI.show("screen-draft");
+    G.UI.renderDraft();
+  }
+
   function updateReadySummary() {
     var el = sel("readySummary"); if (!el) return;
     var countryDef = COUNTRIES.filter(function (c) { return c.key === choice.country; })[0];
@@ -170,7 +292,23 @@
     updateEligibility();
     updateEraVisibility();
     if (G.NET) {
-      G.NET.onAuth = function (me) { G.UI.applyAuth(me); updateLbWho(); };
+      G.NET.onAuth = function (me) {
+        G.UI.applyAuth(me); updateLbWho();
+        if (me) {
+          if (G.NET.prefs && G.NET.prefs.savedGame) tryRestoreGame(G.NET.prefs.savedGame);
+          /* load run history for the account screen */
+          if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+            var rp = sel("runsPanel"); if (!rp) return;
+            if (d && d.ok && d.runs && d.runs.length) {
+              if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(d.runs);
+              rp.style.display = "";
+            } else rp.style.display = "none";
+          });
+        } else {
+          var card = sel("continueCard"); if (card) card.style.display = "none";
+          var rp2 = sel("runsPanel"); if (rp2) rp2.style.display = "none";
+        }
+      };
       G.NET.resume();
       G.NET.loadConfig().then(function (cfg) { G.UI.renderBanner(cfg); });
       G.NET.loadRoster();
@@ -548,6 +686,7 @@
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
+    autoSave("result");
     /* check objectives and achievements */
     if (G.checkObjectives && G.unlockAchievements) {
       var ctx = {
@@ -1149,6 +1288,7 @@
        filled in \u2014 the personal board (and the signed-in run history) update
        the existing record in place rather than adding a second row. */
     try { if (G.LB && G.LB.recordLocalRun && lastResult) G.LB.recordLocalRun(currentEntry()); } catch (e) {}
+    autoSave("govern");
   }
 
   /* ----------------------------------------- career retirement screen ----- */
