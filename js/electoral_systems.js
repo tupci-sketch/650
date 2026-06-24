@@ -25,16 +25,16 @@ G.COUNTRY_REGIONS = {
 
   /* ---- USA House of Representatives (435 seats) ------------------------- */
   usa_house: [
-    { id:"US_NE",  name:"New England",             seats:22, lean:-0.55 },
-    { id:"US_MA",  name:"Mid-Atlantic (NY/NJ/PA/MD/DE)", seats:71, lean:-0.25 },
-    { id:"US_GL",  name:"Great Lakes (OH/MI/IN/IL/WI/MN)", seats:72, lean:-0.05 },
-    { id:"US_PL",  name:"Great Plains (IA/MO/ND/SD/NE/KS)", seats:24, lean:+0.55 },
-    { id:"US_SE",  name:"Southeast (VA/NC/SC/GA/FL/AL/MS/TN/KY/AR/LA)", seats:116, lean:+0.40 },
+    { id:"US_NE",  name:"New England",             seats:21, lean:-0.55 },
+    { id:"US_MA",  name:"Mid-Atlantic (NY/NJ/PA/MD/DE)", seats:65, lean:-0.25 },
+    { id:"US_GL",  name:"Great Lakes (OH/MI/IN/IL/WI/MN)", seats:70, lean:-0.05 },
+    { id:"US_PL",  name:"Great Plains (IA/MO/ND/SD/NE/KS)", seats:21, lean:+0.55 },
+    { id:"US_SE",  name:"Southeast (VA/NC/SC/GA/FL/AL/MS/TN/KY/AR/LA)", seats:114, lean:+0.40 },
     { id:"US_TX",  name:"Texas",                   seats:38, lean:+0.30 },
-    { id:"US_SW",  name:"Southwest (AZ/NM/NV/CO/UT/ID/WY/MT)", seats:27, lean:+0.10 },
-    { id:"US_PNW", name:"Pacific Northwest (WA/OR/AK/HI)", seats:17, lean:-0.40 },
+    { id:"US_SW",  name:"Southwest (AZ/NM/NV/CO/UT/ID/WY/MT)", seats:33, lean:+0.10 },
+    { id:"US_PNW", name:"Pacific Northwest (WA/OR/AK/HI)", seats:19, lean:-0.40 },
     { id:"US_CA",  name:"California",              seats:52, lean:-0.60 },
-    { id:"US_WV",  name:"Appalachia (WV/KY partial/TN partial)", seats:6, lean:+0.65 }
+    { id:"US_WV",  name:"Appalachia (WV)",         seats:2,  lean:+0.65 }
   ],
 
   /* ---- USA Electoral College (538 EV; 270 to win) ----------------------- */
@@ -68,33 +68,33 @@ G.COUNTRY_REGIONS = {
 
   /* ---- Germany — Bundestag 2021 (736 seats, MMP) ----------------------- */
   germany_modern: [
-    { id:"DM_BW",  name:"Baden-Württemberg",        seats: 96, lean:+0.08 },
-    { id:"DM_BY",  name:"Bavaria",                  seats:102, lean:+0.12 },
-    { id:"DM_BE",  name:"Berlin",                   seats: 38, lean:-0.20 },
-    { id:"DM_BB",  name:"Brandenburg",              seats: 32, lean:+0.05 },
-    { id:"DM_HB",  name:"Bremen",                   seats: 10, lean:-0.18 },
-    { id:"DM_HH",  name:"Hamburg",                  seats: 26, lean:-0.15 },
-    { id:"DM_HE",  name:"Hesse",                    seats: 55, lean:+0.03 },
-    { id:"DM_MV",  name:"Mecklenburg-Vorpommern",   seats: 24, lean:+0.10 },
-    { id:"DM_NI",  name:"Lower Saxony",             seats: 80, lean:-0.05 },
-    { id:"DM_NW",  name:"North Rhine-Westphalia",   seats:156, lean:-0.08 },
-    { id:"DM_RP",  name:"Rhineland-Palatinate",     seats: 44, lean:+0.02 },
-    { id:"DM_SL",  name:"Saarland",                 seats: 12, lean:-0.03 },
-    { id:"DM_SN",  name:"Saxony",                   seats: 44, lean:+0.15 },
-    { id:"DM_ST",  name:"Saxony-Anhalt",            seats: 30, lean:+0.18 },
-    { id:"DM_SH",  name:"Schleswig-Holstein",       seats: 38, lean:+0.00 },
-    { id:"DM_TH",  name:"Thuringia",                seats: 28, lean:+0.18 }
+    { id:"DM_BW",  name:"Baden-Württemberg",        seats: 86, lean:+0.08 },
+    { id:"DM_BY",  name:"Bavaria",                  seats: 92, lean:+0.12 },
+    { id:"DM_BE",  name:"Berlin",                   seats: 34, lean:-0.20 },
+    { id:"DM_BB",  name:"Brandenburg",              seats: 29, lean:+0.05 },
+    { id:"DM_HB",  name:"Bremen",                   seats:  9, lean:-0.18 },
+    { id:"DM_HH",  name:"Hamburg",                  seats: 24, lean:-0.15 },
+    { id:"DM_HE",  name:"Hesse",                    seats: 50, lean:+0.03 },
+    { id:"DM_MV",  name:"Mecklenburg-Vorpommern",   seats: 22, lean:+0.10 },
+    { id:"DM_NI",  name:"Lower Saxony",             seats: 72, lean:-0.05 },
+    { id:"DM_NW",  name:"North Rhine-Westphalia",   seats:141, lean:-0.08 },
+    { id:"DM_RP",  name:"Rhineland-Palatinate",     seats: 40, lean:+0.02 },
+    { id:"DM_SL",  name:"Saarland",                 seats: 11, lean:-0.03 },
+    { id:"DM_SN",  name:"Saxony",                   seats: 40, lean:+0.15 },
+    { id:"DM_ST",  name:"Saxony-Anhalt",            seats: 27, lean:+0.18 },
+    { id:"DM_SH",  name:"Schleswig-Holstein",       seats: 34, lean:+0.00 },
+    { id:"DM_TH",  name:"Thuringia",                seats: 25, lean:+0.18 }
   ],
 
   /* ---- France — National Assembly 5th Republic (577 seats, TRS) --------- */
   france: [
-    { id:"FR_IDF", name:"Île-de-France (Paris région)",          seats: 90, lean:-0.10 },
-    { id:"FR_NO",  name:"Northern France (Nord, Picardie…)",     seats: 75, lean:+0.08 },
-    { id:"FR_NE",  name:"Eastern France (Alsace, Lorraine…)",    seats: 58, lean:+0.05 },
-    { id:"FR_OUE", name:"Western France (Bretagne, Normandie…)", seats: 82, lean:-0.05 },
-    { id:"FR_CEN", name:"Centre & Aquitaine",                    seats: 78, lean:-0.02 },
-    { id:"FR_SUD", name:"Midi & Rhône-Alpes (South + Lyon)",    seats:147, lean:+0.03 },
-    { id:"FR_OUT", name:"Outre-mer (overseas territories)",       seats: 27, lean:-0.10 }
+    { id:"FR_IDF", name:"Île-de-France (Paris région)",          seats: 93, lean:-0.10 },
+    { id:"FR_NO",  name:"Northern France (Nord, Picardie…)",     seats: 78, lean:+0.08 },
+    { id:"FR_NE",  name:"Eastern France (Alsace, Lorraine…)",    seats: 60, lean:+0.05 },
+    { id:"FR_OUE", name:"Western France (Bretagne, Normandie…)", seats: 85, lean:-0.05 },
+    { id:"FR_CEN", name:"Centre & Aquitaine",                    seats: 81, lean:-0.02 },
+    { id:"FR_SUD", name:"Midi & Rhône-Alpes (South + Lyon)",    seats:152, lean:+0.03 },
+    { id:"FR_OUT", name:"Outre-mer (overseas territories)",       seats: 28, lean:-0.10 }
   ],
 
   /* ---- Australia — House of Representatives (151 seats, AV) ------------ */
@@ -293,32 +293,54 @@ G.simulatePR = function (params, rnd) {
   var seatAlloc = G._dhondtAllocate(aboveThreshold, totalSeats);
   var playerSeats = seatAlloc[bloc.label] || 0;
 
-  /* Build byRegion (proportional within each region) */
+  /* Build byRegion. Each region's player strength gives a weight; the national
+     D'Hondt total (playerSeats) is then distributed across regions by largest
+     remainder so the regional wins sum *exactly* to the headline seat count
+     (keeps the per-seat map consistent with the result). */
   var byRegion = regions.map(function (r) {
     var share = aboveThreshold[bloc.label] || 0;
-    /* Regional tilt */
     var tilt = (params.regionTilt && params.regionTilt[r.id]) || 0;
     var adjustedShare = Math.max(0, Math.min(1, share + tilt * 0.1));
-    /* Also apply landscape regional bias */
     var land = G.activeLandscape ? G.activeLandscape(r.id) : [];
     if (land && land.length) {
       var landShare = 0;
       land.forEach(function (e) { if (e[0] === bloc.label) landShare = e[1] / 100; });
       adjustedShare = 0.5 * adjustedShare + 0.5 * landShare;
     }
-    var won = Math.round(r.seats * adjustedShare);
-    return { id: r.id, name: r.name, total: r.seats, won: Math.max(0, Math.min(r.seats, won)), winnable: true };
+    return { id: r.id, name: r.name, total: r.seats, won: 0, winnable: true,
+             _w: Math.max(0, adjustedShare) * r.seats };
   });
+  G._allocateRegional(byRegion, playerSeats);
 
-  /* Breakdown */
+  return G._prReturn(playerSeats, byRegion, seatAlloc, bloc, aboveThreshold);
+};
+
+/* distribute `target` seats across regions by largest remainder of `_w`,
+   capped at each region's total. Deterministic; mutates each region's `won`. */
+G._allocateRegional = function (byRegion, target) {
+  var wsum = 0; byRegion.forEach(function (b) { wsum += b._w; });
+  var quota = byRegion.map(function (b) { return wsum > 0 ? target * b._w / wsum : 0; });
+  var assigned = 0;
+  byRegion.forEach(function (b, i) { b.won = Math.min(b.total, Math.floor(quota[i])); assigned += b.won; });
+  var order = byRegion.map(function (b, i) { return { i: i, f: quota[i] - Math.floor(quota[i]) }; })
+                      .sort(function (a, b) { return b.f - a.f; });
+  var k = 0, guard = byRegion.length * 64 + 16;
+  while (assigned < target && guard-- > 0) {
+    var b = byRegion[order[k % order.length].i];
+    if (b.won < b.total) { b.won++; assigned++; }
+    k++;
+  }
+  byRegion.forEach(function (b) { delete b._w; });
+};
+
+G._prReturn = function (playerSeats, byRegion, seatAlloc, bloc, votes) {
   var breakdown = Object.keys(seatAlloc).map(function (p) {
     return { party: p, seats: seatAlloc[p], isYou: p === bloc.label,
              colour: p === bloc.label ? bloc.colour : ((G.PARTIES && G.PARTIES[p]) ? G.PARTIES[p].colour : "#6b6b6b") };
   }).sort(function (a, b) { return b.seats - a.seats; });
-
   return { seats: playerSeats, byRegion: byRegion, breakdown: breakdown,
            blocLabel: bloc.label, blocColour: bloc.colour,
-           system: "pr", partyVotes: aboveThreshold, seatAlloc: seatAlloc };
+           system: "pr", partyVotes: votes, seatAlloc: seatAlloc };
 };
 
 G.estimateSeatsPR = function (params, rnd) {
@@ -515,12 +537,12 @@ G.simulateGuided = function (params, rnd) {
   var totalSeats = regions.reduce(function (s, r) { return s + r.seats; }, 0);
   var bloc = G.playerBloc(params.mode, params.lineage, params.custom);
 
-  /* Always win nearly everything, with small random variation for flavor */
-  var baseWin = 0.972 + rnd() * 0.025;  /* 97.2–99.7% */
-  var playerSeats = Math.round(totalSeats * baseWin);
-
+  /* Always win nearly everything, with small random variation for flavour.
+     Derive the headline from the regional wins so the map matches exactly. */
+  var playerSeats = 0;
   var byRegion = regions.map(function (r) {
-    var won = Math.round(r.seats * (0.96 + rnd() * 0.04));
+    var won = Math.min(r.seats, Math.round(r.seats * (0.962 + rnd() * 0.035)));  /* 96.2–99.7% */
+    playerSeats += won;
     return { id: r.id, name: r.name, total: r.seats, won: won, winnable: true };
   });
 
@@ -782,6 +804,25 @@ G.ELECTORAL_SYSTEMS = {
     },
     coalitionStyle: "coalition",
     resultLabel: "Lok Sabha Seats"
+  },
+
+  fptp_japan: {
+    key: "fptp_japan", name: "House of Representatives Election",
+    subtitle: "Mixed-member majoritarian · 465 seats in the Shūgiin · 233 to win",
+    country: "Japan", flag: "🇯🇵", totalSeats: 465, majority: 233,
+    regionKey: "japan",
+    simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
+    estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
+    tierLabel: function (seats, total) {
+      if (seats >= total) return "All 465 Seats — Total Control";
+      if (seats >= 310)   return "Supermajority — Constitutional Revision";
+      if (seats >= 261)   return "Stable Majority (絶対安定多数)";
+      if (seats >= 233)   return "Working Majority";
+      if (seats >= 180)   return "Largest Party — Short of a Majority";
+      return "Opposition Benches";
+    },
+    coalitionStyle: "coalition",
+    resultLabel: "Shūgiin Seats"
   },
 
   guided_north_korea: {

@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>650 — Build the Greatest Cabinet, Then Fight the Election</title>
-  <meta name="description" content="650 is a free political draft game. Assemble an all-time UK cabinet from every era — or a wildcard cabinet from across history and the globe — then fight a constituency-by-constituency general election. Can you go 650-0?" />
+  <meta name="description" content="650 is a free political draft game. Assemble a cabinet from across history and the globe, then fight an election seat by seat. 13 electoral systems, 26 scenarios, 2,750+ figures." />
 
   <!-- Open Graph -->
-  <meta property="og:title" content="650 — A British Political Draft Game" />
-  <meta property="og:description" content="Draft an all-time cabinet, fight a seat-by-seat election, and chase the impossible: all 650 seats." />
+  <meta property="og:title" content="650 — A Global Political Draft Game" />
+  <meta property="og:description" content="Draft an all-time cabinet, pick your electoral system, and fight a seat-by-seat election across history and the globe. Can you go 650-0?" />
   <meta property="og:type" content="website" />
 
   <!-- Favicons & App Icons -->
@@ -33,13 +33,13 @@
 
     <!-- ===================================================== MASTHEAD === -->
     <header class="masthead">
-      <p class="kicker">A British Political Draft Game</p>
+      <p class="kicker">A Global Political Draft Game</p>
       <button class="title-650" id="homeLink" title="Back to the start" aria-label="650 — back to the start">650</button>
-      <p class="subtitle">Assemble a cabinet from the whole sweep of history. Then fight the country, seat by seat.</p>
+      <p class="subtitle">Assemble a cabinet from the whole sweep of history. Then fight a seat-by-seat election anywhere on Earth.</p>
       <div class="rule-meta">
         <span><b id="metaCount">—</b> figures</span>
         <span><b id="metaEras">7</b> eras · <b>1832–today</b></span>
-        <span><b>650</b> seats · <b>12</b> at the table</span>
+        <span><b id="metaSystems">13</b> electoral systems · <b id="metaScenarios">26</b> scenarios</span>
       </div>
     </header>
 
@@ -48,7 +48,7 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
-      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, choose their seat, and fill all twelve seats of the cabinet. Then hold a general election — fought the way Britain really fights them, one constituency at a time. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the Commons.</p>
+      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, build your cabinet from across the sweep of history, then fight an election — seat by seat, under any of 13 electoral systems. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the house.</p>
 
       <!-- Wizard navigation header -->
       <div class="wizard-nav">
@@ -268,13 +268,13 @@
         <div class="watch-tally">
           <span class="wt-label" id="watchTicketName">Your seats</span>
           <span class="wt-num" id="watchSeats">0</span>
-          <span class="wt-sub"><b id="watchDeclared">0</b> of 650 declared · <b id="watchMaj">326</b> for a majority</span>
+          <span class="wt-sub"><b id="watchDeclared">0</b> of <b id="watchTotal">650</b> declared · <b id="watchMaj">326</b> for a majority</span>
         </div>
         <div class="watch-feed" id="watchFeed"></div>
       </div>
 
       <div class="panel" style="margin-top:18px">
-        <p class="section-label">The results map <span class="board-note">650 seats · hover to explore</span></p>
+        <p class="section-label" id="watchMapLabel">The results map <span class="board-note" id="watchMapNote">650 seats · hover to explore</span></p>
         <div class="hexmap" id="mapWatch"></div>
         <div class="board-key" id="mapWatchLegend"></div>
       </div>
@@ -337,7 +337,7 @@
       </div>
 
       <div class="panel" style="margin-top:24px">
-        <p class="section-label">The results map <span class="board-note">650 seats · hover to explore</span></p>
+        <p class="section-label" id="resultMapLabel">The results map <span class="board-note" id="resultMapNote">650 seats · hover to explore</span></p>
         <div class="hexmap" id="mapResult"></div>
         <div class="board-key" id="mapResultLegend"></div>
         <div class="region-summary" id="regionSummary"></div>
@@ -380,8 +380,8 @@
 
         <div class="wiki-box">
           <div class="wiki-title">
-            <span class="wiki-flag">🇬🇧</span>
-            United Kingdom general election
+            <span class="wiki-flag" id="wikiFlag">🇬🇧</span>
+            <span id="wikiTitleText">United Kingdom general election</span>
             <span class="wiki-year" id="wikiYear"></span>
           </div>
           <div class="wiki-date" id="wikiDate"></div>
@@ -746,6 +746,7 @@ note: One line on them (optional)"></textarea>
   <script src="js/govern.js"></script>
   <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/platform.js"></script>
   <script src="js/main.js"></script>

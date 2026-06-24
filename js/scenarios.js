@@ -305,11 +305,11 @@ G.SCENARIOS = [
     name: "🇯🇵 Japanese General Election 2021",
     year: 2021,
     country: "jp",
-    electoralSystem: "fptp_usa_house",
-    desc: "Post-Abe Japan — Kishida's LDP faces a unified opposition. Hold the supermajority.",
+    electoralSystem: "fptp_japan",
+    desc: "Post-Abe Japan — Kishida's LDP faces a unified opposition. Hold the stable majority.",
     mode: "unity", difficulty: "normal",
     landscape: "japan_2021",
-    objective: { type: "seats", target: 261, label: "Win a working majority (261 seats)" }
+    objective: { type: "seats", target: 261, label: "Hold a stable majority (261 of 465 seats)" }
   },
 
   /* ===== INDIA SCENARIO =================================================== */

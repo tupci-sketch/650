@@ -306,6 +306,50 @@ G.partyColour = function (label, blocLabel, blocColour) {
   return p ? p.colour : "#6b6b6b";
 };
 
+/* Expand a region-level international result into a deterministic per-seat
+   declaration list (one record per seat, in region order). The player takes
+   the region's `won` seats; the remaining seats are dealt to the leading
+   opposition parties from that region's landscape by largest-remainder, so the
+   live tally reconciles exactly with the headline seat totals. Deterministic —
+   uses no rng — so a replay produces the identical declaration order.          */
+G.expandSeatResults = function (campaign, sys) {
+  var blocLabel = campaign.blocLabel;
+  var despot = sys && (sys.despotMode || sys.coalitionStyle === "guided");
+  var results = [];
+  (campaign.byRegion || []).forEach(function (r) {
+    var won = Math.max(0, Math.min(r.total, r.won || 0));
+    var lost = r.total - won;
+
+    /* opposition split for this region, largest-remainder over `lost` seats */
+    var oppSeats = {};
+    if (lost > 0) {
+      var land = (G.activeLandscape ? G.activeLandscape(r.id) : null) || [];
+      var opp = [];
+      land.forEach(function (e) { if (e[0] !== blocLabel && e[1] > 0) opp.push({ p: e[0], w: e[1] }); });
+      if (!opp.length) opp = [{ p: "Opposition", w: 1 }];
+      var sum = opp.reduce(function (a, b) { return a + b.w; }, 0);
+      var rem = [], assigned = 0;
+      opp.forEach(function (o) {
+        var exact = lost * o.w / sum, base = Math.floor(exact);
+        oppSeats[o.p] = base; assigned += base;
+        rem.push({ p: o.p, frac: exact - base });
+      });
+      rem.sort(function (a, b) { return b.frac - a.frac; });
+      for (var k = 0; assigned < lost; k++, assigned++) oppSeats[rem[k % rem.length].p]++;
+    }
+
+    /* deal records: winners first, then each opposition party's block */
+    var idx = 0;
+    for (var i = 0; i < won; i++)
+      results.push({ id: r.id + "#" + (idx++), name: r.name, region: r.id, won: true, winner: blocLabel });
+    Object.keys(oppSeats).forEach(function (party) {
+      for (var j = 0; j < oppSeats[party]; j++)
+        results.push({ id: r.id + "#" + (idx++), name: r.name, region: r.id, won: false, winner: party });
+    });
+  });
+  return results;
+};
+
 /* ---- the random opposition: every rival drafts its own bench ------------- */
 /* For each party in the landscape, sample a cabinet-sized bench UNIFORMLY at
    random from that party's OWN figures (same lineage), excluding anyone the
@@ -378,7 +422,15 @@ G.buildOppositionField = function (opts, rnd) {
 G.simulateCampaign = function (params) {
   /* Route to active international electoral system if one is set */
   var _sys = G.activeElectoralSystem && G.activeElectoralSystem();
-  if (_sys && _sys.simulate) return _sys.simulate(params, params.rnd || Math.random);
+  if (_sys && _sys.simulate) {
+    var _r = _sys.simulate(params, params.rnd || Math.random);
+    /* International simulators return region-level results; expand them into a
+       deterministic per-seat declaration list so the live count can run.
+       Pure function of byRegion + landscape — no rng, so replays are identical. */
+    if (_r && _r.byRegion && !_r.results && G.expandSeatResults)
+      _r.results = G.expandSeatResults(_r, _sys);
+    return _r;
+  }
 
   var C = G.CONFIG, geo = G.buildGeo();
   var rnd = params.rnd || Math.random;

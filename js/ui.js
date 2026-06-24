@@ -424,7 +424,9 @@ G.UI.setMeter = function (id, value) {
   }
 };
 G.UI.updateGovSeats = function () {
-  var t = G.term, maj = t.seats - G.CONFIG.majority;
+  var t = G.term;
+  var majNeeded = (G.activeMajority ? G.activeMajority() : G.CONFIG.majority);
+  var maj = t.seats - majNeeded;
   $("govSeats").textContent = t.seats;
   $("govSeatsSub").textContent = maj >= 0 ? "(majority of " + maj + ")" : "(minority — " + Math.abs(maj) + " short)";
 };
@@ -674,6 +676,9 @@ G.UI.renderWatch = function (res) {
   $("watchTicketName").textContent = G.UI.ticketName(G.state);
   $("watchSeats").textContent = "0";
   $("watchDeclared").textContent = "0";
+  if ($("watchTotal")) $("watchTotal").textContent = "650";
+  var wLbl = $("watchMapLabel");
+  if (wLbl) wLbl.innerHTML = 'The results map <span class="board-note" id="watchMapNote">650 seats · hover to explore</span>';
   $("watchMaj").textContent = G.CONFIG.majority;
   $("watchFeed").innerHTML = '<div class="feed-line muted">The polls have closed. Counting begins…</div>';
   $("toResultBtn").style.display = "none";
@@ -683,6 +688,30 @@ G.UI.renderWatch = function (res) {
   G.UI.renderMapLegend("mapWatchLegend", colour, G.state.mode, res.breakdown);
   G.UI.show("screen-watch");
   return { byId: map.byId, colour: colour };
+};
+
+/* International live count: build the country's per-seat hex cartogram (muted),
+   then let the shared reveal loop flip each seat live by id. Returns the seat
+   id→hex map plus the colour, mirroring renderWatch's contract. */
+G.UI.renderWatchIntl = function (res, sys) {
+  var colour = G.UI.ticketColour(G.state);
+  $("watchTicketName").textContent = G.UI.ticketName(G.state);
+  $("watchSeats").textContent = "0";
+  $("watchDeclared").textContent = "0";
+  if ($("watchTotal")) $("watchTotal").textContent = sys.totalSeats || "";
+  $("watchMaj").textContent = sys.majority || 1;
+  $("watchFeed").innerHTML = '<div class="feed-line muted">The polls have closed. Counting begins…</div>';
+  $("toResultBtn").style.display = "none";
+  $("skipCountBtn").style.display = "";
+  var lbl = $("watchMapLabel");
+  if (lbl) lbl.innerHTML = G.UI._esc((sys.flag ? sys.flag + " " : "") + sys.country + " — live count") +
+    ' <span class="board-note" id="watchMapNote">' +
+    G.UI._esc((sys.totalSeats || "") + " " + (sys.resultLabel || "seats") + " · hover to explore") + '</span>';
+
+  var handle = G.UI.buildCountryMap ? G.UI.buildCountryMap("mapWatch", sys, res, colour, { revealed: false }) : false;
+  G.UI.renderMapLegend("mapWatchLegend", colour, G.state.mode, res.breakdown);
+  G.UI.show("screen-watch");
+  return { intl: true, byId: (handle && handle.byId) || {}, colour: colour };
 };
 
 G.UI.pushFeed = function (text, cls) {
@@ -903,103 +932,103 @@ G.UI.renderPostElectionIntl = function (res, sys) {
   if (ob) ob.textContent = res.seats <= 0 ? "Into the wilderness →" : "Lead the Opposition →";
 };
 
-/* Replace the hexmap panel with a system-appropriate visual */
+/* Replace the UK hexmap with a system-appropriate visual: a geographic hex
+   cartogram of the country (when a layout exists) plus a system-specific
+   breakdown (EC tally / coalition list / region bars) below it. */
 G.UI.renderResultMap = function (res, sys) {
   var mapPanel = $("mapResult");
   if (!mapPanel) return;
 
-  /* clear the panel wrapper */
-  var wrapper = mapPanel.parentElement;
-  if (wrapper) {
-    var sectionLabel = wrapper.parentElement && wrapper.parentElement.querySelector(".section-label");
-    if (sectionLabel) sectionLabel.textContent = "Results by " + (sys.key === "ec_usa_president" ? "state" :
-      sys.key.startsWith("pr_") ? "coalition" : sys.key.startsWith("guided_") ? "province" : "region");
+  var colour = G.UI.ticketColour ? G.UI.ticketColour(G.state) : "#3dc888";
+
+  /* section label + note */
+  var mapLabel = $("resultMapLabel");
+  var unit = sys.key === "ec_usa_president" ? "state" :
+             sys.key.startsWith("pr_")     ? "region" :
+             sys.key.startsWith("guided_") ? "province" : "region";
+  if (mapLabel) {
+    mapLabel.innerHTML = G.UI._esc((sys.flag ? sys.flag + " " : "") + sys.country + " — by " + unit) +
+      ' <span class="board-note" id="resultMapNote">' +
+      G.UI._esc((sys.totalSeats || "") + " " + (sys.resultLabel || "seats") + " · hover to explore") + '</span>';
   }
 
-  /* Electoral College — state grid */
-  if (sys.key === "ec_usa_president") {
-    mapPanel.innerHTML = "";
-    mapPanel.className = "ec-map-panel";
-    var legend = $("mapResultLegend"); if (legend) legend.innerHTML = "";
-    var grid = document.createElement("div"); grid.className = "ec-state-grid";
+  /* the geographic hex cartogram (fully revealed on the result screen) */
+  mapPanel.className = "hexmap";
+  var drew = G.UI.buildCountryMap ? G.UI.buildCountryMap("mapResult", sys, res, colour, { revealed: true }) : false;
 
-    var stateResults = (res.campaign && res.campaign.results) || [];
-    var colour = G.UI.ticketColour ? G.UI.ticketColour(G.state) : "#2f5d3a";
+  /* legend — your ticket plus the leading parties */
+  var legend = $("mapResultLegend");
+  if (legend) G.UI.renderMapLegend("mapResultLegend", colour, G.state.mode, res.breakdown);
 
-    var regions = (G.COUNTRY_REGIONS && G.COUNTRY_REGIONS["usa_ec"]) || [];
-    var seatsByRegion = {};
-    stateResults.forEach(function (r) { if (r) seatsByRegion[r.id || r.region] = r; });
+  /* detailed breakdown beneath the map */
+  var detail = $("regionSummary");
+  if (detail) {
+    detail.innerHTML = "";
 
-    var totalEV = 0, wonEV = 0;
-    regions.forEach(function (reg) {
-      var r = seatsByRegion[reg.id];
-      var won = r ? r.winner === "you" : false;
-      var ev = reg.seats;
-      totalEV += ev;
-      if (won) wonEV += ev;
-      var el = document.createElement("div");
-      el.className = "ec-state" + (won ? " won" : " lost");
-      el.style.background = won ? colour : "#888";
-      el.title = reg.name + " — " + ev + " EV — " + (won ? "WON" : "LOST");
-      el.innerHTML = '<span class="ec-name">' + reg.name.split(" ")[0] + '</span><span class="ec-ev">' + ev + '</span>';
-      grid.appendChild(el);
-    });
+    /* Electoral College — state tally grid */
+    if (sys.key === "ec_usa_president") {
+      detail.className = "ec-map-panel";
+      var grid = document.createElement("div"); grid.className = "ec-state-grid";
+      var byRegion = (res.campaign && res.campaign.byRegion) || res.byRegion || [];
+      var totalEV = 0, wonEV = 0;
+      byRegion.forEach(function (r) {
+        var won = r.won > 0, ev = r.total;
+        totalEV += ev; if (won) wonEV += ev;
+        var el = document.createElement("div");
+        el.className = "ec-state" + (won ? " won" : " lost");
+        el.style.background = won ? colour : "#7a7f88";
+        el.title = r.name + " — " + ev + " EV — " + (won ? "WON" : "LOST");
+        el.innerHTML = '<span class="ec-name">' + G.UI._esc(r.name.split(" ")[0]) + '</span><span class="ec-ev">' + ev + '</span>';
+        grid.appendChild(el);
+      });
+      var summary = document.createElement("div"); summary.className = "ec-summary";
+      summary.innerHTML = '<span style="color:' + colour + ';font-weight:700;">' + wonEV + ' EV</span> vs ' +
+                          '<span style="color:#7a7f88;">' + (totalEV - wonEV) + ' EV</span>';
+      detail.appendChild(grid);
+      detail.appendChild(summary);
+      return;
+    }
 
-    var summary = document.createElement("div"); summary.className = "ec-summary";
-    summary.innerHTML = '<span style="color:' + colour + ';font-weight:700;">' + wonEV + ' EV</span> vs ' +
-                        '<span style="color:#888;">' + (totalEV - wonEV) + ' EV</span>';
-    mapPanel.appendChild(grid);
-    mapPanel.appendChild(summary);
+    /* PR / TRS / guided — coalition bar + party list */
+    if (sys.key.startsWith("pr_") || sys.key.startsWith("guided_") || sys.key.startsWith("trs_") ||
+        sys.coalitionStyle === "pr" || sys.coalitionStyle === "trs" || sys.coalitionStyle === "guided") {
+      detail.className = "pr-coalition-panel";
+      var bd = res.breakdown || [];
+      var totalSeats = sys.totalSeats || 1;
+      var bar = document.createElement("div"); bar.className = "coalition-bar";
+      bd.slice(0, 10).forEach(function (b) {
+        if (!b.seats) return;
+        var seg = document.createElement("div");
+        seg.className = "coalition-seg" + (b.isYou ? " you" : "");
+        seg.style.width = (b.seats / totalSeats * 100) + "%";
+        seg.style.background = b.colour || "#ccc";
+        seg.title = b.party + " — " + b.seats + " seats";
+        bar.appendChild(seg);
+      });
+      detail.appendChild(bar);
+      var list = document.createElement("div"); list.className = "pr-list";
+      bd.slice(0, 12).forEach(function (b) {
+        var row = document.createElement("div"); row.className = "pr-row" + (b.isYou ? " you" : "");
+        row.innerHTML = '<span class="pr-sw" style="background:' + (b.colour || "#ccc") + '"></span>' +
+          '<span class="pr-name">' + G.UI._esc(b.party) + '</span>' +
+          '<span class="pr-seats">' + b.seats + '</span>' +
+          '<span class="pr-pct">' + (b.seats / totalSeats * 100).toFixed(1) + '%</span>';
+        list.appendChild(row);
+      });
+      detail.appendChild(list);
+      return;
+    }
 
-    var regionSummary = $("regionSummary");
-    if (regionSummary) regionSummary.innerHTML = "";
-    return;
+    /* FPTP international — per-region bars */
+    detail.className = "region-summary";
+    if (G.UI.renderRegionSummary) G.UI.renderRegionSummary("regionSummary", res, colour);
   }
 
-  /* PR / Guided — coalition bar */
-  if (sys.key.startsWith("pr_") || sys.key.startsWith("guided_") || sys.key.startsWith("trs_")) {
-    mapPanel.innerHTML = "";
-    mapPanel.className = "pr-coalition-panel";
-    var legend2 = $("mapResultLegend"); if (legend2) legend2.innerHTML = "";
-    var regionSummary2 = $("regionSummary"); if (regionSummary2) regionSummary2.innerHTML = "";
-
-    var bd = res.breakdown || [];
-    var totalSeats = sys.totalSeats || 1;
-    var bar = document.createElement("div"); bar.className = "coalition-bar";
-
-    bd.slice(0, 10).forEach(function (b) {
-      if (!b.seats) return;
-      var seg = document.createElement("div");
-      seg.className = "coalition-seg" + (b.isYou ? " you" : "");
-      seg.style.width = (b.seats / totalSeats * 100) + "%";
-      seg.style.background = b.colour || "#ccc";
-      seg.title = b.party + " — " + b.seats + " seats";
-      bar.appendChild(seg);
-    });
-    mapPanel.appendChild(bar);
-
-    /* breakdown list */
-    var list = document.createElement("div"); list.className = "pr-list";
-    bd.slice(0, 12).forEach(function (b) {
-      var row = document.createElement("div"); row.className = "pr-row" + (b.isYou ? " you" : "");
-      row.innerHTML = '<span class="pr-sw" style="background:' + (b.colour || "#ccc") + '"></span>' +
-        '<span class="pr-name">' + G.UI._esc(b.party) + '</span>' +
-        '<span class="pr-seats">' + b.seats + '</span>' +
-        '<span class="pr-pct">' + (b.seats / totalSeats * 100).toFixed(1) + '%</span>';
-      list.appendChild(row);
-    });
-    mapPanel.appendChild(list);
-    return;
+  /* if no geographic layout existed, fall back to bars inside the map panel */
+  if (!drew) {
+    mapPanel.className = "region-summary-panel";
+    if (G.UI.renderRegionSummary) G.UI.renderRegionSummary("mapResult", res, colour);
   }
-
-  /* FPTP international — region summary */
-  mapPanel.innerHTML = "";
-  mapPanel.className = "region-summary-panel";
-  var legend3 = $("mapResultLegend"); if (legend3) legend3.innerHTML = "";
-
-  var colour2 = G.UI.ticketColour ? G.UI.ticketColour(G.state) : "#2f5d3a";
-  if (G.UI.renderRegionSummary) G.UI.renderRegionSummary("mapResult", res, colour2);
-  var regionSummary3 = $("regionSummary"); if (regionSummary3) regionSummary3.innerHTML = "";
 };
 
 /* =========================================================
@@ -1013,6 +1042,10 @@ G.UI.renderResult = function (res) {
   }
 
   var C = G.CONFIG;
+  /* reset the results-map label to the UK default (it may carry stale country
+     text from a previous international game in the same session) */
+  var ukMapLabel = $("resultMapLabel");
+  if (ukMapLabel) ukMapLabel.innerHTML = 'The results map <span class="board-note" id="resultMapNote">650 seats · hover to explore</span>';
   /* career mode: show strip of previous parliaments above the result */
   G.UI.renderCareerParlStrip("careerParlStrip", G.career);
   var banner = $("govtBanner");
@@ -1240,7 +1273,7 @@ G.UI.drawShareCard = function (res) {
   x.font = "900 150px 'Fraunces', Georgia, serif";
   x.fillText(String(res.seats), lx, 250);
   x.fillStyle = "#4f4a3c"; x.font = "500 22px 'Spline Sans Mono', monospace";
-  x.fillText("SEATS OF 650", lx, 288);
+  x.fillText("SEATS OF " + (res.totalSeats || 650), lx, 288);
   x.fillStyle = "#862231"; x.font = "italic 700 30px 'Fraunces', Georgia, serif";
   x.fillText(res.tier.label, lx, 340);
   x.fillStyle = res.tier.govt ? "#2f5d3a" : "#862231";
@@ -1297,8 +1330,12 @@ G.UI.resultText = function (res) {
   var modeLine = G.state.mode === "dynasty" ? (G.state.lineage + " dynasty")
                : (G.state.custom && G.state.custom.name) ? ("\u201c" + G.state.custom.name + "\u201d")
                : G.state.mode === "wildcard" ? "wildcard cabinet" : "unity ticket";
+  var total = res.totalSeats || 650;
+  var sysName = (res.electoralSystem && res.electoralSystem !== "fptp_uk" && G.ELECTORAL_SYSTEMS &&
+                 G.ELECTORAL_SYSTEMS[res.electoralSystem]);
+  var arena = sysName ? (sysName.flag + " " + sysName.country) : "650";
   var lines = [
-    "650 — my " + modeLine + " won " + res.seats + " of 650 seats.",
+    arena + " — my " + modeLine + " won " + res.seats + " of " + total + " seats.",
     res.tier.label + (res.tier.govt ? " — formed the government." : " — leads the opposition."),
     (pm ? "PM: " + pm.name : "") + (ch ? "  ·  Chancellor: " + ch.name : ""),
     "Can you go 650-0? — 650-0.co.uk"
@@ -1555,8 +1592,23 @@ G.UI.renderWikiParliament = function (res, state, career) {
   var govt2024 = C.govt2024 || { party: "Labour", seats: 411, vote: 33.7, leader: "Keir Starmer" };
   var year = res.electionYear || new Date().getFullYear();
   var el = document.getElementById("wikiYear"); if (el) el.textContent = year;
+
+  /* country-aware header: international systems get their own flag/title */
+  var wikiSys = (res.electoralSystem && res.electoralSystem !== "fptp_uk" && G.ELECTORAL_SYSTEMS)
+                ? G.ELECTORAL_SYSTEMS[res.electoralSystem] : null;
+  var wMajority = wikiSys ? (wikiSys.majority || G.CONFIG.majority) : G.CONFIG.majority;
+  var flagEl = document.getElementById("wikiFlag");
+  var titleEl = document.getElementById("wikiTitleText");
   var dateEl = document.getElementById("wikiDate");
-  if (dateEl) dateEl.textContent = "General election · United Kingdom";
+  if (wikiSys) {
+    if (flagEl)  flagEl.textContent  = wikiSys.flag || "🗳";
+    if (titleEl) titleEl.textContent = wikiSys.country + " — " + wikiSys.name;
+    if (dateEl)  dateEl.textContent  = wikiSys.name + " · " + wikiSys.country;
+  } else {
+    if (flagEl)  flagEl.textContent  = "🇬🇧";
+    if (titleEl) titleEl.textContent = "United Kingdom general election";
+    if (dateEl)  dateEl.textContent  = "General election · United Kingdom";
+  }
 
   /* turnout (simulated: 60–72%) */
   var turnout = (58 + Math.round((res.voteShare || 0) * 40)).toFixed(1) + "%";
@@ -1612,6 +1664,20 @@ G.UI.renderWikiParliament = function (res, state, career) {
     leftPriorVote  = "—";
     leftSeatDelta  = null;
     leftVoteDelta  = null;
+  } else if (wikiSys) {
+    /* international, first election: the chamber's leading incumbent party
+       (largest non-player party in this result) stands in as the outgoing govt */
+    var topOpp = null;
+    (res.breakdown || []).forEach(function (b) { if (!b.isYou && !topOpp) topOpp = b; });
+    leftParty  = topOpp ? topOpp.party : "Previous administration";
+    leftLeader = "—";
+    leftSeats  = "—";
+    leftVote   = "—";
+    leftHead   = "Outgoing — " + (wikiSys.country || "");
+    leftPriorSeats = "—";
+    leftPriorVote  = "—";
+    leftSeatDelta  = null;
+    leftVoteDelta  = null;
   } else {
     /* no history: show 2024 Labour government as the baseline outgoing govt */
     leftParty  = govt2024.party;
@@ -1649,7 +1715,7 @@ G.UI.renderWikiParliament = function (res, state, career) {
   if (hungNote) {
     if (res.tier && res.tier.key === "largest") {
       hungNote.style.display = "";
-      hungNote.textContent = "No party won an outright majority. " + youParty + " is the largest party with " + youSeats + " seats — " + (G.CONFIG.majority - youSeats) + " short of a majority.";
+      hungNote.textContent = "No party won an outright majority. " + youParty + " is the largest party with " + youSeats + " seats — " + (wMajority - youSeats) + " short of a majority.";
     } else {
       hungNote.style.display = "none";
     }
