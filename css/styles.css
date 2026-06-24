@@ -1462,3 +1462,93 @@ html.theme-light .country-hexsvg polygon[data-state] { stroke: rgba(60,50,30,.5)
   transition: transform .08s ease, background .15s ease, border-color .15s ease;
 }
 .theme-toggle:hover { background: var(--paper-3); border-color: var(--brass); transform: translateY(-1px); }
+
+/* =============================================================================
+   DARK THEME — Phase 7 fixes: wiki box, align chips, remaining hardcoded colours
+   ============================================================================= */
+
+/* ---- Wikipedia-style election record box -------------------------------- */
+.wiki-box { border-color: var(--line) !important; background: var(--paper-2) !important; color: var(--ink) !important; }
+.wiki-title { background: var(--paper-3) !important; color: var(--ink) !important; border-bottom-color: var(--line) !important; }
+.wiki-year { color: var(--ink-soft) !important; }
+.wiki-date { background: rgba(255,255,255,.04) !important; color: var(--ink-soft) !important; border-bottom-color: var(--line) !important; }
+.wiki-cols  { border-bottom-color: var(--line) !important; }
+.wiki-divider { background: var(--line) !important; }
+.wiki-col-head { background: var(--paper-3) !important; color: var(--ink) !important; border-bottom-color: var(--line) !important; }
+.wiki-portrait-init { background: var(--paper-3) !important; color: var(--ink-soft) !important; border-color: var(--line) !important; }
+.wiki-portrait { border-color: var(--line) !important; }
+.wiki-table tr:nth-child(even) { background: rgba(255,255,255,.04) !important; }
+.wt-label { color: var(--ink-soft) !important; }
+.wiki-national { border-bottom-color: var(--line) !important; }
+.wiki-nat-row:nth-child(even) { background: rgba(255,255,255,.03) !important; }
+.wiki-comp-head { color: var(--ink) !important; }
+.wiki-comp { border-bottom-color: var(--line) !important; }
+.wiki-results-head { color: var(--ink) !important; border-top-color: var(--line) !important; }
+.wiki-full-results { border-bottom-color: var(--line) !important; }
+.wiki-full-results th { background: var(--paper-3) !important; color: var(--ink-soft) !important; }
+.wiki-full-results td { border-bottom-color: var(--line) !important; }
+.wiki-full-results tr.wiki-you-row td { background: rgba(61,200,136,.07) !important; }
+.wiki-pm-label { color: var(--ink-soft) !important; }
+.wiki-pmrow { background: var(--paper-3) !important; border-top-color: var(--line) !important; }
+.wiki-pm-cell:first-child { border-right-color: var(--line) !important; }
+.wiki-hung-note { background: rgba(232,160,48,.08) !important; border-left-color: var(--brass) !important; color: var(--brass-lite) !important; }
+
+/* ---- Align chips in party setup ----------------------------------------- */
+.align-chip { color: var(--ink); }
+.align-chip.sel { background: var(--paper-3) !important; color: var(--green) !important; border-color: var(--green) !important; box-shadow: inset 0 0 0 1px var(--green) !important; }
+
+/* ---- Tier chips (deal cards) -------------------------------------------- */
+.tier-chip.t-a { color: var(--brass-lite) !important; background: rgba(232,160,48,.12) !important; border-color: rgba(232,160,48,.4) !important; }
+.dc-flag { color: var(--brass-lite) !important; background: rgba(232,160,48,.08) !important; border-color: rgba(232,160,48,.3) !important; }
+
+/* ---- Vote-share mini-bars (wiki / result) -------------------------------- */
+.share-bar-wrap  { background: rgba(255,255,255,.07); }
+.share-bar-label { color: var(--ink-soft); }
+.mini-bar-wrap   { background: rgba(255,255,255,.07); }
+
+/* ---- Session track dots (st-dot = the actual class used by ui.js) -------- */
+.st-dot.st-future { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); }
+
+/* ---- Grandees / stat boxes in deal cards --------------------------------- */
+.stat-row { color: var(--ink-soft); }
+.stat-key  { color: var(--ink-soft); }
+.stat-val  { color: var(--ink); }
+
+/* ---- Era chip in deal cards ---------------------------------------------- */
+.era-chip { background: var(--paper-3); border-color: var(--line); color: var(--ink-soft); }
+.era-chip.sel { background: var(--green-deep); border-color: var(--green); color: #fff; }
+.era-chip b { color: var(--ink); }
+
+/* ---- reshuffle panel min/trait tags --------------------------------------- */
+.min-name   { color: var(--ink); }
+.min-role   { color: var(--ink-soft); }
+.min-bar-bg { background: rgba(255,255,255,.08); }
+.min-bar-fill.good  { background: var(--green); }
+.min-bar-fill.ok    { background: var(--brass); }
+.min-bar-fill.poor  { background: var(--oxblood); }
+
+/* ---- Watch screen feed lines -------------------------------------------- */
+.feed-line  { color: var(--ink-soft); }
+.feed-line b { color: var(--ink); }
+.feed-line.win-line { color: var(--green); }
+.feed-line.lose-line { color: var(--oxblood); }
+
+/* ---- career parl strip items -------------------------------------------- */
+.cps-parl  { color: var(--brass-lite); }
+.cps-seats { color: var(--ink); }
+
+/* ---- Light-theme wiki overrides ------------------------------------------ */
+html.theme-light .wiki-box { border-color: #a2a9b1 !important; background: #f8f9fa !important; color: #202122 !important; }
+html.theme-light .wiki-title { background: #cee0f2 !important; color: #202122 !important; border-bottom-color: #a2a9b1 !important; }
+html.theme-light .wiki-date { background: #eaf3fb !important; color: #54595d !important; }
+html.theme-light .wiki-col-head { background: #cee0f2 !important; color: #202122 !important; }
+html.theme-light .wiki-portrait-init { background: #e8e8e8 !important; color: #54595d !important; }
+html.theme-light .wiki-pmrow { background: #cee0f2 !important; }
+html.theme-light .wiki-full-results th { background: #eaeff4 !important; color: #54595d !important; }
+html.theme-light .wt-label { color: #54595d !important; }
+html.theme-light .wiki-hung-note { background: #fef6e4 !important; border-left-color: #c8972a !important; color: #7a5d14 !important; }
+html.theme-light .align-chip.sel { background: #fff !important; color: var(--green) !important; }
+html.theme-light .tier-chip.t-a { color: #7a5d14 !important; background: rgba(176,141,47,.18) !important; }
+html.theme-light .country-card { background: rgba(255,255,255,.7); }
+html.theme-light .country-card:hover { background: rgba(255,255,255,.9); }
+html.theme-light .country-card.sel  { background: rgba(47,109,68,.07); }
