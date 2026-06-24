@@ -74,6 +74,8 @@
   function boot() {
     sel("metaCount").textContent = G.POLITICIANS.length;
     sel("metaEras").textContent = G.ERAS.filter(function (e) { return !e.wildOnly; }).length;
+    if (sel("metaSystems") && G.ELECTORAL_SYSTEMS) sel("metaSystems").textContent = Object.keys(G.ELECTORAL_SYSTEMS).length;
+    if (sel("metaScenarios") && G.SCENARIOS) sel("metaScenarios").textContent = G.SCENARIOS.length;
     buildEraToggles(true);
     buildCastToggles();
     buildDynastyChips();

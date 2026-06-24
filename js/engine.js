@@ -418,6 +418,8 @@ G.hold = function () {
   res.electionYear = st.gameYear || 2026;
   res.blocSupport = blocSupport;
   res.scenarioKey = st.scenarioKey || null;
+  res.electoralSystem = st._electoralSystemKey || "fptp_uk";
+  res.totalSeats = (G.activeTotalSeats ? G.activeTotalSeats() : 650);
   return res;
 };
 

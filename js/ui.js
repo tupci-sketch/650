@@ -424,7 +424,9 @@ G.UI.setMeter = function (id, value) {
   }
 };
 G.UI.updateGovSeats = function () {
-  var t = G.term, maj = t.seats - G.CONFIG.majority;
+  var t = G.term;
+  var majNeeded = (G.activeMajority ? G.activeMajority() : G.CONFIG.majority);
+  var maj = t.seats - majNeeded;
   $("govSeats").textContent = t.seats;
   $("govSeatsSub").textContent = maj >= 0 ? "(majority of " + maj + ")" : "(minority — " + Math.abs(maj) + " short)";
 };
@@ -1271,7 +1273,7 @@ G.UI.drawShareCard = function (res) {
   x.font = "900 150px 'Fraunces', Georgia, serif";
   x.fillText(String(res.seats), lx, 250);
   x.fillStyle = "#4f4a3c"; x.font = "500 22px 'Spline Sans Mono', monospace";
-  x.fillText("SEATS OF 650", lx, 288);
+  x.fillText("SEATS OF " + (res.totalSeats || 650), lx, 288);
   x.fillStyle = "#862231"; x.font = "italic 700 30px 'Fraunces', Georgia, serif";
   x.fillText(res.tier.label, lx, 340);
   x.fillStyle = res.tier.govt ? "#2f5d3a" : "#862231";
@@ -1328,8 +1330,12 @@ G.UI.resultText = function (res) {
   var modeLine = G.state.mode === "dynasty" ? (G.state.lineage + " dynasty")
                : (G.state.custom && G.state.custom.name) ? ("\u201c" + G.state.custom.name + "\u201d")
                : G.state.mode === "wildcard" ? "wildcard cabinet" : "unity ticket";
+  var total = res.totalSeats || 650;
+  var sysName = (res.electoralSystem && res.electoralSystem !== "fptp_uk" && G.ELECTORAL_SYSTEMS &&
+                 G.ELECTORAL_SYSTEMS[res.electoralSystem]);
+  var arena = sysName ? (sysName.flag + " " + sysName.country) : "650";
   var lines = [
-    "650 — my " + modeLine + " won " + res.seats + " of 650 seats.",
+    arena + " — my " + modeLine + " won " + res.seats + " of " + total + " seats.",
     res.tier.label + (res.tier.govt ? " — formed the government." : " — leads the opposition."),
     (pm ? "PM: " + pm.name : "") + (ch ? "  ·  Chancellor: " + ch.name : ""),
     "Can you go 650-0? — 650-0.co.uk"
@@ -1586,8 +1592,23 @@ G.UI.renderWikiParliament = function (res, state, career) {
   var govt2024 = C.govt2024 || { party: "Labour", seats: 411, vote: 33.7, leader: "Keir Starmer" };
   var year = res.electionYear || new Date().getFullYear();
   var el = document.getElementById("wikiYear"); if (el) el.textContent = year;
+
+  /* country-aware header: international systems get their own flag/title */
+  var wikiSys = (res.electoralSystem && res.electoralSystem !== "fptp_uk" && G.ELECTORAL_SYSTEMS)
+                ? G.ELECTORAL_SYSTEMS[res.electoralSystem] : null;
+  var wMajority = wikiSys ? (wikiSys.majority || G.CONFIG.majority) : G.CONFIG.majority;
+  var flagEl = document.getElementById("wikiFlag");
+  var titleEl = document.getElementById("wikiTitleText");
   var dateEl = document.getElementById("wikiDate");
-  if (dateEl) dateEl.textContent = "General election · United Kingdom";
+  if (wikiSys) {
+    if (flagEl)  flagEl.textContent  = wikiSys.flag || "🗳";
+    if (titleEl) titleEl.textContent = wikiSys.country + " — " + wikiSys.name;
+    if (dateEl)  dateEl.textContent  = wikiSys.name + " · " + wikiSys.country;
+  } else {
+    if (flagEl)  flagEl.textContent  = "🇬🇧";
+    if (titleEl) titleEl.textContent = "United Kingdom general election";
+    if (dateEl)  dateEl.textContent  = "General election · United Kingdom";
+  }
 
   /* turnout (simulated: 60–72%) */
   var turnout = (58 + Math.round((res.voteShare || 0) * 40)).toFixed(1) + "%";
@@ -1643,6 +1664,20 @@ G.UI.renderWikiParliament = function (res, state, career) {
     leftPriorVote  = "—";
     leftSeatDelta  = null;
     leftVoteDelta  = null;
+  } else if (wikiSys) {
+    /* international, first election: the chamber's leading incumbent party
+       (largest non-player party in this result) stands in as the outgoing govt */
+    var topOpp = null;
+    (res.breakdown || []).forEach(function (b) { if (!b.isYou && !topOpp) topOpp = b; });
+    leftParty  = topOpp ? topOpp.party : "Previous administration";
+    leftLeader = "—";
+    leftSeats  = "—";
+    leftVote   = "—";
+    leftHead   = "Outgoing — " + (wikiSys.country || "");
+    leftPriorSeats = "—";
+    leftPriorVote  = "—";
+    leftSeatDelta  = null;
+    leftVoteDelta  = null;
   } else {
     /* no history: show 2024 Labour government as the baseline outgoing govt */
     leftParty  = govt2024.party;
@@ -1680,7 +1715,7 @@ G.UI.renderWikiParliament = function (res, state, career) {
   if (hungNote) {
     if (res.tier && res.tier.key === "largest") {
       hungNote.style.display = "";
-      hungNote.textContent = "No party won an outright majority. " + youParty + " is the largest party with " + youSeats + " seats — " + (G.CONFIG.majority - youSeats) + " short of a majority.";
+      hungNote.textContent = "No party won an outright majority. " + youParty + " is the largest party with " + youSeats + " seats — " + (wMajority - youSeats) + " short of a majority.";
     } else {
       hungNote.style.display = "none";
     }
