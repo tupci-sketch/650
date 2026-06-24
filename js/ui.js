@@ -700,7 +700,318 @@ G.UI.setWatchTally = function (seats, declared) {
 };
 
 /* ============================================================== RESULTS == */
+/* =========================================================
+   INTERNATIONAL RESULT RENDERER
+   ========================================================= */
+G.UI.renderResultIntl = function (res) {
+  var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[G.state._electoralSystemKey];
+  if (!sys) { G.UI.renderResult._base(res); return; }
+
+  var C = G.CONFIG;
+  G.UI.renderCareerParlStrip("careerParlStrip", G.career);
+
+  var total = sys.totalSeats || 650;
+  var majority = sys.majority || 326;
+  var resultLabel = sys.resultLabel || "Seats";
+  var flag = sys.flag || "";
+
+  /* — banner — */
+  var banner = $("govtBanner");
+  var isDespot = sys.despotMode || sys.coalitionStyle === "guided";
+  if (isDespot) {
+    banner.className = "govt-banner win despot-banner";
+    banner.textContent = flag + " " + sys.name + " — The people have spoken";
+  } else if (res.tier.govt) {
+    var govtPhrases = {
+      ec_usa_president: "You win the Presidency",
+      fptp_usa_house:   "You take the House",
+      pr_dhondt_weimar: "You win the Reichstag",
+      pr_dhondt_bundestag: "Your coalition takes the Bundestag",
+      trs_france:       "Vous avez gagné l'Assemblée",
+      av_australia:     "You form government",
+      fptp_canada:      "You form government",
+      fptp_india:       "You win the Lok Sabha",
+      fptp_japan:       "You win the Shūgiin",
+      fptp_uk:          "You form His Majesty's Government"
+    };
+    banner.className = "govt-banner win";
+    banner.textContent = govtPhrases[sys.key] || (flag + " You win — " + sys.name);
+  } else {
+    banner.className = "govt-banner lose";
+    banner.textContent = "Defeat — " + res.seats + " " + resultLabel;
+  }
+
+  /* — tier + seat count — */
+  $("tierName").textContent = res.tier.label || "";
+
+  if (isDespot) {
+    var pct = total > 0 ? (res.seats / total * 100).toFixed(1) : "99.9";
+    $("seatNumber").innerHTML = pct + '<span class="of">%</span>';
+  } else {
+    G.UI.countTo($("seatNumber"), res.seats, total);
+  }
+
+  /* — majority line — */
+  var ml;
+  if (isDespot) {
+    ml = "A glorious <b>" + (res.seats / total * 100).toFixed(2) + "%</b> of all " + resultLabel.toLowerCase() + " — " + (res.tier.label || "victory");
+  } else if (res.seats >= total) {
+    ml = "Every single " + resultLabel.toLowerCase().replace(/s$/, "") + " — an unprecedented clean sweep.";
+  } else if (res.tier.govt && res.majorityOf >= 0) {
+    ml = "A working majority of <b>" + res.majorityOf + "</b> " + resultLabel.toLowerCase() + ".";
+  } else if (res.tier.role === "opposition") {
+    ml = "The main opposition on <b>" + res.seats + "</b> " + resultLabel.toLowerCase() + " — second to " +
+         G.UI._esc((res.breakdown[0] && res.breakdown[0].party) || "the winning party") + ".";
+  } else {
+    ml = "<b>" + res.seats + "</b> " + resultLabel.toLowerCase() + " — short of a majority by <b>" + Math.abs(res.majorityOf || (majority - res.seats)) + "</b>.";
+  }
+  $("majorityLine").innerHTML = ml;
+
+  /* — commons bar (repurposed as seat bar) — */
+  $("majMark").style.left = (majority / total * 100) + "%";
+  $("majKeyLabel").textContent = majority + " needed";
+  setTimeout(function () { $("commonsFill").style.width = (res.seats / total * 100) + "%"; }, 80);
+
+  /* — post-election panel (coalition / govern / opposition) — */
+  G.UI.renderPostElectionIntl(res, sys);
+
+  /* — standings — */
+  G.UI.renderStandings("seatBreakdown", res.breakdown);
+  var bpEl = $("breakdownPanel");
+  if (bpEl) {
+    var bpLabel = bpEl.querySelector(".section-label");
+    if (bpLabel) bpLabel.textContent = sys.name + " — " + flag + " " + resultLabel;
+  }
+
+  /* — map / visual panel — replace hexmap with system-appropriate display — */
+  G.UI.renderResultMap(res, sys);
+
+  /* — odds — */
+  var pc = function (x) { return x >= 0.995 ? "100%" : x <= 0.0005 ? "<0.1%" : (x * 100).toFixed(x < 0.1 ? 1 : 0) + "%"; };
+  $("oddMaj").textContent    = pc(res.odds.majority);
+  $("oddLand").textContent   = pc(res.odds.landslide);
+  $("oddSuper").textContent  = pc(res.odds.supermajority);
+  $("oddSweep").textContent  = pc(res.odds.sweep);
+  $("rangeNote").innerHTML   = "This campaign returned <b>" + res.seats + "</b> " + resultLabel.toLowerCase() +
+    " on <b>" + (res.voteShare * 100).toFixed(1) + "%</b> of the vote. Across " + C.trials.toLocaleString() +
+    " simulated campaigns the result ranged from <b>" + res.range.low + "</b> to <b>" + res.range.high +
+    "</b> (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats + "</b>). Run it again to fight another.";
+
+  /* — front bench — */
+  var roll = $("cabinetRoll"); roll.innerHTML = "";
+  G.PORTFOLIOS.forEach(function (port) {
+    var h = G.state.cabinet[port.key];
+    var line = document.createElement("div"); line.className = "roll-line";
+    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? h.name : "—") + '</span>';
+    roll.appendChild(line);
+  });
+
+  /* — objectives — */
+  if (G.checkObjectives) {
+    var ctx = { seats: res.seats, legacy: 0, scenario: G.state.scenarioKey || null };
+    G.UI.renderObjectivesStrip("objectivesStrip", G.checkObjectives(ctx));
+  }
+
+  G.UI.show("screen-result");
+};
+
+/* System-aware post-election panels */
+G.UI.renderPostElectionIntl = function (res, sys) {
+  var gp = $("governPanel"), cp = $("coalitionPanel"), op = $("oppositionPanel"), C = G.CONFIG;
+  gp.style.display = "none"; cp.style.display = "none"; op.style.display = "none";
+
+  var isDespot = sys.despotMode || sys.coalitionStyle === "guided";
+  if (isDespot) {
+    /* despots always govern — show the govern panel with a flavour message */
+    gp.style.display = "";
+    $("govPct").textContent = (res.seats / sys.totalSeats * 100).toFixed(1) + "%";
+    $("govLine").textContent = "The result is beyond question. Consolidate power and continue the revolution.";
+    setTimeout(function () { $("govFill").style.width = "100%"; }, 90);
+    return;
+  }
+
+  if (!res.govern) return;
+
+  var total = sys.totalSeats;
+  var majority = sys.majority;
+  var co = res.coalition;
+
+  if (co && co.soloMajority) {
+    gp.style.display = "";
+    var gv = res.governVerdict;
+    var word = gv.stability >= 66 ? "commanding" : gv.stability >= 50 ? "workable" : "precarious";
+    $("govPct").textContent = gv.stability + "%";
+    var govPhrases = {
+      ec_usa_president: "Enter the White House and govern.",
+      trs_france: "Entrez à l'Élysée — gouvernez la France.",
+      av_australia: "Take office in Canberra.",
+      fptp_canada: "Take the Prime Minister's Office.",
+      fptp_india: "Enter 7 Lok Kalyan Marg — govern India.",
+      pr_dhondt_bundestag: "Form your coalition and govern from Berlin.",
+      pr_dhondt_weimar: "Form a Reichstag majority and govern."
+    };
+    $("govLine").textContent = (govPhrases[sys.key] || "Take office and govern.") + " Your opening position looks " + word + ".";
+    setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    return;
+  }
+
+  if (co && (co.deals.length > 0 || co.canMinority)) {
+    cp.style.display = "";
+    var instLabels = {
+      pr_dhondt_weimar:    "Reichstag",
+      pr_dhondt_bundestag: "Bundestag",
+      trs_france:          "Assemblée Nationale",
+      av_australia:        "House of Representatives",
+      fptp_canada:         "House of Commons",
+      fptp_india:          "Lok Sabha",
+      fptp_usa_house:      "House of Representatives"
+    };
+    var inst = instLabels[sys.key] || "parliament";
+    $("coalitionIntro").innerHTML = "No party has a majority — you hold <b>" + res.seats + "</b> seats and need <b>" + majority +
+      "</b>. " + (co.largest ? "As the largest party you get first go at forming a government." :
+      "You could still try to assemble a majority.");
+    var box = $("coalitionOptions"); box.innerHTML = "";
+    (co.deals || []).forEach(function (d, i) {
+      var names = d.parties.map(function (p) { return p.party; }).join(" + ");
+      var sw = d.parties.map(function (p) { return '<span class="coal-sw" style="background:' + p.colour + '"></span>'; }).join("");
+      var b = document.createElement("button");
+      b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
+      var tag = d.tag || (d.natural ? "natural" : "unlikely");
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+                    '<span class="coal-meta"><span class="coal-sub">' + d.combined + ' seats</span>' +
+                    '<span class="coal-tag ' + tag + '">' + tag + '</span></span>';
+      box.appendChild(b);
+    });
+    if (co.canMinority) {
+      var m = document.createElement("button");
+      m.className = "coal-opt minority"; m.setAttribute("data-act", "minority");
+      m.innerHTML = '<span class="coal-main">Govern alone as a minority</span><span class="coal-meta"><span class="coal-sub">' + res.seats + ' seats · confidence on a knife-edge</span></span>';
+      box.appendChild(m);
+    }
+    var oBtn = document.createElement("button");
+    oBtn.className = "coal-opt opp"; oBtn.setAttribute("data-act", "opposition");
+    oBtn.innerHTML = '<span class="coal-main">Decline — go into opposition</span><span class="coal-meta"><span class="coal-sub">let others try to govern</span></span>';
+    box.appendChild(oBtn);
+    return;
+  }
+
+  op.style.display = "";
+  var ob = $("oppositionBtn");
+  $("oppositionLine").textContent = res.seats <= 0
+    ? "You were wiped out — not a single seat. Regroup."
+    : "You came up short. Lead the opposition and fight the next election.";
+  if (ob) ob.textContent = res.seats <= 0 ? "Into the wilderness →" : "Lead the Opposition →";
+};
+
+/* Replace the hexmap panel with a system-appropriate visual */
+G.UI.renderResultMap = function (res, sys) {
+  var mapPanel = $("mapResult");
+  if (!mapPanel) return;
+
+  /* clear the panel wrapper */
+  var wrapper = mapPanel.parentElement;
+  if (wrapper) {
+    var sectionLabel = wrapper.parentElement && wrapper.parentElement.querySelector(".section-label");
+    if (sectionLabel) sectionLabel.textContent = "Results by " + (sys.key === "ec_usa_president" ? "state" :
+      sys.key.startsWith("pr_") ? "coalition" : sys.key.startsWith("guided_") ? "province" : "region");
+  }
+
+  /* Electoral College — state grid */
+  if (sys.key === "ec_usa_president") {
+    mapPanel.innerHTML = "";
+    mapPanel.className = "ec-map-panel";
+    var legend = $("mapResultLegend"); if (legend) legend.innerHTML = "";
+    var grid = document.createElement("div"); grid.className = "ec-state-grid";
+
+    var stateResults = (res.campaign && res.campaign.results) || [];
+    var colour = G.UI.ticketColour ? G.UI.ticketColour(G.state) : "#2f5d3a";
+
+    var regions = (G.COUNTRY_REGIONS && G.COUNTRY_REGIONS["usa_ec"]) || [];
+    var seatsByRegion = {};
+    stateResults.forEach(function (r) { if (r) seatsByRegion[r.id || r.region] = r; });
+
+    var totalEV = 0, wonEV = 0;
+    regions.forEach(function (reg) {
+      var r = seatsByRegion[reg.id];
+      var won = r ? r.winner === "you" : false;
+      var ev = reg.seats;
+      totalEV += ev;
+      if (won) wonEV += ev;
+      var el = document.createElement("div");
+      el.className = "ec-state" + (won ? " won" : " lost");
+      el.style.background = won ? colour : "#888";
+      el.title = reg.name + " — " + ev + " EV — " + (won ? "WON" : "LOST");
+      el.innerHTML = '<span class="ec-name">' + reg.name.split(" ")[0] + '</span><span class="ec-ev">' + ev + '</span>';
+      grid.appendChild(el);
+    });
+
+    var summary = document.createElement("div"); summary.className = "ec-summary";
+    summary.innerHTML = '<span style="color:' + colour + ';font-weight:700;">' + wonEV + ' EV</span> vs ' +
+                        '<span style="color:#888;">' + (totalEV - wonEV) + ' EV</span>';
+    mapPanel.appendChild(grid);
+    mapPanel.appendChild(summary);
+
+    var regionSummary = $("regionSummary");
+    if (regionSummary) regionSummary.innerHTML = "";
+    return;
+  }
+
+  /* PR / Guided — coalition bar */
+  if (sys.key.startsWith("pr_") || sys.key.startsWith("guided_") || sys.key.startsWith("trs_")) {
+    mapPanel.innerHTML = "";
+    mapPanel.className = "pr-coalition-panel";
+    var legend2 = $("mapResultLegend"); if (legend2) legend2.innerHTML = "";
+    var regionSummary2 = $("regionSummary"); if (regionSummary2) regionSummary2.innerHTML = "";
+
+    var bd = res.breakdown || [];
+    var totalSeats = sys.totalSeats || 1;
+    var bar = document.createElement("div"); bar.className = "coalition-bar";
+
+    bd.slice(0, 10).forEach(function (b) {
+      if (!b.seats) return;
+      var seg = document.createElement("div");
+      seg.className = "coalition-seg" + (b.isYou ? " you" : "");
+      seg.style.width = (b.seats / totalSeats * 100) + "%";
+      seg.style.background = b.colour || "#ccc";
+      seg.title = b.party + " — " + b.seats + " seats";
+      bar.appendChild(seg);
+    });
+    mapPanel.appendChild(bar);
+
+    /* breakdown list */
+    var list = document.createElement("div"); list.className = "pr-list";
+    bd.slice(0, 12).forEach(function (b) {
+      var row = document.createElement("div"); row.className = "pr-row" + (b.isYou ? " you" : "");
+      row.innerHTML = '<span class="pr-sw" style="background:' + (b.colour || "#ccc") + '"></span>' +
+        '<span class="pr-name">' + G.UI._esc(b.party) + '</span>' +
+        '<span class="pr-seats">' + b.seats + '</span>' +
+        '<span class="pr-pct">' + (b.seats / totalSeats * 100).toFixed(1) + '%</span>';
+      list.appendChild(row);
+    });
+    mapPanel.appendChild(list);
+    return;
+  }
+
+  /* FPTP international — region summary */
+  mapPanel.innerHTML = "";
+  mapPanel.className = "region-summary-panel";
+  var legend3 = $("mapResultLegend"); if (legend3) legend3.innerHTML = "";
+
+  var colour2 = G.UI.ticketColour ? G.UI.ticketColour(G.state) : "#2f5d3a";
+  if (G.UI.renderRegionSummary) G.UI.renderRegionSummary("mapResult", res, colour2);
+  var regionSummary3 = $("regionSummary"); if (regionSummary3) regionSummary3.innerHTML = "";
+};
+
+/* =========================================================
+   ORIGINAL renderResult — routes to intl if needed
+   ========================================================= */
 G.UI.renderResult = function (res) {
+  /* route international scenarios to dedicated renderer */
+  if (G.state && G.state._electoralSystemKey && G.state._electoralSystemKey !== "fptp_uk") {
+    G.UI.renderResultIntl(res);
+    return;
+  }
+
   var C = G.CONFIG;
   /* career mode: show strip of previous parliaments above the result */
   G.UI.renderCareerParlStrip("careerParlStrip", G.career);
@@ -1024,26 +1335,64 @@ G.UI.renderAbout = function () {
 G.UI._esc = function (s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); };
 G.UI._lbView = "communal";
 G.UI._lbCache = { top: [], communal: false };
+
 G.UI._cabinetInner = function (e) {
   var rows = (e.cabinet || []).map(function (s) {
     return '<div class="lbd-seat"><span class="role">' + G.UI._esc(s.seat) + '</span><span class="who">' + G.UI._esc(s.name) + ' <span class="lb-sub">' + G.UI._esc(s.party) + '</span></span></div>';
   }).join("");
-  var bd = (e.breakdown && e.breakdown.length) ? '<div class="lbd-bd">Commons: ' + e.breakdown.slice(0,6).map(function(b){ return G.UI._esc(b.party) + " " + (b.seats|0); }).join(" \u00b7 ") + '</div>' : "";
+  var isIntl = e.electoralSystem && e.electoralSystem !== "fptp_uk";
+  var ctx = "";
+  if (isIntl) {
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[e.electoralSystem];
+    var sysLabel = sys ? (sys.flag + " " + sys.name) : e.electoralSystem;
+    var total = e.totalSeats || 650;
+    var pct = total > 0 ? (e.seats / total * 100).toFixed(1) : "?";
+    ctx = '<div class="lbd-bd">' + G.UI._esc(sysLabel);
+    if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+      var sc = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+      ctx += " · " + G.UI._esc(sc ? sc.name : e.scenarioKey);
+    }
+    ctx += " · " + (e.seats | 0) + "/" + total + " (" + pct + "%)</div>";
+  } else if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+    var sc2 = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+    ctx = '<div class="lbd-bd">🇬🇧 ' + G.UI._esc(sc2 ? sc2.name : e.scenarioKey) + '</div>';
+  }
+  var bd = (e.breakdown && e.breakdown.length) ? '<div class="lbd-bd">' + e.breakdown.slice(0,6).map(function(b){ return G.UI._esc(b.party) + " " + (b.seats|0); }).join(" · ") + '</div>' : "";
   var party = e.partyName ? '<div class="lbd-bd">Standing as <b>' + G.UI._esc(e.partyName) + '</b>' +
-        (e.partyAlign && G.alignLabel ? ' \u00b7 ' + G.UI._esc(G.alignLabel(e.partyAlign)) : '') + '</div>' : "";
+        (e.partyAlign && G.alignLabel ? ' · ' + G.UI._esc(G.alignLabel(e.partyAlign)) : '') + '</div>' : "";
   if (!rows) rows = '<p class="lb-sub">No cabinet stored for this entry.</p>';
-  return party + rows + bd;
+  return ctx + party + rows + bd;
 };
+
 G.UI._lbRowEl = function (e, rank) {
+  var isAllPct = G.UI._lbView === "allpct";
   var row = document.createElement("div");
-  row.className = "lb-row expandable" + (rank <= 3 && G.UI._lbView === "communal" ? " top" : "");
+  row.className = "lb-row expandable" + (rank <= 3 && G.UI._lbView !== "personal" ? " top" : "");
   var leg = (e.legacy === null || e.legacy === undefined) ? "—" : ("" + e.legacy);
-  var tag = (e.mode || "") + (e.govt ? " \u00b7 govt" : "");
+  var isIntl = e.electoralSystem && e.electoralSystem !== "fptp_uk";
+  var tag;
+  if (isIntl) {
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[e.electoralSystem];
+    tag = (sys ? sys.flag + " " + sys.name : e.electoralSystem);
+  } else if (e.scenarioKey && e.scenarioKey !== "freshstart") {
+    var sc3 = (G.SCENARIOS || []).filter(function (s) { return s.key === e.scenarioKey; })[0];
+    tag = "🇬🇧 " + (sc3 ? sc3.name : e.scenarioKey);
+  } else {
+    tag = (e.mode || "") + (e.govt ? " · govt" : "");
+  }
+  var seatsDisplay;
+  if (isAllPct) {
+    var total2 = e.totalSeats || 650;
+    var pct2 = e.pct != null ? e.pct : (total2 > 0 ? e.seats / total2 * 100 : 0);
+    seatsDisplay = pct2.toFixed(1) + "%";
+  } else {
+    seatsDisplay = (e.seats | 0);
+  }
   row.innerHTML =
     '<span class="lb-rk">' + rank + '</span>' +
     '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '">' + G.UI._esc(e.name || "—") + '</span>' +
     '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
-    '<span class="lb-seats">' + (e.seats | 0) + '</span>' +
+    '<span class="lb-seats">' + seatsDisplay + '</span>' +
     '<span class="lb-leg">' + leg + '</span>';
   var detail = null;
   row.onclick = function () {
@@ -1053,46 +1402,69 @@ G.UI._lbRowEl = function (e, rank) {
   };
   return row;
 };
+
 G.UI._drawLb = function () {
   var box = $("lbTable"); if (!box) return;
   box.innerHTML = "";
   var tabs = document.createElement("div"); tabs.className = "lb-tabs";
-  [["communal", "Communal"], ["personal", "Your runs"]].forEach(function (t) {
+  [["communal", "Hardest (UK)"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
     var b = document.createElement("button");
     b.className = "lb-tab" + (G.UI._lbView === t[0] ? " sel" : "");
     b.textContent = t[1];
-    b.onclick = function () { G.UI._lbView = t[0]; G.UI._drawLb(); };
+    b.onclick = function () {
+      G.UI._lbView = t[0];
+      if (t[0] === "allpct" && !(G.LB._overallPct && G.LB._overallPct.length) && G.LB.fetchOverallPct) {
+        G.LB.fetchOverallPct(function (top) { G.LB._overallPct = top || []; G.UI._drawLb(); });
+        return;
+      }
+      G.UI._drawLb();
+    };
     tabs.appendChild(b);
   });
   box.appendChild(tabs);
-  function head() { var h = document.createElement("div"); h.className = "lb-row lb-head"; h.innerHTML = '<span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Ticket</span><span class="lb-seats">Seats</span><span class="lb-leg">Legacy</span>'; return h; }
-  function section(title, rows) {
+  var seatsHeader = G.UI._lbView === "allpct" ? "%" : "Seats";
+  function head() {
+    var h = document.createElement("div"); h.className = "lb-row lb-head";
+    h.innerHTML = '<span class="lb-rk">#</span><span class="lb-nm">Player</span><span class="lb-md">Election</span><span class="lb-seats">' + seatsHeader + '</span><span class="lb-leg">Legacy</span>';
+    return h;
+  }
+  function section(title, entries) {
     if (title) { var p = document.createElement("p"); p.className = "section-label"; p.style.marginTop = "14px"; p.textContent = title; box.appendChild(p); }
     box.appendChild(head());
-    if (!rows.length) { var e = document.createElement("p"); e.className = "pool-empty"; e.textContent = "No runs yet."; box.appendChild(e); return; }
-    rows.forEach(function (en, i) { box.appendChild(G.UI._lbRowEl(en, i + 1)); });
+    if (!entries.length) { var emp = document.createElement("p"); emp.className = "pool-empty"; emp.textContent = "No runs yet."; box.appendChild(emp); return; }
+    entries.forEach(function (en, i) { box.appendChild(G.UI._lbRowEl(en, i + 1)); });
   }
   if (G.UI._lbView === "communal") {
     section(null, (G.UI._lbCache.top || []).slice(0, G.LB.MAX_SHOW));
+  } else if (G.UI._lbView === "allpct") {
+    var pctData = (G.LB._overallPct || []).slice(0, G.LB.MAX_SHOW);
+    section(null, pctData);
+    if (!pctData.length) {
+      var note = document.createElement("p"); note.className = "lb-sub"; note.style.padding = "8px 0";
+      note.textContent = "Loading cross-system rankings…";
+      box.appendChild(note);
+      if (G.LB.fetchOverallPct) G.LB.fetchOverallPct(function (top) { G.LB._overallPct = top || []; G.UI._drawLb(); });
+    }
   } else {
     section("Your best 10", (G.LB.localTop ? G.LB.localTop(10) : []));
     var worst = (G.LB.localBottom ? G.LB.localBottom(10) : []);
     if (worst.length) section("Your worst 10", worst);
   }
 };
+
 G.UI.renderLeaderboard = function (top, communal, error) {
   var status = $("lbStatus");
   if (status) status.textContent =
-      error === "not hardest mode" ? "Only the hardest mode (Wildcard \u00b7 Hard \u00b7 Expanded) is ranked \u2014 that run wasn\u2019t added to the board."
-    : error === "duplicate" ? "You\u2019ve already posted this exact run \u2014 it wasn\u2019t added again."
+      error === "not hardest mode" ? "Only the hardest mode (Wildcard · Hard · Expanded) is ranked — that run wasn’t added to the board."
+    : error === "duplicate" ? "You’ve already posted this exact run — it wasn’t added again."
     : error === "name taken" ? "That name is claimed by another player (on another device). Pick a different name to post."
-    : error === "login" ? "The public board is for registered players \u2014 sign in (free) and your runs post under your account name."
-    : error === "legacy required" ? "The board needs a fully governed term \u2014 finish a term to rank."
-    : error ? "Couldn\u2019t reach the shared board \u2014 showing your local runs. Tap a row to see the cabinet."
-    : communal ? "A shared, worldwide board \u2014 hardest mode, one best run per player. Tap a row to see the cabinet."
+    : error === "login" ? "The public board is for registered players — sign in (free) and your runs post under your account name."
+    : error === "legacy required" ? "The board needs a fully governed term — finish a term to rank."
+    : error ? "Couldn’t reach the shared board — showing your local runs. Tap a row to see the cabinet."
+    : communal ? "Worldwide board — one best run per player per election type. Tap a row for the cabinet."
                : "A local board on this device. Tap a row to see the cabinet.";
   G.UI._lbCache = { top: top || [], communal: !!communal };
-  if (G.UI._lbView !== "personal") G.UI._lbView = "communal";
+  if (G.UI._lbView !== "personal" && G.UI._lbView !== "allpct") G.UI._lbView = "communal";
   G.UI._drawLb();
 };
 
@@ -1514,6 +1886,25 @@ G.UI.renderObjectiveBanner = function () {
   el.style.display = "";
 };
 
+/* =========================================================== OBJECTIVES STRIP
+   G.UI.renderObjectivesStrip(id, unlockedKeys) — render & persist objectives. */
+G.UI.renderObjectivesStrip = function (id, unlockedKeys) {
+  var strip = $(id); if (!strip) return;
+  if (!unlockedKeys || !unlockedKeys.length) { strip.style.display = "none"; return; }
+  var fresh = G.unlockAchievements ? G.unlockAchievements(unlockedKeys) : unlockedKeys;
+  var all = (G.OBJECTIVES || []).concat((G.SCENARIOS || []).map(function (s) {
+    return { key: "scenario_" + s.key, label: s.objective ? s.objective.label : s.name + " Complete" };
+  }));
+  var html = unlockedKeys.map(function (k) {
+    var obj = all.filter(function (o) { return o.key === k; })[0];
+    var isFresh = fresh.indexOf(k) >= 0;
+    return '<span class="objective-badge' + (isFresh ? " new" : "") + '">' +
+           G.UI._esc(obj ? obj.label : k) + ' ✓</span>';
+  }).join("");
+  if (html) { strip.innerHTML = html; strip.style.display = ""; }
+  else strip.style.display = "none";
+};
+
 /* =========================================================== ACHIEVEMENTS
    G.UI.showAchievements(keys) — flash newly unlocked objectives.             */
 G.UI.showAchievements = function (keys) {
@@ -1614,23 +2005,62 @@ G.UI.renderCampaign = function () {
 };
 
 /* =========================================================== SCENARIO PICKER
-   G.UI.renderScenarioPicker(chosen) — builds the scenario cards in the wizard. */
+   G.UI.renderScenarioPicker(chosen) — builds the scenario cards in the wizard.
+   Groups scenarios by country and adds a country filter tab bar.            */
 G.UI.renderScenarioPicker = function (chosen) {
   var el = $("scenarioCards"); if (!el || !G.SCENARIOS) return;
-  el.innerHTML = G.SCENARIOS.map(function (s) {
+
+  /* build country group map */
+  var groups = {};
+  var groupOrder = [];
+  var groupLabel = {
+    uk: "🇬🇧 United Kingdom", us: "🇺🇸 United States", de: "🇩🇪 Germany",
+    fr: "🇫🇷 France", au: "🇦🇺 Australia", ca: "🇨🇦 Canada",
+    jp: "🇯🇵 Japan", "in": "🇮🇳 India",
+    kp: "🇰🇵 North Korea", su: "🇷🇺 Soviet Union", cu: "🇨🇺 Cuba", cn: "🇨🇳 China"
+  };
+
+  G.SCENARIOS.forEach(function (s) {
+    var c = s.country || "uk";
+    if (!groups[c]) { groups[c] = []; groupOrder.push(c); }
+    groups[c].push(s);
+  });
+
+  var activeGroup = el.getAttribute("data-group") || "uk";
+  if (!groups[activeGroup]) activeGroup = groupOrder[0];
+
+  /* render filter tabs */
+  var tabs = groupOrder.map(function (c) {
+    return '<button class="sc-tab' + (c === activeGroup ? " active" : "") + '" data-group="' + c + '">' +
+      (groupLabel[c] || c.toUpperCase()) + '</button>';
+  }).join("");
+
+  /* render cards for active group */
+  var cards = (groups[activeGroup] || []).map(function (s) {
     var isSel = chosen === s.key || (!chosen && s.key === "freshstart");
     var lockInfo = "";
     if (s.mode || s.difficulty) {
       var parts = [];
-      if (s.mode) parts.push(s.mode);
+      if (s.mode && s.mode !== "unity") parts.push(s.mode);
       if (s.difficulty) parts.push(s.difficulty);
-      lockInfo = '<small class="sc-lock">Locks: ' + G.UI._esc(parts.join(", ")) + '</small>';
+      if (parts.length) lockInfo = '<small class="sc-lock">Locks: ' + G.UI._esc(parts.join(", ")) + '</small>';
     }
+    var despotTag = s.despotMode ? '<small class="sc-despot">⚠ Guided democracy</small>' : '';
     return '<div class="scenario-card' + (isSel ? " sel" : "") + '" data-scenario="' + s.key + '">' +
       '<h4>' + G.UI._esc(s.name) + '</h4>' +
       '<p>' + G.UI._esc(s.desc) + '</p>' +
       (s.objective ? '<p class="sc-obj">🎯 ' + G.UI._esc(s.objective.label) + '</p>' : '') +
-      lockInfo +
+      lockInfo + despotTag +
       '</div>';
   }).join("");
+
+  el.innerHTML = '<div class="sc-tabs">' + tabs + '</div><div class="sc-grid">' + cards + '</div>';
+
+  /* wire tab clicks — re-render keeping chosen */
+  el.querySelectorAll(".sc-tab").forEach(function (btn) {
+    btn.onclick = function () {
+      el.setAttribute("data-group", btn.getAttribute("data-group"));
+      G.UI.renderScenarioPicker(chosen);
+    };
+  });
 };

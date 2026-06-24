@@ -696,19 +696,25 @@ G.careerRecordTerm = function (result, termVerdict) {
   if (termVerdict) {
     var leg = termVerdict.legacy || 50;
     var mod = 0;
-    if (leg >= 85)       mod += 0.035;
-    else if (leg >= 70)  mod += 0.020;
+    if (leg >= 85)       mod += 0.028;   /* reduced from 0.035 */
+    else if (leg >= 70)  mod += 0.016;   /* reduced from 0.020 */
     else if (leg <= 30)  mod -= 0.040;
     else if (leg <= 45)  mod -= 0.022;
     if (termVerdict.outcome === "collapsed") mod -= 0.030;
     var finalApproval  = (termVerdict.meters && termVerdict.meters.approval)  || 50;
     var finalEconomy   = (termVerdict.meters && termVerdict.meters.economy)   || 50;
     var finalUnity     = (termVerdict.meters && termVerdict.meters.unity)     || 50;
-    if (finalEconomy >= 70)  mod += 0.020;
+    if (finalEconomy >= 70)  mod += 0.016;   /* reduced from 0.020 */
     if (finalEconomy < 35)   mod -= 0.018;
     if (finalUnity < 32)     mod -= 0.015;
-    if (finalApproval >= 65) mod += 0.012;
-    G.career.voteModifier = Math.max(-0.12, Math.min(0.12, (G.career.voteModifier || 0) + mod));
+    if (finalApproval >= 70) mod += 0.010;   /* raised threshold from 65 to 70; reduced from 0.012 */
+    /* coalition / minority government: real headwinds at the next election */
+    var wasMinority = termVerdict.kind === "minority" || termVerdict.kind === "coalition";
+    if (wasMinority) mod -= 0.015;
+    /* incumbency fatigue: each parliament beyond the first adds a small headwind */
+    var parliaments = G.career.parliament || 0;
+    if (parliaments >= 2) mod -= 0.008 * Math.min(parliaments - 1, 3);
+    G.career.voteModifier = Math.max(-0.10, Math.min(0.08, (G.career.voteModifier || 0) + mod));
     G.career.reputationScore = Math.max(0, Math.min(100, (G.career.reputationScore || 50) + (leg - 50) * 0.4));
   }
 
@@ -734,7 +740,10 @@ G.careerApplyVoteMod = function (vote) {
   if (!G.career || !G.career.active) return vote;
   var mod = G.career.voteModifier || 0;
   G.career.voteModifier = 0;   // one-shot: consumed on application
-  return Math.max(0.05, Math.min(0.62, vote + mod));
+  /* Hard mode: cap post-career vote at a lower ceiling to prevent runaway snowballing */
+  var diff = G.state && G.state.difficulty;
+  var cap = (diff === "hard") ? 0.55 : (diff === "normal") ? 0.59 : 0.62;
+  return Math.max(0.05, Math.min(cap, vote + mod));
 };
 
 /* ============================================================ CAREER END === */

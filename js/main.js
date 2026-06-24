@@ -681,6 +681,8 @@
     var name = (G.NET && G.NET.me && G.NET.me.name) || "";
     var legacy = (currentVerdict && typeof currentVerdict.legacy === "number") ? currentVerdict.legacy : null;
     var custom = res.custom || (G.state && G.state.custom) || null;
+    var _sys = G.activeElectoralSystem && G.activeElectoralSystem();
+    var _totalSeats = _sys ? (_sys.totalSeats || 650) : (G.CONFIG && G.CONFIG.totalSeats || 650);
     return { name: name, seats: res.seats, legacy: legacy,
              govt: !!(res.tier && res.tier.govt),
              mode: res.mode || (G.state && G.state.mode) || "unity",
@@ -689,6 +691,9 @@
              runId: res.runId || "",
              partyName: custom ? custom.name : "",
              partyAlign: custom ? custom.align : "",
+             scenarioKey: (G.state && G.state.scenarioKey) || "",
+             electoralSystem: (G.state && G.state._electoralSystemKey) || "",
+             totalSeats: _totalSeats,
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }

@@ -1,0 +1,13 @@
+{
+  "name": "650 — Political Draft Game",
+  "short_name": "650",
+  "description": "Assemble a cabinet from history, fight a seat-by-seat election. Can you go 650-0?",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#2f5d3a",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "favicon.svg",          "sizes": "any",      "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
