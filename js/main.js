@@ -472,33 +472,50 @@
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
-  function regionBounds(results) {
+  /* declaration bounds over the per-seat results list. UK uses the 650-seat
+     constituency layout; international systems declare in region order, sized
+     by each region's seat count. */
+  function regionBounds(res, intl) {
     var out = [], idx = 0;
-    G.REGIONS.forEach(function (r) {
-      out.push({ id: r.id, name: r.name, start: idx, end: idx + r.seats, total: r.seats });
-      idx += r.seats;
-    });
+    if (intl) {
+      ((res.campaign && res.campaign.byRegion) || res.byRegion || []).forEach(function (r) {
+        out.push({ id: r.id, name: r.name, start: idx, end: idx + r.total, total: r.total });
+        idx += r.total;
+      });
+    } else {
+      G.REGIONS.forEach(function (r) {
+        out.push({ id: r.id, name: r.name, start: idx, end: idx + r.seats, total: r.seats });
+        idx += r.seats;
+      });
+    }
     return out;
   }
 
-  /* declaration pace — total seconds to call all 650 seats, by chosen speed.
-     slow savours every declaration; fast is a flash; normal sits between. */
-  function revealRate() {
+  /* declaration pace — total seconds to call every seat, by chosen speed. */
+  function revealRate(total) {
     var secs = choice.speed === "slow" ? 200 : choice.speed === "fast" ? 48 : 96;
-    return 650 / secs;   // seats per second
+    return (total || 650) / secs;   // seats per second
   }
 
   function startWatch(res) {
     cancelWatch();
-    var setup = G.UI.renderWatch(res);
+    var intl = G.state && G.state._electoralSystemKey && G.state._electoralSystemKey !== "fptp_uk";
+    var sys  = intl && G.ELECTORAL_SYSTEMS ? G.ELECTORAL_SYSTEMS[G.state._electoralSystemKey] : null;
+    var results = res.campaign.results || [];
+    var total = results.length || (sys ? sys.totalSeats : 650);
+    var bounds = regionBounds(res, intl);
+
+    var setup = intl ? G.UI.renderWatchIntl(res, sys) : G.UI.renderWatch(res);
     watch = {
-      res: res, byId: setup.byId, colour: setup.colour, results: res.campaign.results,
-      bounds: regionBounds(res.campaign.results), i: 0, won: 0, regIdx: 0, regWon: 0,
+      res: res, intl: intl,
+      byId: setup.byId, colour: setup.colour,
+      results: results, bounds: bounds, total: total,
+      i: 0, won: 0, regIdx: 0, regWon: 0,
       cancelled: false, done: false, raf: null,
-      sps: revealRate(), acc: 0, lastT: null,
+      sps: revealRate(total), acc: 0, lastT: null,
       tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour
     };
-    G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
+    if (watch.bounds[0]) G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
     frame();
   }
 
@@ -520,11 +537,16 @@
         if (!quiet && w.regIdx < w.bounds.length) G.UI.pushFeed("Counting in " + w.bounds[w.regIdx].name + "…", "muted");
       }
       var res = w.results[w.i];
+      /* flip the seat's hex (works for the UK constituency map and every
+         international country cartogram alike — both key hexes by seat id) */
       G.UI.flipSeat(w.byId[res.id], res.won, w.colour,
                     res.won ? null : G.partyColour(res.winner, w.blocLabel, w.blocColour), res.winner);
+      /* the UK declares real, named constituencies seat-by-seat; international
+         seats are synthetic, so there the feed reports at the region level */
+      if (!quiet && !w.intl)
+        G.UI.pushFeed(res.name + (res.won ? " — won" : " — lost (" + res.winner + ")"), res.won ? "win" : "");
       if (res.won) { w.won++; w.regWon++; }
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
-      if (!quiet) G.UI.pushFeed(res.name + (res.won ? " — won" : " — lost (" + res.winner + ")"), res.won ? "win" : "");
       w.i++;
     }
     G.UI.setWatchTally(w.won, w.i);
@@ -552,7 +574,7 @@
     }
     w.done = true;
     G.UI.setWatchTally(w.won, w.i);
-    G.UI.pushFeed("All 650 seats declared.", "win");
+    G.UI.pushFeed("All " + w.total + " seats declared.", "win");
     sel("skipCountBtn").style.display = "none";
     sel("toResultBtn").style.display = "";
   }
