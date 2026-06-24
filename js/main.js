@@ -19,7 +19,7 @@
   function setLbBtns(disabled, label) { ["resultLbBtn", "legacyLbBtn"].forEach(function (id) { var b = sel(id); if (!b) return; b.disabled = !!disabled; if (label) b.textContent = label; }); }
 
   /* setup selections (defaults match the .sel buttons in the markup) */
-  var choice = { mode: "unity", lineage: null, eras: [], difficulty: "normal",
+  var choice = { country: "uk", mode: "unity", lineage: null, eras: [], difficulty: "normal",
                  hard: false, govern: true, watch: true, speed: "normal",
                  redos: 1, cabinetSize: "standard", policy: false, campaignOn: false,
                  casts: { insider: true, novelty: false },
@@ -31,17 +31,82 @@
   var currentVerdict = null; // last governing verdict (for sharing)
   var submitting = false;    // guard against double-submit while a post is in flight
 
+  /* ---- country data -------------------------------------------------------- */
+  var COUNTRIES = [
+    { key:"uk", flag:"🇬🇧", name:"United Kingdom",  defaultScenario:"freshstart",
+      subSystems: null },
+    { key:"us", flag:"🇺🇸", name:"United States",   defaultScenario:"usa_ec_2024",
+      subSystems:[
+        { label:"Presidential Electoral College", note:"538 electors", scenario:"usa_ec_2024"  },
+        { label:"House of Representatives",       note:"435 seats",    scenario:"usa_house_2024" }
+      ]},
+    { key:"de", flag:"🇩🇪", name:"Germany",         defaultScenario:"bundestag_2021",
+      subSystems:[
+        { label:"Modern Bundestag",  note:"736 seats", scenario:"bundestag_2021"   },
+        { label:"Weimar Republic",   note:"577 seats", scenario:"weimar_1932_jul"  }
+      ]},
+    { key:"fr", flag:"🇫🇷", name:"France",          defaultScenario:"france_2022",   subSystems:null },
+    { key:"au", flag:"🇦🇺", name:"Australia",       defaultScenario:"australia_2022",subSystems:null },
+    { key:"ca", flag:"🇨🇦", name:"Canada",          defaultScenario:"canada_2021",   subSystems:null },
+    { key:"jp", flag:"🇯🇵", name:"Japan",           defaultScenario:"japan_2021",    subSystems:null },
+    { key:"in", flag:"🇮🇳", name:"India",           defaultScenario:"india_2024",    subSystems:null },
+    { key:"cn", flag:"🇨🇳", name:"China",           defaultScenario:"china",         subSystems:null },
+    { key:"kp", flag:"🇰🇵", name:"North Korea",     defaultScenario:"north_korea",   subSystems:null },
+    { key:"su", flag:"🚩",  name:"Soviet Union",    defaultScenario:"soviet_1937",   subSystems:null },
+    { key:"cu", flag:"🇨🇺", name:"Cuba",            defaultScenario:"cuba",          subSystems:null }
+  ];
+
+  function applyCountryChoice(countryKey) {
+    choice.country = countryKey;
+    var def = COUNTRIES.filter(function (c) { return c.key === countryKey; })[0];
+    if (!def) return;
+    /* set default scenario for the country — scenarios step can refine it */
+    choice.scenarioKey = def.defaultScenario;
+    /* show sub-system picker if this country has multiple systems */
+    var sub = sel("countrySubSys");
+    if (sub) {
+      if (def.subSystems && def.subSystems.length) {
+        sub.innerHTML = def.subSystems.map(function (s, i) {
+          var sel2 = (i === 0) ? " sel" : "";
+          return '<button class="subsys-btn' + sel2 + '" data-sub-scenario="' + s.scenario + '">' +
+                 s.label + ' <small>(' + s.note + ')</small></button>';
+        }).join("");
+        sub.classList.add("show");
+        /* wire sub-system clicks */
+        each(sub.querySelectorAll(".subsys-btn"), function (btn) {
+          btn.onclick = function () {
+            choice.scenarioKey = btn.getAttribute("data-sub-scenario");
+            each(sub.querySelectorAll(".subsys-btn"), function (b) { b.classList.toggle("sel", b === btn); });
+          };
+        });
+      } else {
+        sub.innerHTML = "";
+        sub.classList.remove("show");
+      }
+    }
+    /* update scenario picker filter label */
+    var lbl = sel("scenarioCountryLabel");
+    var cf = def.flag + " " + def.name + " ";
+    if (lbl) lbl.textContent = "— " + cf;
+    /* re-render scenario picker filtered to this country */
+    if (G.UI && G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey, countryKey);
+  }
+
   /* ---- setup wizard -------------------------------------------------------- */
   var wizardStep = 1;
-  var WSTEP_TITLES = ["Choose your game", "Who's in the pool", "Election difficulty",
-                      "Draft rules", "After the election", "Career mode", "Ready to play"];
+  var WSTEP_TITLES = ["Choose your nation", "Choose your game", "Who's in the pool",
+                      "Election difficulty", "Draft rules", "After the election",
+                      "Career mode", "Ready to play"];
   function updateReadySummary() {
     var el = sel("readySummary"); if (!el) return;
+    var countryDef = COUNTRIES.filter(function (c) { return c.key === choice.country; })[0];
+    var countryStr = countryDef ? countryDef.flag + " " + countryDef.name : "United Kingdom";
     var modeLabels = {
       unity: "Greatest Cabinet", wildcard: "Wildcard", parl2024: "2024 Parliament",
       dynasty: "Single-Party Dynasty" + (choice.lineage ? " · " + choice.lineage : "")
     };
     var lines = [
+      "<b>Nation:</b> " + countryStr,
       "<b>Game:</b> " + (modeLabels[choice.mode] || choice.mode),
       "<b>Difficulty:</b> " + choice.difficulty.charAt(0).toUpperCase() + choice.difficulty.slice(1),
       "<b>Cabinet:</b> " + (choice.cabinetSize === "expanded" ? "Expanded (16)" : "Standard (12)") + (choice.policy ? " · policy phase on" : ""),
@@ -53,7 +118,7 @@
   function goWizardStep(n) {
     var prevEl = sel("wstep-" + wizardStep);
     if (prevEl) prevEl.classList.remove("wactive");
-    wizardStep = Math.max(1, Math.min(7, n));
+    wizardStep = Math.max(1, Math.min(8, n));
     var nextEl = sel("wstep-" + wizardStep);
     if (nextEl) nextEl.classList.add("wactive");
     each(document.querySelectorAll(".wp-dot"), function (dot) {
@@ -65,8 +130,8 @@
     if (titleEl) titleEl.textContent = WSTEP_TITLES[wizardStep - 1] || "";
     var backBtn = sel("wstepBackBtn"), nextBtn = sel("wstepNextBtn");
     if (backBtn) backBtn.style.visibility = wizardStep === 1 ? "hidden" : "";
-    if (nextBtn) { nextBtn.style.display = wizardStep === 7 ? "none" : ""; nextBtn.textContent = "Continue →"; }
-    if (wizardStep === 7) { updateReadySummary(); updateHint(); }
+    if (nextBtn) { nextBtn.style.display = wizardStep === 8 ? "none" : ""; nextBtn.textContent = "Continue →"; }
+    if (wizardStep === 8) { updateReadySummary(); updateHint(); }
     var top = sel("screen-menu"); if (top) top.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -109,6 +174,17 @@
       G.NET.resume();
       G.NET.loadConfig().then(function (cfg) { G.UI.renderBanner(cfg); });
       G.NET.loadRoster();
+    }
+    /* theme toggle */
+    var themeBtn = sel("themeToggleBtn");
+    if (themeBtn) {
+      var lightStored = localStorage.getItem("650_theme") === "light";
+      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.textContent = "🌙 Dark theme"; }
+      themeBtn.onclick = function () {
+        var isLight = document.documentElement.classList.toggle("theme-light");
+        themeBtn.textContent = isLight ? "🌙 Dark theme" : "☀ Light theme";
+        localStorage.setItem("650_theme", isLight ? "light" : "dark");
+      };
     }
     G.UI.show("screen-menu");
   }
@@ -256,8 +332,22 @@
       var n = sel("careerNote"); if (n) n.style.display = choice.careerMode ? "" : "none";
     });
 
+    /* country picker (step 1) */
+    var cgrid = sel("countryGrid");
+    if (cgrid) {
+      each(document.querySelectorAll("[data-country]"), function (btn) {
+        btn.onclick = function () {
+          each(document.querySelectorAll("[data-country]"), function (b) { b.classList.remove("sel"); });
+          btn.classList.add("sel");
+          applyCountryChoice(btn.getAttribute("data-country"));
+        };
+      });
+    }
+    /* initialise with default country (UK) */
+    applyCountryChoice(choice.country);
+
     /* scenario picker */
-    if (G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey);
+    if (G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey, choice.country);
     var scCards = sel("scenarioCards");
     if (scCards) {
       scCards.addEventListener("click", function (e) {
@@ -302,7 +392,8 @@
           lineage:     choice.mode === "dynasty" ? choice.lineage : null,
           difficulty:  choice.difficulty,
           cabinetSize: choice.cabinetSize,
-          eras:        choice.eras.slice()
+          eras:        choice.eras.slice(),
+          scenarioKey: choice.scenarioKey || null
         });
       } else {
         G.career = null;
@@ -474,6 +565,15 @@
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
+  /* career "continue" button label, by the chamber you actually govern */
+  function careerNextLabel() {
+    var key = G.state && G.state._electoralSystemKey;
+    if (!key || key === "fptp_uk") return "→ Next Parliament";
+    var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[key];
+    if (sys && (sys.despotMode || sys.coalitionStyle === "guided")) return "→ Next Term in Power";
+    return "→ Next Election";
+  }
+
   /* declaration bounds over the per-seat results list. UK uses the 650-seat
      constituency layout; international systems declare in region order, sized
      by each region's seat count. */
@@ -1041,7 +1141,7 @@
       }
     }
     if (G.career && G.career.active) {
-      var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = "→ Next Parliament";
+      var btn = sel("legacyAgainBtn"); if (btn) btn.textContent = careerNextLabel();
       /* show career parliament history strip on the legacy screen */
       if (G.UI.renderCareerParlStrip) G.UI.renderCareerParlStrip("legacyCareerStrip", G.career);
     }
@@ -1096,8 +1196,15 @@
         cabinetSize: G.career.cabinetSize || "standard",
         carryOver: carryOver,
         custom: G.state ? G.state.custom : null,
-        gameYear: nextYear
+        gameYear: nextYear,
+        scenarioKey: G.career.scenarioKey || null
       });
+      /* keep the same country / electoral system across the whole career; the
+         scenario sets its own year, so restore the advanced career year after. */
+      if (G.career.scenarioKey && G.applyScenario) {
+        G.applyScenario(G.career.scenarioKey);
+        G.state.gameYear = nextYear;
+      }
       G.UI.show("screen-draft");
       G.UI.renderDraft();
     };
@@ -1107,7 +1214,7 @@
   function wireLegacyCareer() {
     var legEl = sel("legacyAgainBtn"); if (!legEl) return;
     var origOnclick = legEl.onclick;
-    if (G.career && G.career.active) legEl.textContent = "→ Next Parliament";
+    if (G.career && G.career.active) legEl.textContent = careerNextLabel();
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */

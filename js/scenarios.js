@@ -525,6 +525,8 @@ G.applyScenario = function (key) {
   if (sc.mode)       G.state.mode       = sc.mode;
   if (sc.difficulty) G.state.difficulty = sc.difficulty;
   G.state.scenarioKey = key;
+  /* re-title the cabinet for this country (President, Reich Chancellor, …) */
+  if (G.setCabinetSize) G.setCabinetSize(G.state.cabinetSize);
 };
 
 /* ---- landscape resolver -------------------------------------------------- */

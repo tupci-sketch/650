@@ -231,6 +231,9 @@ G.newGame = function (opts) {
     carryOver: carryOver,    // ministers carried from previous parliament (career mode)
     gameYear: opts.gameYear || 2026  // in-game election year (advances per parliament)
   };
+  /* re-apply portfolio titles now that the new state exists (a scenario, if
+     any, will re-apply again with its own country once applyScenario runs) */
+  G.setCabinetSize(G.state.cabinetSize);
   return G.state;
 };
 
@@ -640,6 +643,7 @@ G.careerInit = function (opts) {
     difficulty:  (opts && opts.difficulty)  || "normal",
     cabinetSize: (opts && opts.cabinetSize) || "standard",
     eras:        (opts && opts.eras)        || [],
+    scenarioKey: (opts && opts.scenarioKey) || null,  /* country/scenario carries across parliaments */
     /* cumulative modifiers feeding the NEXT election */
     voteModifier:     0,      /* ±0.12 max; reset after applied */
     reputationScore:  50,     /* 0–100 — shown in the career dashboard */

@@ -2076,36 +2076,16 @@ G.UI.renderCampaign = function () {
 /* =========================================================== SCENARIO PICKER
    G.UI.renderScenarioPicker(chosen) — builds the scenario cards in the wizard.
    Groups scenarios by country and adds a country filter tab bar.            */
-G.UI.renderScenarioPicker = function (chosen) {
+G.UI.renderScenarioPicker = function (chosen, countryFilter) {
   var el = $("scenarioCards"); if (!el || !G.SCENARIOS) return;
 
-  /* build country group map */
-  var groups = {};
-  var groupOrder = [];
-  var groupLabel = {
-    uk: "🇬🇧 United Kingdom", us: "🇺🇸 United States", de: "🇩🇪 Germany",
-    fr: "🇫🇷 France", au: "🇦🇺 Australia", ca: "🇨🇦 Canada",
-    jp: "🇯🇵 Japan", "in": "🇮🇳 India",
-    kp: "🇰🇵 North Korea", su: "🇷🇺 Soviet Union", cu: "🇨🇺 Cuba", cn: "🇨🇳 China"
-  };
+  /* when a country filter is provided (new nation-first flow),
+     show only that country's scenarios — no tab bar needed */
+  var filterKey = countryFilter || el.getAttribute("data-group") || "uk";
 
-  G.SCENARIOS.forEach(function (s) {
-    var c = s.country || "uk";
-    if (!groups[c]) { groups[c] = []; groupOrder.push(c); }
-    groups[c].push(s);
-  });
+  var scenarios = G.SCENARIOS.filter(function (s) { return (s.country || "uk") === filterKey; });
 
-  var activeGroup = el.getAttribute("data-group") || "uk";
-  if (!groups[activeGroup]) activeGroup = groupOrder[0];
-
-  /* render filter tabs */
-  var tabs = groupOrder.map(function (c) {
-    return '<button class="sc-tab' + (c === activeGroup ? " active" : "") + '" data-group="' + c + '">' +
-      (groupLabel[c] || c.toUpperCase()) + '</button>';
-  }).join("");
-
-  /* render cards for active group */
-  var cards = (groups[activeGroup] || []).map(function (s) {
+  var cards = scenarios.map(function (s) {
     var isSel = chosen === s.key || (!chosen && s.key === "freshstart");
     var lockInfo = "";
     if (s.mode || s.difficulty) {
@@ -2123,13 +2103,6 @@ G.UI.renderScenarioPicker = function (chosen) {
       '</div>';
   }).join("");
 
-  el.innerHTML = '<div class="sc-tabs">' + tabs + '</div><div class="sc-grid">' + cards + '</div>';
-
-  /* wire tab clicks — re-render keeping chosen */
-  el.querySelectorAll(".sc-tab").forEach(function (btn) {
-    btn.onclick = function () {
-      el.setAttribute("data-group", btn.getAttribute("data-group"));
-      G.UI.renderScenarioPicker(chosen);
-    };
-  });
+  el.setAttribute("data-group", filterKey);
+  el.innerHTML = '<div class="sc-grid">' + (cards || '<p class="mini-help" style="padding:8px 0">No scenarios for this nation — use the default start.</p>') + '</div>';
 };
