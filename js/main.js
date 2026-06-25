@@ -91,6 +91,52 @@
     if (lbl) lbl.textContent = "— " + cf;
     /* re-render scenario picker filtered to this country */
     if (G.UI && G.UI.renderScenarioPicker) G.UI.renderScenarioPicker(choice.scenarioKey, countryKey);
+    /* rebuild step-2 mode options for this country */
+    updateModeStep(countryKey);
+  }
+
+  /* ---- update step-2 mode buttons based on chosen country ----- */
+  function updateModeStep(countryKey) {
+    var isUK = !countryKey || countryKey === "uk";
+    var modeRow = sel("modeRow");
+    var step2   = sel("wstep-2");
+    if (!modeRow || !step2) return;
+    var labelEl  = step2.querySelector(".section-label");
+    var wildNote = sel("wildNote");
+    if (isUK) {
+      modeRow.className = "choice-row quad";
+      modeRow.innerHTML =
+        '<button class="opt sel" data-mode="unity"><h4>Greatest Cabinet</h4>' +
+          '<p>A national-unity ticket. Draft the best of every party and era. Stands in all 650 seats.</p></button>' +
+        '<button class="opt" data-mode="dynasty"><h4>Single-Party Dynasty</h4>' +
+          '<p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p></button>' +
+        '<button class="opt" data-mode="wildcard"><h4>Wildcard</h4>' +
+          '<p>The whole globe and all of history walk in — presidents, founders, despots. For political nerds only.</p></button>' +
+        '<button class="opt" data-mode="parl2024"><h4>2024 Parliament</h4>' +
+          '<p>Draft from the 2024 general-election field — the current House of Commons.</p></button>';
+      if (labelEl) labelEl.textContent = "2 · Choose your game";
+      if (wildNote) wildNote.textContent = "Wildcard is satire — a rogues’ gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.";
+      WSTEP_TITLES[1] = "Choose your game";
+    } else {
+      var countryDef = COUNTRIES.filter(function (c) { return c.key === countryKey; })[0];
+      var cname = countryDef ? countryDef.name : "your nation";
+      modeRow.className = "choice-row triple";
+      modeRow.innerHTML =
+        '<button class="opt sel" data-mode="unity"><h4>Historical Cabinet</h4>' +
+          '<p>Build ' + cname + '’s dream government from across its political history.</p></button>' +
+        '<button class="opt" data-mode="dynasty"><h4>Political Dynasty</h4>' +
+          '<p>Pick one party tradition and staff your cabinet only from its ranks, through the decades.</p></button>' +
+        '<button class="opt" data-mode="wildcard"><h4>Global Wildcard</h4>' +
+          '<p>The whole world walks in — field the greatest minds from any era, any nation.</p></button>';
+      if (labelEl) labelEl.textContent = "2 · Build your government";
+      if (wildNote) wildNote.textContent = "Wildcard is satire — a rogues’ gallery, not an endorsement. Despots and controversial figures are included as historical fact and are poor picks. Your chosen country’s politicians appear in every mode; the rest are global wildcard-only.";
+      WSTEP_TITLES[1] = "Build your government";
+      choice.mode = "unity";
+    }
+    bindRow("modeRow", "data-mode", applyModeChoice);
+    applyModeChoice(choice.mode);
+    var titleEl = sel("wizardStepTitle");
+    if (titleEl && wizardStep === 2) titleEl.textContent = WSTEP_TITLES[1];
   }
 
   /* ---- setup wizard -------------------------------------------------------- */
@@ -447,18 +493,19 @@
       };
     });
   }
+  function applyModeChoice(v) {
+    choice.mode = v;
+    var dp = sel("dynastyPick"); if (dp) dp.classList.toggle("show", v === "dynasty");
+    var wn = sel("wildNote");   if (wn) wn.classList.toggle("show", v === "wildcard");
+    updatePartySetup();
+    buildEraToggles(true);
+    buildDynastyChips();
+    updateHint();
+    updateEraVisibility();
+    updateEligibility();
+  }
   function wireSetup() {
-    bindRow("modeRow", "data-mode", function (v) {
-      choice.mode = v;
-      sel("dynastyPick").classList.toggle("show", v === "dynasty");
-      sel("wildNote").classList.toggle("show", v === "wildcard");
-      updatePartySetup();
-      buildEraToggles(true);
-      buildDynastyChips();
-      updateHint();
-      updateEraVisibility();
-      updateEligibility();
-    });
+    bindRow("modeRow", "data-mode", applyModeChoice);
     bindRow("diffRow",   "data-diff",   function (v) { choice.difficulty = v; updateEligibility(); });
     bindRow("hardRow",   "data-hard",   function (v) { choice.hard   = v === "true"; });
     bindRow("governRow", "data-govern", function (v) { choice.govern = v === "true"; });
