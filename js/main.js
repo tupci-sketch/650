@@ -300,7 +300,7 @@
     var titleEl = sel("wizardStepTitle");
     if (titleEl) titleEl.textContent = WSTEP_TITLES[wizardStep - 1] || "";
     var backBtn = sel("wstepBackBtn"), nextBtn = sel("wstepNextBtn");
-    if (backBtn) backBtn.style.visibility = wizardStep === 1 ? "hidden" : "";
+    if (backBtn) backBtn.style.display = wizardStep === 1 ? "none" : "";
     if (nextBtn) { nextBtn.style.display = wizardStep === 8 ? "none" : ""; nextBtn.textContent = "Continue →"; }
     if (wizardStep === 8) { updateReadySummary(); updateHint(); }
     var top = sel("screen-menu"); if (top) top.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -366,10 +366,10 @@
     var themeBtn = sel("themeToggleBtn");
     if (themeBtn) {
       var lightStored = localStorage.getItem("650_theme") === "light";
-      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.textContent = "🌙 Dark theme"; }
+      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.textContent = "Dark theme"; }
       themeBtn.onclick = function () {
         var isLight = document.documentElement.classList.toggle("theme-light");
-        themeBtn.textContent = isLight ? "🌙 Dark theme" : "☀ Light theme";
+        themeBtn.textContent = isLight ? "Dark theme" : "Light theme";
         localStorage.setItem("650_theme", isLight ? "light" : "dark");
       };
     }
