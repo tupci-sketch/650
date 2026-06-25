@@ -1452,6 +1452,11 @@ html.theme-light .panel { background: linear-gradient(180deg, rgba(255,255,255,.
 html.theme-light .era-chip,
 html.theme-light .chip,
 html.theme-light .btn-ghost:hover { background: rgba(0,0,0,.03); }
+html.theme-light .era-chip b { color: var(--ink); }
+html.theme-light .era-chip span { color: var(--ink-soft); }
+html.theme-light .era-chip:not(.sel) { color: var(--ink-soft); }
+html.theme-light .era-chip.sel b,
+html.theme-light .era-chip.sel span { color: #fff; }
 html.theme-light .lb-input,
 html.theme-light .lb-mini,
 html.theme-light .explore-search input,

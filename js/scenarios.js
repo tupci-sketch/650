@@ -379,41 +379,56 @@ G.SCENARIOS = [
 
 /* ---- global achievement predicates --------------------------------------- */
 G.OBJECTIVES = [
-  { key:"sweep650",   label:"The Perfect Result",    desc:"Win all 650 seats.",
-    check: function (c) { return c.seats >= 650; } },
-  { key:"legacy90",   label:"Statesmanlike",         desc:"Achieve a legacy score of 90+.",
+  /* universal — apply regardless of country */
+  { key:"legacy90",   label:"Statesmanlike",         desc:"Achieve a legacy score of 90+.", countries:null,
     check: function (c) { return (c.legacy || 0) >= 90; } },
-  { key:"allblocs60", label:"Coalition of Everyone", desc:"End a term with every voter bloc above 60.",
-    check: function (c) {
-      if (!c.blocSupport) return false;
-      return G.ELECTORATE_BLOCS.every(function (b) { return (c.blocSupport[b.key] || 0) >= 60; });
-    } },
-  { key:"nosoutheast",label:"Without the South East",desc:"Win a majority without a single SE seat.",
-    check: function (c) {
-      var se = c.byRegion && c.byRegion.filter(function (r) { return r.id === "SE"; })[0];
-      return c.seats >= ((G.CONFIG && G.CONFIG.majority) || 326) && se && se.won === 0;
-    } },
-  { key:"allpledges", label:"Promise Keeper",        desc:"Deliver all four manifesto pledges.",
+  { key:"allpledges", label:"Promise Keeper",        desc:"Deliver all four manifesto pledges.", countries:null,
     check: function (c) {
       if (!c.pledges || !c.pledges.length) return false;
       return c.pledges.every(function (p) { return p.status === "delivered"; });
     } },
-  { key:"survivor",   label:"Survivor",              desc:"Win with approval below 30%.",
+  { key:"survivor",   label:"Survivor",              desc:"Win with approval below 30%.", countries:null,
     check: function (c) {
       return (c.termGovt) && (c.approvalEnd || 100) < 30;
     } },
-  { key:"majority326",label:"Over the Line",         desc:"Win a working majority.",
-    check: function (c) { return c.seats >= ((G.CONFIG && G.CONFIG.majority) || 326); } },
-  { key:"landslide",  label:"Landslide",             desc:"Win a landslide majority (400+ seats).",
-    check: function (c) { return c.seats >= ((G.CONFIG && G.CONFIG.tierLandslide) || 400); } },
-  { key:"redwallheld",label:"Red Wall Holds",        desc:"Win the Red Wall bloc above 60.",
-    check: function (c) { return c.blocSupport && (c.blocSupport.redwall || 0) >= 60; } }
+  { key:"majority",   label:"Over the Line",         desc:"Win a working majority.", countries:null,
+    check: function (c) { return c.seats >= ((G.activeMajority ? G.activeMajority() : (G.CONFIG && G.CONFIG.majority)) || 326); } },
+  { key:"landslide",  label:"Landslide",             desc:"Win a landslide (60%+ of seats).", countries:null,
+    check: function (c) {
+      var tot = G.activeTotalSeats ? G.activeTotalSeats() : 650;
+      return c.seats >= Math.round(tot * 0.60);
+    } },
+  /* UK-specific */
+  { key:"sweep650",   label:"The Perfect Result",    desc:"Win all 650 seats.", countries:["uk"],
+    check: function (c) { return c.seats >= 650; } },
+  { key:"allblocs60", label:"Coalition of Everyone", desc:"End a term with every voter bloc above 60.", countries:["uk"],
+    check: function (c) {
+      if (!c.blocSupport) return false;
+      return G.ELECTORATE_BLOCS.every(function (b) { return (c.blocSupport[b.key] || 0) >= 60; });
+    } },
+  { key:"nosoutheast",label:"Without the South East",desc:"Win a UK majority without a single SE seat.", countries:["uk"],
+    check: function (c) {
+      var se = c.byRegion && c.byRegion.filter(function (r) { return r.id === "SE"; })[0];
+      return c.seats >= ((G.CONFIG && G.CONFIG.majority) || 326) && se && se.won === 0;
+    } },
+  { key:"redwallheld",label:"Red Wall Holds",        desc:"Win the Red Wall voter bloc above 60.", countries:["uk"],
+    check: function (c) { return c.blocSupport && (c.blocSupport.redwall || 0) >= 60; } },
+  /* USA-specific */
+  { key:"ec_sweep",   label:"Electoral Landslide",   desc:"Win 400+ Electoral College votes.", countries:["us"],
+    check: function (c) { return c.electoralSystem === "ec_usa_president" && c.seats >= 400; } },
+  /* Germany-specific */
+  { key:"de_coalition",label:"Koalitionsvertrag",    desc:"Form a governing coalition in the Bundestag or Reichstag.", countries:["de"],
+    check: function (c) { return (c.electoralSystem || "").indexOf("dhondt") !== -1 && c.coalition; } }
 ];
 
 /* ---- check objectives and scenario goal ---------------------------------- */
 G.checkObjectives = function (ctx) {
   var unlocked = [];
+  /* determine which country we're playing as for filtering objectives */
+  var country = ctx.country || (G.state && G.state._country) || "uk";
   G.OBJECTIVES.forEach(function (obj) {
+    /* skip objectives restricted to countries the player isn't playing */
+    if (obj.countries && obj.countries.indexOf(country) === -1) return;
     try { if (obj.check(ctx)) unlocked.push(obj.key); } catch (e) {}
   });
   /* scenario-specific objective */
@@ -459,6 +474,7 @@ G.applyScenario = function (key) {
     G.state._scenarioBlocSupport = null;
     G.state._electoralSystemKey = null;
     G.state._countryRegionKey = null;
+    G.state._country = "uk";
     return;
   }
   var sc = (G.SCENARIOS || []).filter(function (s) { return s.key === key; })[0];
@@ -467,10 +483,12 @@ G.applyScenario = function (key) {
     G.state._scenarioBlocSupport = null;
     G.state._electoralSystemKey = null;
     G.state._countryRegionKey = null;
+    G.state._country = "uk";
     return;
   }
 
   if (sc.year) G.state.gameYear = sc.year;
+  if (sc.country) G.state._country = sc.country;
 
   /* set active electoral system and country region set */
   G.state._electoralSystemKey = sc.electoralSystem || null;
@@ -536,6 +554,13 @@ G.applyScenario = function (key) {
 G.activeLandscape = function (regionId) {
   if (G.state && G.state._scenarioLandscape && G.state._scenarioLandscape[regionId]) {
     return G.state._scenarioLandscape[regionId];
+  }
+  /* for international games, use country-specific landscape data */
+  var sysKey = G.state && G.state._electoralSystemKey;
+  var sys = sysKey && G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[sysKey];
+  if (sys && sys.regionKey && sys.regionKey !== "uk" && G.COUNTRY_LANDSCAPES) {
+    var cl = G.COUNTRY_LANDSCAPES[sys.regionKey];
+    if (cl && cl[regionId]) return cl[regionId];
   }
   return G.LANDSCAPE[regionId] || G.LANDSCAPE.EE;
 };

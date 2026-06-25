@@ -945,6 +945,12 @@ G.UI.renderPostElectionIntl = function (res, sys) {
     };
     $("govLine").textContent = (govPhrases[sys.key] || "Take office and govern.") + " Your opening position looks " + word + ".";
     setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    /* update govern button text to match the country */
+    var govBtn = $("governBtn");
+    if (govBtn) {
+      var action = sys.govtBuildingAction || ("Take " + (sys.govtBuilding || "office"));
+      govBtn.textContent = action + " →";
+    }
     return;
   }
 
@@ -1257,6 +1263,8 @@ G.UI.renderPostElection = function (res) {
     $("govPct").textContent = gv.stability + "%";
     $("govLine").textContent = "Your opening position looks " + word + ". Take office and govern through a full parliament — steer approval, the economy and your party, survive the crises, and chase a lasting legacy.";
     setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    var govBtn = $("governBtn");
+    if (govBtn) govBtn.textContent = "Enter Downing Street →";
     return;
   }
 

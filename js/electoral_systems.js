@@ -651,6 +651,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "UK", flag: "🇬🇧", totalSeats: 650, majority: 326,
     regionKey: "uk",
     chamberName: "House of Commons", headOfGovt: "Prime Minister", termWord: "Parliament",
+    govtBuilding: "Downing Street", govtBuildingAction: "Enter Downing Street",
     registeredElectorate: 47586602, typicalTurnout: [0.60, 0.72], hungWord: "Hung parliament",
     simulate:     null,        /* uses existing simulateCampaign */
     estimateFn:   null,        /* uses existing estimateSeats */
@@ -664,6 +665,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "US", flag: "🇺🇸", totalSeats: 435, majority: 218,
     regionKey: "usa_house",
     chamberName: "House of Representatives", headOfGovt: "Speaker", termWord: "Congress",
+    govtBuilding: "the Capitol", govtBuildingAction: "Take the Speaker's Chair",
     registeredElectorate: 240000000, typicalTurnout: [0.40, 0.55], hungWord: "No majority",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
@@ -684,6 +686,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "US", flag: "🇺🇸", totalSeats: 538, majority: 270,
     regionKey: "usa_ec",
     chamberName: "Electoral College", headOfGovt: "President", termWord: "Term",
+    govtBuilding: "the White House", govtBuildingAction: "Enter the White House",
     registeredElectorate: 240000000, typicalTurnout: [0.50, 0.65], hungWord: "No winner — faithless electors",
     simulate:   function (p, rnd) { return G.simulateEC(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsEC(p, rnd); },
@@ -706,6 +709,7 @@ G.ELECTORAL_SYSTEMS = {
     threshold: 0.01,   /* Weimar had very low threshold */
     regionKey: "germany_weimar",
     chamberName: "Reichstag", headOfGovt: "Reichskanzler", termWord: "Legislature",
+    govtBuilding: "the Reichskanzlei", govtBuildingAction: "Enter the Reichskanzlei",
     registeredElectorate: 44000000, typicalTurnout: [0.70, 0.85], hungWord: "No Reichstag majority",
     simulate:   function (p, rnd) { return G.simulatePR(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsPR(p, rnd); },
@@ -728,6 +732,7 @@ G.ELECTORAL_SYSTEMS = {
     threshold: 0.05,
     regionKey: "germany_modern",
     chamberName: "Bundestag", headOfGovt: "Bundeskanzler", termWord: "Legislature",
+    govtBuilding: "the Bundeskanzleramt", govtBuildingAction: "Enter the Bundeskanzleramt",
     registeredElectorate: 61200000, typicalTurnout: [0.74, 0.80], hungWord: "Hung Bundestag",
     simulate:   function (p, rnd) { return G.simulatePR(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsPR(p, rnd); },
@@ -749,6 +754,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "FR", flag: "🇫🇷", totalSeats: 577, majority: 289,
     regionKey: "france",
     chamberName: "Assemblée Nationale", headOfGovt: "Président", termWord: "Legislature",
+    govtBuilding: "the Élysée", govtBuildingAction: "Enter the Élysée Palace",
     registeredElectorate: 49000000, typicalTurnout: [0.44, 0.58], hungWord: "No absolute majority",
     simulate:   function (p, rnd) { return G.simulateTRS(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsTRS(p, rnd); },
@@ -770,6 +776,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "AU", flag: "🇦🇺", totalSeats: 151, majority: 76,
     regionKey: "australia",
     chamberName: "House of Representatives", headOfGovt: "Prime Minister", termWord: "Parliament",
+    govtBuilding: "the Lodge", govtBuildingAction: "Enter the Lodge",
     registeredElectorate: 17000000, typicalTurnout: [0.88, 0.93], hungWord: "Hung parliament",
     simulate:   function (p, rnd) { return G.simulateAV(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsAV(p, rnd); },
@@ -791,6 +798,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "CA", flag: "🇨🇦", totalSeats: 338, majority: 170,
     regionKey: "canada",
     chamberName: "House of Commons", headOfGovt: "Prime Minister", termWord: "Parliament",
+    govtBuilding: "Rideau Cottage", govtBuildingAction: "Enter Rideau Cottage",
     registeredElectorate: 29000000, typicalTurnout: [0.60, 0.70], hungWord: "Minority parliament",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
@@ -810,6 +818,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "IN", flag: "🇮🇳", totalSeats: 543, majority: 272,
     regionKey: "india",
     chamberName: "Lok Sabha", headOfGovt: "Prime Minister", termWord: "Lok Sabha",
+    govtBuilding: "7 Lok Kalyan Marg", govtBuildingAction: "Enter 7 Lok Kalyan Marg",
     registeredElectorate: 950000000, typicalTurnout: [0.60, 0.70], hungWord: "Hung Lok Sabha",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
@@ -830,6 +839,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "Japan", flag: "🇯🇵", totalSeats: 465, majority: 233,
     regionKey: "japan",
     chamberName: "House of Representatives (衆議院)", headOfGovt: "Prime Minister", termWord: "Parliament",
+    govtBuilding: "the Kantei", govtBuildingAction: "Enter the Kantei",
     registeredElectorate: 105000000, typicalTurnout: [0.52, 0.62], hungWord: "No stable majority",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
@@ -851,6 +861,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "KP", flag: "🇰🇵", totalSeats: 687, majority: 1,
     regionKey: "north_korea",
     chamberName: "Supreme People's Assembly", headOfGovt: "Supreme Leader", termWord: "Session",
+    govtBuilding: "the Ryongsong Residence", govtBuildingAction: "Enter the Ryongsong Residence",
     registeredElectorate: 19000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
@@ -870,6 +881,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "SU", flag: "☭", totalSeats: 569, majority: 1,
     regionKey: "soviet_1937",
     chamberName: "Supreme Soviet", headOfGovt: "General Secretary", termWord: "Congress",
+    govtBuilding: "the Kremlin", govtBuildingAction: "Enter the Kremlin",
     registeredElectorate: 180000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
@@ -885,6 +897,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "CU", flag: "🇨🇺", totalSeats: 470, majority: 1,
     regionKey: "cuba",
     chamberName: "National Assembly", headOfGovt: "President", termWord: "Legislature",
+    govtBuilding: "the Palace of the Revolution", govtBuildingAction: "Enter the Palace of the Revolution",
     registeredElectorate: 8500000, typicalTurnout: [0.95, 0.99], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
@@ -900,6 +913,7 @@ G.ELECTORAL_SYSTEMS = {
     country: "CN", flag: "🇨🇳", totalSeats: 2980, majority: 1,
     regionKey: "china",
     chamberName: "National People's Congress", headOfGovt: "General Secretary", termWord: "Congress",
+    govtBuilding: "Zhongnanhai", govtBuildingAction: "Enter Zhongnanhai",
     registeredElectorate: 1000000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
@@ -984,4 +998,159 @@ G.PARTY_COUNTRY = {
   "Mapai": "IL", "Likud": "IL", "Fatah": "IL",
   /* South Africa */
   "ANC": "ZA", "ZANU-PF": "ZW"
+};
+
+/* =========================================================================
+   12 · COUNTRY LANDSCAPES
+   Party vote share data per region for each international system.
+   Format mirrors G.LANDSCAPE: { regionId: [ ["Party", share%], ... ] }
+   Used by G.activeLandscape() and G.oppositionPartyLabels() for intl games.
+   ========================================================================= */
+G.COUNTRY_LANDSCAPES = {
+
+  /* ---- Germany Weimar (1932 federal election shares) -------------------- */
+  germany_weimar: {
+    DE_PR: [["NSDAP",38],["SPD",20],["KPD",17],["Zentrum",11],["DNVP",8],["DVP",2],["DDP",1]],
+    DE_BY: [["NSDAP",30],["BVP",22],["SPD",16],["KPD",10],["Zentrum",8],["DNVP",6],["DVP",3]],
+    DE_SA: [["KPD",22],["NSDAP",37],["SPD",24],["DNVP",7],["DVP",4],["DDP",2]],
+    DE_WU: [["NSDAP",33],["SPD",19],["KPD",11],["Zentrum",16],["DVP",5],["DNVP",5]],
+    DE_BA: [["NSDAP",28],["Zentrum",25],["SPD",17],["KPD",12],["DVP",5],["DNVP",4]],
+    DE_TH: [["NSDAP",42],["SPD",20],["KPD",15],["DNVP",10],["DVP",4],["DDP",2]],
+    DE_HE: [["NSDAP",36],["SPD",22],["KPD",13],["Zentrum",12],["DNVP",8],["DVP",4]],
+    DE_HH: [["SPD",28],["KPD",22],["NSDAP",27],["DNVP",8],["DVP",5],["DDP",3]],
+    DE_BR: [["SPD",30],["KPD",24],["NSDAP",26],["DNVP",7],["DVP",5],["DDP",3]],
+    DE_OT: [["NSDAP",37],["SPD",21],["KPD",16],["Zentrum",10],["DNVP",8],["DVP",3]]
+  },
+
+  /* ---- Germany Modern (2021 Bundestag result) --------------------------- */
+  germany_modern: {
+    DM_BW: [["CDU/CSU",27],["SPD",24],["Greens (DE)",17],["FDP",16],["AfD",9],["Die Linke",3]],
+    DM_BY: [["CDU/CSU",35],["SPD",18],["Greens (DE)",14],["FDP",12],["AfD",10],["Die Linke",3]],
+    DM_BE: [["SPD",26],["Greens (DE)",22],["CDU/CSU",17],["Die Linke",11],["FDP",9],["AfD",8]],
+    DM_BB: [["SPD",29],["AfD",18],["CDU/CSU",15],["Die Linke",11],["Greens (DE)",9],["FDP",10]],
+    DM_HB: [["SPD",30],["Greens (DE)",18],["CDU/CSU",16],["Die Linke",9],["FDP",9],["AfD",9]],
+    DM_HH: [["SPD",28],["Greens (DE)",21],["CDU/CSU",17],["FDP",12],["AfD",8],["Die Linke",7]],
+    DM_HE: [["SPD",27],["CDU/CSU",24],["Greens (DE)",13],["FDP",14],["AfD",10],["Die Linke",4]],
+    DM_MV: [["SPD",33],["AfD",18],["CDU/CSU",16],["Die Linke",12],["FDP",9],["Greens (DE)",7]],
+    DM_NI: [["SPD",34],["CDU/CSU",24],["Greens (DE)",13],["FDP",12],["AfD",8],["Die Linke",4]],
+    DM_NW: [["SPD",32],["CDU/CSU",24],["Greens (DE)",13],["FDP",12],["AfD",8],["Die Linke",5]],
+    DM_RP: [["SPD",30],["CDU/CSU",25],["Greens (DE)",11],["FDP",14],["AfD",8],["Die Linke",4]],
+    DM_SL: [["SPD",36],["CDU/CSU",25],["Greens (DE)",9],["FDP",10],["AfD",9],["Die Linke",5]],
+    DM_SN: [["AfD",24],["CDU/CSU",24],["SPD",19],["FDP",10],["Greens (DE)",9],["Die Linke",8]],
+    DM_ST: [["AfD",24],["CDU/CSU",24],["SPD",22],["FDP",9],["Die Linke",9],["Greens (DE)",7]],
+    DM_SH: [["SPD",30],["CDU/CSU",23],["Greens (DE)",16],["FDP",15],["AfD",7],["Die Linke",4]],
+    DM_TH: [["AfD",24],["Die Linke",20],["CDU/CSU",20],["SPD",14],["FDP",8],["Greens (DE)",7]]
+  },
+
+  /* ---- France (2022 Assemblée Nationale) -------------------------------- */
+  france: {
+    FR_IDF: [["Ensemble",30],["NUPES",34],["Rassemblement National",14],["Les Républicains",9],["Divers",7]],
+    FR_NO:  [["Rassemblement National",26],["Ensemble",28],["NUPES",23],["Les Républicains",12],["Divers",6]],
+    FR_NE:  [["Ensemble",29],["Rassemblement National",24],["NUPES",20],["Les Républicains",14],["Divers",8]],
+    FR_OUE: [["Ensemble",33],["NUPES",26],["Rassemblement National",18],["Les Républicains",12],["Divers",6]],
+    FR_CEN: [["Ensemble",31],["Rassemblement National",22],["NUPES",24],["Les Républicains",12],["Divers",6]],
+    FR_SUD: [["Rassemblement National",28],["Ensemble",28],["NUPES",20],["Les Républicains",11],["Divers",8]],
+    FR_OUT: [["NUPES",30],["Ensemble",28],["Rassemblement National",12],["Les Républicains",8],["Divers",17]]
+  },
+
+  /* ---- Australia (2022 House of Reps) ----------------------------------- */
+  australia: {
+    AU_NSW: [["Australian Labor Party",37],["Liberal (AU)",32],["Greens (AU)",12],["National (AU)",8],["Teal Independent",6]],
+    AU_VIC: [["Australian Labor Party",43],["Liberal (AU)",30],["Greens (AU)",15],["National (AU)",5],["Teal Independent",5]],
+    AU_QLD: [["Australian Labor Party",34],["Liberal (AU)",26],["National (AU)",15],["Greens (AU)",10],["Teal Independent",3]],
+    AU_WA:  [["Australian Labor Party",40],["Liberal (AU)",34],["Greens (AU)",11],["National (AU)",8],["Teal Independent",4]],
+    AU_SA:  [["Australian Labor Party",37],["Liberal (AU)",32],["Greens (AU)",13],["National (AU)",7],["Teal Independent",4]],
+    AU_TAS: [["Australian Labor Party",39],["Liberal (AU)",29],["Greens (AU)",16],["National (AU)",6],["Teal Independent",4]],
+    AU_ACT: [["Australian Labor Party",45],["Greens (AU)",21],["Liberal (AU)",24],["National (AU)",4],["Teal Independent",4]]
+  },
+
+  /* ---- Canada (2021 Federal election) ----------------------------------- */
+  canada: {
+    CA_BC:  [["Conservative (CA)",34],["Liberal (CA)",26],["NDP",25],["Greens (AU)",9],["Bloc Québécois",1]],
+    CA_PR:  [["Conservative (CA)",56],["NDP",21],["Liberal (CA)",15],["Greens (AU)",4],["Bloc Québécois",1]],
+    CA_ON:  [["Liberal (CA)",37],["Conservative (CA)",35],["NDP",17],["Greens (AU)",5],["Bloc Québécois",1]],
+    CA_QC:  [["Bloc Québécois",32],["Liberal (CA)",21],["Conservative (CA)",18],["NDP",17],["Greens (AU)",4]],
+    CA_ATL: [["Liberal (CA)",40],["Conservative (CA)",31],["NDP",21],["Greens (AU)",6],["Bloc Québécois",1]],
+    CA_NT:  [["Liberal (CA)",36],["NDP",28],["Conservative (CA)",22],["Greens (AU)",8],["Bloc Québécois",1]]
+  },
+
+  /* ---- Japan (2021 House of Reps) --------------------------------------- */
+  japan: {
+    JP_TO:  [["LDP (JP)",40],["CDP (JP)",22],["Nippon Ishin",12],["Komeito",10],["DPJ",6]],
+    JP_OS:  [["Nippon Ishin",30],["LDP (JP)",30],["CDP (JP)",16],["Komeito",10],["DPJ",7]],
+    JP_KA:  [["LDP (JP)",42],["CDP (JP)",20],["Nippon Ishin",12],["Komeito",10],["DPJ",7]],
+    JP_CH:  [["LDP (JP)",43],["CDP (JP)",19],["Nippon Ishin",11],["Komeito",10],["DPJ",8]],
+    JP_TH:  [["LDP (JP)",44],["CDP (JP)",21],["Nippon Ishin",9],["Komeito",10],["DPJ",8]],
+    JP_CG:  [["LDP (JP)",46],["CDP (JP)",20],["Nippon Ishin",10],["Komeito",10],["DPJ",7]],
+    JP_KY:  [["LDP (JP)",44],["CDP (JP)",19],["Nippon Ishin",11],["Komeito",10],["DPJ",7]],
+    JP_HK:  [["LDP (JP)",42],["CDP (JP)",24],["Nippon Ishin",9],["Komeito",10],["DPJ",8]],
+    JP_PR:  [["LDP (JP)",35],["CDP (JP)",20],["Nippon Ishin",14],["Komeito",13],["DPJ",7]]
+  },
+
+  /* ---- India (2024 Lok Sabha) ------------------------------------------- */
+  india: {
+    IN_NOR: [["BJP",47],["INC",18],["Samajwadi Party",16],["BSP",7],["AITC",2]],
+    IN_NWE: [["BJP",50],["INC",19],["AAP",9],["BSP",6],["Samajwadi Party",5]],
+    IN_MAH: [["BJP",40],["INC",22],["AITC",6],["Samajwadi Party",5],["AAP",4]],
+    IN_GUJ: [["BJP",56],["INC",27],["AAP",6],["BSP",4],["Samajwadi Party",3]],
+    IN_SOU: [["INC",30],["BJP",22],["AITC",15],["Samajwadi Party",8],["AAP",5]],
+    IN_EAS: [["AITC",29],["BJP",34],["INC",15],["Samajwadi Party",7],["BSP",5]],
+    IN_OTH: [["BJP",42],["INC",24],["AAP",10],["BSP",6],["Samajwadi Party",5]]
+  },
+
+  /* ---- USA House (2022 midterms) ---------------------------------------- */
+  usa_house: {
+    US_NE:  [["Democrat (USA)",63],["Republican (USA)",35],["Other",2]],
+    US_MA:  [["Democrat (USA)",56],["Republican (USA)",42],["Other",2]],
+    US_GL:  [["Democrat (USA)",48],["Republican (USA)",50],["Other",2]],
+    US_PL:  [["Republican (USA)",61],["Democrat (USA)",37],["Other",2]],
+    US_SE:  [["Republican (USA)",61],["Democrat (USA)",37],["Other",2]],
+    US_TX:  [["Republican (USA)",57],["Democrat (USA)",41],["Other",2]],
+    US_SW:  [["Republican (USA)",52],["Democrat (USA)",46],["Other",2]],
+    US_PNW: [["Democrat (USA)",57],["Republican (USA)",41],["Other",2]],
+    US_CA:  [["Democrat (USA)",64],["Republican (USA)",34],["Other",2]],
+    US_WV:  [["Republican (USA)",67],["Democrat (USA)",31],["Other",2]]
+  },
+
+  /* ---- USA Electoral College (battleground model) ----------------------- */
+  usa_ec: {
+    EC_SAFE_DEM: [["Democrat (USA)",72],["Republican (USA)",26],["Other",2]],
+    EC_LEAN_DEM: [["Democrat (USA)",56],["Republican (USA)",42],["Other",2]],
+    EC_NV:       [["Democrat (USA)",51],["Republican (USA)",47],["Other",2]],
+    EC_MI:       [["Democrat (USA)",51],["Republican (USA)",47],["Other",2]],
+    EC_WI:       [["Democrat (USA)",50],["Republican (USA)",48],["Other",2]],
+    EC_PA:       [["Democrat (USA)",50],["Republican (USA)",49],["Other",2]],
+    EC_AZ:       [["Democrat (USA)",49],["Republican (USA)",49],["Other",2]],
+    EC_GA:       [["Democrat (USA)",49],["Republican (USA)",50],["Other",2]],
+    EC_NC:       [["Democrat (USA)",47],["Republican (USA)",51],["Other",2]],
+    EC_LEAN_REP: [["Republican (USA)",55],["Democrat (USA)",43],["Other",2]],
+    EC_SAFE_REP: [["Republican (USA)",68],["Democrat (USA)",30],["Other",2]]
+  },
+
+  /* ---- Guided systems: single-party landscapes -------------------------- */
+  north_korea: {
+    KP_PY: [["Korean Workers' Party",100]], KP_NN: [["Korean Workers' Party",100]],
+    KP_SN: [["Korean Workers' Party",100]], KP_KG: [["Korean Workers' Party",100]],
+    KP_HW: [["Korean Workers' Party",100]], KP_HN: [["Korean Workers' Party",100]],
+    KP_HS: [["Korean Workers' Party",100]], KP_RY: [["Korean Workers' Party",100]],
+    KP_OT: [["Korean Workers' Party",100]]
+  },
+  soviet_1937: {
+    SU_RS: [["Communist Party (SU)",100]], SU_UK: [["Communist Party (SU)",100]],
+    SU_BE: [["Communist Party (SU)",100]], SU_TR: [["Communist Party (SU)",100]],
+    SU_KZ: [["Communist Party (SU)",100]], SU_OT: [["Communist Party (SU)",100]]
+  },
+  cuba: {
+    CU_HAB: [["Communist Party (CU)",100]], CU_OR: [["Communist Party (CU)",100]],
+    CU_CAM: [["Communist Party (CU)",100]], CU_VIL: [["Communist Party (CU)",100]],
+    CU_MAT: [["Communist Party (CU)",100]], CU_PNR: [["Communist Party (CU)",100]],
+    CU_GRA: [["Communist Party (CU)",100]]
+  },
+  china: {
+    CN_BJ: [["Chinese Communist Party",100]], CN_SH: [["Chinese Communist Party",100]],
+    CN_NOR: [["Chinese Communist Party",100]], CN_HUB: [["Chinese Communist Party",100]],
+    CN_GUA: [["Chinese Communist Party",100]], CN_NWE: [["Chinese Communist Party",100]],
+    CN_CEN: [["Chinese Communist Party",100]], CN_SOU: [["Chinese Communist Party",100]],
+    CN_OTH: [["Chinese Communist Party",100]]
+  }
 };

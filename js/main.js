@@ -57,6 +57,43 @@
     { key:"cu", flag:"🇨🇺", name:"Cuba",            defaultScenario:"cuba",          subSystems:null }
   ];
 
+  /* era label overrides per country (same era IDs, country-appropriate names) */
+  var COUNTRY_ERA_LABELS = {
+    us: { e0:"Colonial & Early Republic", e1:"Jacksonian to Gilded Age", e2:"Progressive Era",
+          e3:"New Deal & World War II", e4:"Civil Rights Era", e5:"Reagan Revolution",
+          e6:"Bush to Obama", e7:"Trump to Biden" },
+    de: { e0:"Holy Roman Empire & Prussia", e1:"Kaiserreich (German Empire)", e2:"Late Wilhelmine Era",
+          e3:"Weimar Republic & Third Reich", e4:"Divided Germany (FRG/GDR)", e5:"Reunification Era",
+          e6:"Berlin Republic", e7:"Contemporary Germany" },
+    fr: { e0:"Ancien Régime & Revolution", e1:"Second Empire & Third Republic", e2:"Belle Époque",
+          e3:"World Wars", e4:"Fourth & Fifth Republic", e5:"Mitterrand to Chirac",
+          e6:"Sarkozy & Hollande", e7:"Macron Era" },
+    au: { e0:"Colonial Era", e1:"Federation & Pioneers", e2:"Federation to WWI",
+          e3:"World Wars & Depression", e4:"Postwar Boom", e5:"Fraser · Hawke · Keating",
+          e6:"Howard to Rudd & Gillard", e7:"Abbott to Albanese" },
+    ca: { e0:"Colonial & Confederation", e1:"Macdonald Era", e2:"Laurier Era",
+          e3:"World Wars & Depression", e4:"Diefenbaker to Trudeau Sr", e5:"Mulroney Era",
+          e6:"Chrétien to Martin", e7:"Harper to Trudeau Jr" },
+    jp: { e0:"Edo Period", e1:"Meiji Era", e2:"Taishō Era",
+          e3:"Imperial Japan & World War II", e4:"Postwar Recovery & LDP", e5:"Bubble Economy",
+          e6:"Koizumi to DPJ", e7:"Abe to Contemporary" },
+    in: { e0:"Mughal & Colonial Period", e1:"British Raj", e2:"Independence Movement",
+          e3:"WWII & Partition", e4:"Nehru Era", e5:"Indira to Rajiv Gandhi",
+          e6:"Coalition Era (NDA/UPA)", e7:"Modi Era" },
+    cn: { e0:"Late Qing Dynasty", e1:"Reform & Republic", e2:"Republic of China",
+          e3:"Warlords, Republic & World War", e4:"Early PRC & Mao Era", e5:"Reform & Opening Up",
+          e6:"Jiang & Hu Era", e7:"Xi Jinping Era" },
+    kp: { e0:"Joseon Dynasty", e1:"Joseon Late Period", e2:"Japanese Occupation",
+          e3:"Liberation & Division", e4:"Kim Il-sung Era", e5:"Juche Consolidation",
+          e6:"Kim Jong-il Era", e7:"Kim Jong-un Era" },
+    su: { e0:"Tsarist Russia", e1:"Late Tsarist Era", e2:"Revolution & Civil War",
+          e3:"Stalin Era", e4:"Khrushchev & Brezhnev", e5:"Late Cold War",
+          e6:"Gorbachev & Dissolution", e7:"Post-Soviet Era" },
+    cu: { e0:"Spanish Colony", e1:"Wars of Independence", e2:"Early Republic",
+          e3:"Revolution & WWII", e4:"Castro Era", e5:"Special Period",
+          e6:"Raúl Castro", e7:"Post-Castro Era" }
+  };
+
   function applyCountryChoice(countryKey) {
     choice.country = countryKey;
     var def = COUNTRIES.filter(function (c) { return c.key === countryKey; })[0];
@@ -391,11 +428,13 @@
     });
     if (!choice.eras.length) choice.eras = list.map(function (e) { return e.id; });
 
+    var eraOverrides = COUNTRY_ERA_LABELS[choice.country] || null;
     list.forEach(function (e) {
       var on = choice.eras.indexOf(e.id) !== -1;
       var b = document.createElement("button");
       b.className = "era-chip" + (on ? " sel" : "");
-      b.innerHTML = '<b>' + e.label + '</b><span>' + e.years + '</span>';
+      var lbl = (eraOverrides && eraOverrides[e.id]) || e.label;
+      b.innerHTML = '<b>' + lbl + '</b><span>' + e.years + '</span>';
       b.onclick = function () { toggleEra(e.id); };
       box.appendChild(b);
     });
@@ -744,6 +783,8 @@
         seats: res.seats,
         byRegion: res.campaign && res.campaign.byRegion,
         blocSupport: res.blocSupport,
+        electoralSystem: res.electoralSystem || (G.state && G.state._electoralSystemKey),
+        country: choice.country || "uk",
         scenario: res.scenarioKey || (G.state && G.state.scenarioKey)
       };
       var unlocked = G.unlockAchievements(G.checkObjectives(ctx));
@@ -1296,6 +1337,8 @@
         blocSupport: G.term && G.term.blocSupport,
         byRegion: lastResult && lastResult.campaign && lastResult.campaign.byRegion,
         seats: lastResult && lastResult.seats,
+        electoralSystem: G.state && G.state._electoralSystemKey,
+        country: choice.country || "uk",
         scenario: G.state && G.state.scenarioKey
       };
       var tUnlocked = G.unlockAchievements(G.checkObjectives(termCtx));
