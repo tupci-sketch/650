@@ -311,7 +311,7 @@
       </div>
 
       <div class="panel" style="margin-top:18px">
-        <p class="section-label">Projected Commons <span class="board-note">updating live</span></p>
+        <p class="section-label" id="watchBreakdownLabel">Projected Commons <span class="board-note">updating live</span></p>
         <div class="standings" id="watchStandings"></div>
       </div>
 
@@ -342,12 +342,12 @@
       </div>
 
       <div class="panel" id="breakdownPanel" style="margin-top:24px">
-        <p class="section-label">The new House of Commons</p>
+        <p class="section-label" id="breakdownLabel">The new House of Commons</p>
         <div class="standings" id="seatBreakdown"></div>
       </div>
 
       <div class="panel" id="coalitionPanel" style="margin-top:24px; display:none">
-        <p class="section-label">Hung parliament — your move</p>
+        <p class="section-label" id="coalitionLabel">Hung parliament — your move</p>
         <p class="coalition-intro" id="coalitionIntro"></p>
         <div class="coalition-options" id="coalitionOptions"></div>
       </div>
@@ -440,21 +440,21 @@
           </div>
 
           <div class="wiki-national">
-            <div class="wiki-nat-row"><span>Registered electorate</span><span>47,586,602</span></div>
+            <div class="wiki-nat-row"><span>Registered electorate</span><span id="wikiElectorate">47,586,602</span></div>
             <div class="wiki-nat-row"><span>Turnout</span><span id="wikiTurnout"></span></div>
           </div>
 
           <div id="wikiHungNote" class="wiki-hung-note" style="display:none"></div>
 
-          <div class="wiki-comp-head">Composition of the House of Commons after the election</div>
+          <div class="wiki-comp-head" id="wikiCompHead">Composition of the House of Commons after the election</div>
           <div id="wikiComposition" class="wiki-comp"></div>
 
           <div class="wiki-results-head">Results by party</div>
           <div id="wikiFullResults" class="wiki-full-results"></div>
 
           <div class="wiki-pmrow">
-            <div class="wiki-pm-cell"><span class="wiki-pm-label">Prime Minister before</span><span id="wikiPmBefore"></span></div>
-            <div class="wiki-pm-cell"><span class="wiki-pm-label">Prime Minister after</span><span id="wikiPmAfter"></span></div>
+            <div class="wiki-pm-cell"><span class="wiki-pm-label" id="wikiPmBeforeLabel">Prime Minister before</span><span id="wikiPmBefore"></span></div>
+            <div class="wiki-pm-cell"><span class="wiki-pm-label" id="wikiPmAfterLabel">Prime Minister after</span><span id="wikiPmAfter"></span></div>
           </div>
         </div>
       </div>
@@ -463,13 +463,13 @@
     <!-- ============================================= RETIREMENT SCREEN ==== -->
     <section id="screen-retirement" class="screen">
       <div class="ret-wrap">
-        <h2>Between Parliaments</h2>
+        <h2 id="retHeading">Between Parliaments</h2>
         <p id="retIntro">The following members of your cabinet will not contest the next election.</p>
         <div id="retList" class="ret-list"></div>
         <div class="ret-mods" id="retMods"></div>
-        <p class="mini-help">The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next parliament.</p>
+        <p class="mini-help" id="retMiniHelp">The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next parliament.</p>
         <div class="btn-row">
-          <button class="btn btn-primary" id="retContinueBtn">Draft replacements — Parliament <span id="retParlNum">2</span> →</button>
+          <button class="btn btn-primary" id="retContinueBtn">Draft replacements — <span id="retTermWord">Parliament</span> <span id="retParlNum">2</span> →</button>
         </div>
       </div>
     </section>
@@ -780,6 +780,8 @@ note: One line on them (optional)"></textarea>
   <script src="js/data.expansion2.js"></script>
   <script src="js/data.international.js"></script>
   <script src="js/data.politicians2.js"></script>
+  <script src="js/data.politicians3.js"></script>
+  <script src="js/data.politicians4.js"></script>
   <script src="js/scenarios.js"></script>
   <script src="js/govern.js"></script>
   <script src="js/govern.intl.js"></script>

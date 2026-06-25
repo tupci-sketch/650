@@ -86,6 +86,27 @@ G.inScope = function (p, mode) {
   return p.scope === "uk";                              // unity / dynasty: UK only
 };
 
+/* given a party label, return the country code (e.g. "US", "DE", "FR") or null */
+G.partyCountry = function (partyLabel) {
+  if (!partyLabel) return null;
+  // First check the explicit map in electoral_systems.js
+  if (G.PARTY_COUNTRY && G.PARTY_COUNTRY[partyLabel]) return G.PARTY_COUNTRY[partyLabel];
+  // Fallback heuristics
+  var label = partyLabel.toLowerCase();
+  if (label.indexOf("(usa)") !== -1 || label.indexOf("(us)") !== -1) return "US";
+  if (label.indexOf("(de)") !== -1 || label.indexOf("(germany)") !== -1) return "DE";
+  if (label.indexOf("(fr)") !== -1 || label.indexOf("(france)") !== -1) return "FR";
+  if (label.indexOf("(au)") !== -1 || label.indexOf("(australia)") !== -1) return "AU";
+  if (label.indexOf("(ca)") !== -1 || label.indexOf("(canada)") !== -1) return "CA";
+  if (label.indexOf("(in)") !== -1 || label.indexOf("(india)") !== -1) return "IN";
+  if (label.indexOf("(jp)") !== -1 || label.indexOf("(japan)") !== -1) return "JP";
+  if (label.indexOf("(kp)") !== -1 || label.indexOf("(korea)") !== -1) return "KP";
+  if (label.indexOf("(su)") !== -1 || label.indexOf("soviet") !== -1) return "SU";
+  if (label.indexOf("(cu)") !== -1 || label.indexOf("(cuba)") !== -1) return "CU";
+  if (label.indexOf("(cn)") !== -1 || label.indexOf("(china)") !== -1) return "CN";
+  return null;
+};
+
 /* alignment distance between a politician's party and the player's chosen
    alignment. Returns a non-negative number; 0 means exact match. */
 G._alignDist = function (p, playerAlignValue) {
@@ -119,17 +140,65 @@ G.poolFor = function (opts) {
   });
   var eras = opts.eras || G.erasForMode(mode);
   var lineage = opts.lineage || null;
+
+  /* country-aware filtering: active whenever an international electoral system is set */
+  var activeSysKey = G.state && G.state._electoralSystemKey;
+  var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
+  var activeCountry = activeSys ? activeSys.country : null;
+  var isIntl = !!activeCountry;  /* true for any non-UK scenario regardless of mode */
+
+  /* Some historically important figures are stored under generic party labels
+     (e.g. "Dictators") that don't resolve to a country. This name→country map
+     ensures they appear in the correct country's pool. */
+  var FIGURE_COUNTRY = {
+    "Kim Il-sung": "KP", "Kim Jong-il": "KP", "Kim Jong-un": "KP",
+    "Mao Zedong": "CN",
+    "Joseph Stalin": "SU", "Vladimir Putin": "SU",
+    "Fidel Castro": "CU", "Che Guevara": "CU", "Raúl Castro": "CU",
+    "Saddam Hussein": "other", "Muammar Gaddafi": "other",
+    "Augusto Pinochet": "other", "Idi Amin": "other",
+    "Robert Mugabe": "ZW"
+  };
+
   return G.POLITICIANS.filter(function (p) {
-    if (!G.inScope(p, mode)) return false;
+    /* ── Scope gate ────────────────────────────────────────────────── */
+    if (isIntl) {
+      /* Wild-scope: bypass inScope, handled by country filter below */
+      if (p.scope === "wild") { /* fall through */ }
+      /* UK / p24: only globally famous figures pass (appeal≥72 OR exp≥82) */
+      else if (p.scope === "uk" || p.scope === "p24") {
+        var _st = p.stats || {};
+        if ((_st.appeal || 0) < 72 && (_st.experience || 0) < 82) return false;
+        /* famous UK figures let through; skip remaining country filter below */
+      }
+      /* anything else falls through */
+    } else {
+      if (!G.inScope(p, mode)) return false;
+    }
+
     if (eras.indexOf(p.era) === -1) return false;
-    if (mode === "dynasty") return G.lineageOf(p.party) === lineage;   // the whole bench
+    if (mode === "dynasty") return G.lineageOf(p.party) === lineage;
+
+    /* ── Country filter for international scenarios (before alignment) ── */
+    if (isIntl && p.scope === "wild") {
+      var polCountry = (FIGURE_COUNTRY[p.name] !== "other" && FIGURE_COUNTRY[p.name]) ||
+                       G.partyCountry(p.party);
+      if (polCountry === activeCountry) {
+        /* Same-country figures: include regardless of alignment; apply cast filter only */
+        var cc = G.castOf(p);
+        if (cc === "insider" && !casts.insider) return false;
+        if (cc === "novelty" && !casts.novelty) return false;
+        return true;
+      }
+      /* Not same country: only include if globally famous */
+      var _st2 = p.stats || {};
+      if ((_st2.appeal || 0) < 76 && (_st2.experience || 0) < 85) return false;
+      /* globally famous figure: fall through to alignment + cast filters */
+    }
+
     var c = G.castOf(p);
     if (c === "insider" && !casts.insider) return false;
     if (c === "novelty" && !casts.novelty) return false;
-    /* alignment filter: skip figures too far across the political spectrum.
-       Wildcard figures with scope "wild" (world leaders, revolutionaries) are
-       always excluded via their scope gate in non-wildcard modes, so this
-       only trims partisan figures within the player's accessible range. */
     if (filterAlign && G._alignDist(p, opts.alignValue) > threshold) return false;
     return true;
   });
