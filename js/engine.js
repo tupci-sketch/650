@@ -141,38 +141,45 @@ G.poolFor = function (opts) {
   var eras = opts.eras || G.erasForMode(mode);
   var lineage = opts.lineage || null;
 
-  /* country-aware filtering for international (non-UK) scenarios in non-wildcard modes */
+  /* country-aware filtering: active whenever an international electoral system is set */
   var activeSysKey = G.state && G.state._electoralSystemKey;
   var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
   var activeCountry = activeSys ? activeSys.country : null;
-  /* In wildcard mode with a country scenario, prefer that country's politicians
-     but also allow globally-famous figures (appeal >= 76 or experience >= 85). */
-  var countryFilter = activeCountry && mode === "wildcard";
+  var isIntl = !!activeCountry;  /* true for any non-UK scenario regardless of mode */
 
   return G.POLITICIANS.filter(function (p) {
-    if (!G.inScope(p, mode)) return false;
+    /* ── Scope gate ────────────────────────────────────────────────── */
+    if (isIntl) {
+      /* Wild-scope: bypass inScope, handled by country filter below */
+      if (p.scope === "wild") { /* fall through */ }
+      /* UK / p24: only globally famous figures pass (appeal≥72 OR exp≥82) */
+      else if (p.scope === "uk" || p.scope === "p24") {
+        var _st = p.stats || {};
+        if ((_st.appeal || 0) < 72 && (_st.experience || 0) < 82) return false;
+        /* famous UK figures let through; skip remaining country filter below */
+      }
+      /* anything else (e.g. future scopes) falls through */
+    } else {
+      if (!G.inScope(p, mode)) return false;
+    }
+
     if (eras.indexOf(p.era) === -1) return false;
-    if (mode === "dynasty") return G.lineageOf(p.party) === lineage;   // the whole bench
+    if (mode === "dynasty") return G.lineageOf(p.party) === lineage;
     var c = G.castOf(p);
     if (c === "insider" && !casts.insider) return false;
     if (c === "novelty" && !casts.novelty) return false;
-    /* alignment filter: skip figures too far across the political spectrum.
-       Wildcard figures with scope "wild" (world leaders, revolutionaries) are
-       always excluded via their scope gate in non-wildcard modes, so this
-       only trims partisan figures within the player's accessible range. */
     if (filterAlign && G._alignDist(p, opts.alignValue) > threshold) return false;
-    /* country filter: for international wildcard scenarios, prefer country politicians
-       and globally famous figures; exclude scope:"uk" politicians */
-    if (countryFilter && p.scope === "wild") {
+
+    /* ── Country filter (international scenarios only) ──────────────── */
+    if (isIntl && p.scope === "wild") {
       var polCountry = G.partyCountry(p.party);
-      if (polCountry === activeCountry) return true;  // always include same-country politicians
-      /* exclude UK scope politicians in non-UK scenarios */
-      /* for "wild" scope: allow globally famous (high appeal or experience) */
-      var st = p.stats || {};
-      if ((st.appeal || 0) >= 76 || (st.experience || 0) >= 85) return true;
+      if (polCountry === activeCountry) return true;   /* same country: always in */
+      var _st2 = p.stats || {};
+      /* other countries: only globally famous (high appeal or deep experience) */
+      if ((_st2.appeal || 0) >= 76 || (_st2.experience || 0) >= 85) return true;
       return false;
     }
-    if (countryFilter && p.scope === "uk") return false; // no UK-only politicians in non-UK scenarios
+
     return true;
   });
 };
