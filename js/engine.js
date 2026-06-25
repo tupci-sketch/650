@@ -147,6 +147,19 @@ G.poolFor = function (opts) {
   var activeCountry = activeSys ? activeSys.country : null;
   var isIntl = !!activeCountry;  /* true for any non-UK scenario regardless of mode */
 
+  /* Some historically important figures are stored under generic party labels
+     (e.g. "Dictators") that don't resolve to a country. This name→country map
+     ensures they appear in the correct country's pool. */
+  var FIGURE_COUNTRY = {
+    "Kim Il-sung": "KP", "Kim Jong-il": "KP", "Kim Jong-un": "KP",
+    "Mao Zedong": "CN",
+    "Joseph Stalin": "SU", "Vladimir Putin": "SU",
+    "Fidel Castro": "CU", "Che Guevara": "CU", "Raúl Castro": "CU",
+    "Saddam Hussein": "other", "Muammar Gaddafi": "other",
+    "Augusto Pinochet": "other", "Idi Amin": "other",
+    "Robert Mugabe": "ZW"
+  };
+
   return G.POLITICIANS.filter(function (p) {
     /* ── Scope gate ────────────────────────────────────────────────── */
     if (isIntl) {
@@ -158,28 +171,35 @@ G.poolFor = function (opts) {
         if ((_st.appeal || 0) < 72 && (_st.experience || 0) < 82) return false;
         /* famous UK figures let through; skip remaining country filter below */
       }
-      /* anything else (e.g. future scopes) falls through */
+      /* anything else falls through */
     } else {
       if (!G.inScope(p, mode)) return false;
     }
 
     if (eras.indexOf(p.era) === -1) return false;
     if (mode === "dynasty") return G.lineageOf(p.party) === lineage;
+
+    /* ── Country filter for international scenarios (before alignment) ── */
+    if (isIntl && p.scope === "wild") {
+      var polCountry = (FIGURE_COUNTRY[p.name] !== "other" && FIGURE_COUNTRY[p.name]) ||
+                       G.partyCountry(p.party);
+      if (polCountry === activeCountry) {
+        /* Same-country figures: include regardless of alignment; apply cast filter only */
+        var cc = G.castOf(p);
+        if (cc === "insider" && !casts.insider) return false;
+        if (cc === "novelty" && !casts.novelty) return false;
+        return true;
+      }
+      /* Not same country: only include if globally famous */
+      var _st2 = p.stats || {};
+      if ((_st2.appeal || 0) < 76 && (_st2.experience || 0) < 85) return false;
+      /* globally famous figure: fall through to alignment + cast filters */
+    }
+
     var c = G.castOf(p);
     if (c === "insider" && !casts.insider) return false;
     if (c === "novelty" && !casts.novelty) return false;
     if (filterAlign && G._alignDist(p, opts.alignValue) > threshold) return false;
-
-    /* ── Country filter (international scenarios only) ──────────────── */
-    if (isIntl && p.scope === "wild") {
-      var polCountry = G.partyCountry(p.party);
-      if (polCountry === activeCountry) return true;   /* same country: always in */
-      var _st2 = p.stats || {};
-      /* other countries: only globally famous (high appeal or deep experience) */
-      if ((_st2.appeal || 0) >= 76 || (_st2.experience || 0) >= 85) return true;
-      return false;
-    }
-
     return true;
   });
 };
