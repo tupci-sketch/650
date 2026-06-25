@@ -473,7 +473,7 @@
     var box = sel("dynastyPick"); box.innerHTML = "";
     var need = choice.cabinetSize === "expanded"
       ? (G.PORTFOLIOS_BASE.length + G.PORTFOLIOS_EXTRA.length) : G.PORTFOLIOS_BASE.length;
-    var lineages = G.eligibleDynastyLineages(choice.eras, need);
+    var lineages = G.eligibleDynastyLineages(choice.eras, need, choice.country || "uk");
     if (choice.lineage && lineages.indexOf(choice.lineage) === -1) choice.lineage = null;
     if (!choice.lineage) choice.lineage = lineages[0] || null;
     if (lineages.length === 0) {
@@ -639,6 +639,7 @@
         policyOn: choice.policy,
         campaignOn: choice.campaignOn || false,
         casts: { insider: !!choice.casts.insider, novelty: !!choice.casts.novelty },
+        country: choice.country || "uk",
         custom: choice.mode === "dynasty" ? null : {
           name: choice.partyName, align: choice.partyAlign, colour: choice.partyColour
         }
