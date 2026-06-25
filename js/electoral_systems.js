@@ -650,6 +650,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "650 Westminster seats · winner takes all per constituency",
     country: "UK", flag: "🇬🇧", totalSeats: 650, majority: 326,
     regionKey: "uk",
+    chamberName: "House of Commons", headOfGovt: "Prime Minister", termWord: "Parliament",
+    registeredElectorate: 47586602, typicalTurnout: [0.60, 0.72], hungWord: "Hung parliament",
     simulate:     null,        /* uses existing simulateCampaign */
     estimateFn:   null,        /* uses existing estimateSeats */
     tierFor:      null,        /* uses existing G.tierFor */
@@ -661,6 +663,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "435 House seats · first past the post",
     country: "US", flag: "🇺🇸", totalSeats: 435, majority: 218,
     regionKey: "usa_house",
+    chamberName: "House of Representatives", headOfGovt: "Speaker", termWord: "Congress",
+    registeredElectorate: 240000000, typicalTurnout: [0.40, 0.55], hungWord: "No majority",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
     tierLabel: function (seats, total) {
@@ -679,6 +683,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Electoral College · 538 votes · 270 to win",
     country: "US", flag: "🇺🇸", totalSeats: 538, majority: 270,
     regionKey: "usa_ec",
+    chamberName: "Electoral College", headOfGovt: "President", termWord: "Term",
+    registeredElectorate: 240000000, typicalTurnout: [0.50, 0.65], hungWord: "No winner — faithless electors",
     simulate:   function (p, rnd) { return G.simulateEC(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsEC(p, rnd); },
     tierLabel: function (seats) {
@@ -699,6 +705,8 @@ G.ELECTORAL_SYSTEMS = {
     country: "DE", flag: "🇩🇪", totalSeats: 647, majority: 324,
     threshold: 0.01,   /* Weimar had very low threshold */
     regionKey: "germany_weimar",
+    chamberName: "Reichstag", headOfGovt: "Reichskanzler", termWord: "Legislature",
+    registeredElectorate: 44000000, typicalTurnout: [0.70, 0.85], hungWord: "No Reichstag majority",
     simulate:   function (p, rnd) { return G.simulatePR(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsPR(p, rnd); },
     tierLabel: function (seats) {
@@ -719,6 +727,8 @@ G.ELECTORAL_SYSTEMS = {
     country: "DE", flag: "🇩🇪", totalSeats: 736, majority: 369,
     threshold: 0.05,
     regionKey: "germany_modern",
+    chamberName: "Bundestag", headOfGovt: "Bundeskanzler", termWord: "Legislature",
+    registeredElectorate: 61200000, typicalTurnout: [0.74, 0.80], hungWord: "Hung Bundestag",
     simulate:   function (p, rnd) { return G.simulatePR(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsPR(p, rnd); },
     tierLabel: function (seats) {
@@ -738,6 +748,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Two-round system · 577 seats · absolute majority 289",
     country: "FR", flag: "🇫🇷", totalSeats: 577, majority: 289,
     regionKey: "france",
+    chamberName: "Assemblée Nationale", headOfGovt: "Président", termWord: "Legislature",
+    registeredElectorate: 49000000, typicalTurnout: [0.44, 0.58], hungWord: "No absolute majority",
     simulate:   function (p, rnd) { return G.simulateTRS(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsTRS(p, rnd); },
     tierLabel: function (seats) {
@@ -757,6 +769,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Preferential voting · 151 seats · 76 needed",
     country: "AU", flag: "🇦🇺", totalSeats: 151, majority: 76,
     regionKey: "australia",
+    chamberName: "House of Representatives", headOfGovt: "Prime Minister", termWord: "Parliament",
+    registeredElectorate: 17000000, typicalTurnout: [0.88, 0.93], hungWord: "Hung parliament",
     simulate:   function (p, rnd) { return G.simulateAV(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsAV(p, rnd); },
     tierLabel: function (seats) {
@@ -776,6 +790,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "First Past the Post · 338 House of Commons seats",
     country: "CA", flag: "🇨🇦", totalSeats: 338, majority: 170,
     regionKey: "canada",
+    chamberName: "House of Commons", headOfGovt: "Prime Minister", termWord: "Parliament",
+    registeredElectorate: 29000000, typicalTurnout: [0.60, 0.70], hungWord: "Minority parliament",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
     tierLabel: function (seats) {
@@ -793,6 +809,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "First Past the Post · 543 Lok Sabha seats",
     country: "IN", flag: "🇮🇳", totalSeats: 543, majority: 272,
     regionKey: "india",
+    chamberName: "Lok Sabha", headOfGovt: "Prime Minister", termWord: "Lok Sabha",
+    registeredElectorate: 950000000, typicalTurnout: [0.60, 0.70], hungWord: "Hung Lok Sabha",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
     tierLabel: function (seats) {
@@ -811,6 +829,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Mixed-member majoritarian · 465 seats in the Shūgiin · 233 to win",
     country: "Japan", flag: "🇯🇵", totalSeats: 465, majority: 233,
     regionKey: "japan",
+    chamberName: "House of Representatives (衆議院)", headOfGovt: "Prime Minister", termWord: "Parliament",
+    registeredElectorate: 105000000, typicalTurnout: [0.52, 0.62], hungWord: "No stable majority",
     simulate:   function (p, rnd) { return G._simulateFPTPRegional(p, rnd, "fptp"); },
     estimateFn: function (p, rnd) { return G._estimateFPTPRegional(p, rnd); },
     tierLabel: function (seats, total) {
@@ -830,6 +850,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "The democratic will of the Korean people · 687 seats",
     country: "KP", flag: "🇰🇵", totalSeats: 687, majority: 1,
     regionKey: "north_korea",
+    chamberName: "Supreme People's Assembly", headOfGovt: "Supreme Leader", termWord: "Session",
+    registeredElectorate: 19000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
     tierLabel: function (seats, total) {
@@ -847,6 +869,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Socialist democracy · Soviet of the Union · 569 deputies",
     country: "SU", flag: "☭", totalSeats: 569, majority: 1,
     regionKey: "soviet_1937",
+    chamberName: "Supreme Soviet", headOfGovt: "General Secretary", termWord: "Congress",
+    registeredElectorate: 180000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
     tierLabel: function (seats) { return "Victory of the Proletariat"; },
@@ -860,6 +884,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "Cuba's socialist democracy · 470 seats",
     country: "CU", flag: "🇨🇺", totalSeats: 470, majority: 1,
     regionKey: "cuba",
+    chamberName: "National Assembly", headOfGovt: "President", termWord: "Legislature",
+    registeredElectorate: 8500000, typicalTurnout: [0.95, 0.99], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
     tierLabel: function (seats) { return "¡Victoria de la Revolución!"; },
@@ -873,6 +899,8 @@ G.ELECTORAL_SYSTEMS = {
     subtitle: "People's democratic dictatorship · 2980 deputies",
     country: "CN", flag: "🇨🇳", totalSeats: 2980, majority: 1,
     regionKey: "china",
+    chamberName: "National People's Congress", headOfGovt: "General Secretary", termWord: "Congress",
+    registeredElectorate: 1000000000, typicalTurnout: [0.99, 1.0], hungWord: "Unanimous",
     simulate:   function (p, rnd) { return G.simulateGuided(p, rnd); },
     estimateFn: function (p, rnd) { return G.estimateSeatsGuided(p, rnd); },
     tierLabel: function (seats) { return "Harmonious Victory"; },
@@ -905,4 +933,55 @@ G.tierForSystem = function (seats, sys) {
     govt: govt,
     role: govt ? "govt" : "opposition"
   };
+};
+
+/* =========================================================================
+   12 · PARTY → COUNTRY MAP
+   Used by draft filtering to show country-relevant politicians in intl modes.
+   ========================================================================= */
+G.PARTY_COUNTRY = {
+  /* USA */
+  "Democrat (USA)": "US", "Republican (USA)": "US", "Federalist": "US",
+  "Bull Moose": "US", "Whig (USA)": "US", "Democrat 1860 (South)": "US",
+  "Constitutional Union": "US", "Progressive (USA)": "US",
+  /* Germany */
+  "CDU/CSU": "DE", "CDU": "DE", "SPD": "DE", "SPD (DE)": "DE", "KPD": "DE",
+  "NSDAP": "DE", "Zentrum": "DE", "DNVP": "DE", "BVP": "DE", "DVP": "DE",
+  "DDP": "DE", "Greens (DE)": "DE", "FDP": "DE", "AfD": "DE",
+  "Die Linke": "DE", "BSW": "DE",
+  /* France */
+  "Ensemble": "FR", "Rassemblement National": "FR", "La France Insoumise": "FR",
+  "NUPES": "FR", "Les Républicains": "FR", "Parti Socialiste": "FR",
+  "Parti Communiste": "FR", "RPR": "FR", "PS (FR)": "FR", "UMP": "FR",
+  "LREM": "FR", "Radical (FR)": "FR",
+  /* Australia */
+  "Australian Labor Party": "AU", "Liberal Party": "AU", "National Party": "AU",
+  "Greens (AU)": "AU", "Teal Independent": "AU", "Liberal (AU)": "AU",
+  "National (AU)": "AU",
+  /* Canada */
+  "Liberal (CA)": "CA", "Conservative (CA)": "CA", "NDP": "CA",
+  "Bloc Québécois": "CA",
+  /* Japan */
+  "LDP": "JP", "LDP (JP)": "JP", "CDP (JP)": "JP", "Komeito": "JP",
+  "Nippon Ishin": "JP", "DPJ": "JP",
+  /* India */
+  "BJP": "IN", "INC": "IN", "Samajwadi Party": "IN", "AITC": "IN",
+  "BSP": "IN", "AAP": "IN",
+  /* North Korea */
+  "Korean Workers' Party": "KP",
+  /* Soviet/Russia */
+  "Communist Party (SU)": "SU", "CPSU": "SU", "United Russia": "SU",
+  /* Cuba */
+  "Communist Party (CU)": "CU",
+  /* China */
+  "Chinese Communist Party": "CN", "CCP": "CN", "CPC": "CN",
+  /* Ireland */
+  "Fianna Fáil": "IE", "Fine Gael": "IE", "Sinn Féin": "IE",
+  "Sinn Féin (IE)": "IE", "Workers' Party (IE)": "IE",
+  /* Turkey */
+  "AKP": "TR", "CHP (TR)": "TR",
+  /* Israel */
+  "Mapai": "IL", "Likud": "IL", "Fatah": "IL",
+  /* South Africa */
+  "ANC": "ZA", "ZANU-PF": "ZW"
 };

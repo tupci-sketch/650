@@ -86,6 +86,27 @@ G.inScope = function (p, mode) {
   return p.scope === "uk";                              // unity / dynasty: UK only
 };
 
+/* given a party label, return the country code (e.g. "US", "DE", "FR") or null */
+G.partyCountry = function (partyLabel) {
+  if (!partyLabel) return null;
+  // First check the explicit map in electoral_systems.js
+  if (G.PARTY_COUNTRY && G.PARTY_COUNTRY[partyLabel]) return G.PARTY_COUNTRY[partyLabel];
+  // Fallback heuristics
+  var label = partyLabel.toLowerCase();
+  if (label.indexOf("(usa)") !== -1 || label.indexOf("(us)") !== -1) return "US";
+  if (label.indexOf("(de)") !== -1 || label.indexOf("(germany)") !== -1) return "DE";
+  if (label.indexOf("(fr)") !== -1 || label.indexOf("(france)") !== -1) return "FR";
+  if (label.indexOf("(au)") !== -1 || label.indexOf("(australia)") !== -1) return "AU";
+  if (label.indexOf("(ca)") !== -1 || label.indexOf("(canada)") !== -1) return "CA";
+  if (label.indexOf("(in)") !== -1 || label.indexOf("(india)") !== -1) return "IN";
+  if (label.indexOf("(jp)") !== -1 || label.indexOf("(japan)") !== -1) return "JP";
+  if (label.indexOf("(kp)") !== -1 || label.indexOf("(korea)") !== -1) return "KP";
+  if (label.indexOf("(su)") !== -1 || label.indexOf("soviet") !== -1) return "SU";
+  if (label.indexOf("(cu)") !== -1 || label.indexOf("(cuba)") !== -1) return "CU";
+  if (label.indexOf("(cn)") !== -1 || label.indexOf("(china)") !== -1) return "CN";
+  return null;
+};
+
 /* alignment distance between a politician's party and the player's chosen
    alignment. Returns a non-negative number; 0 means exact match. */
 G._alignDist = function (p, playerAlignValue) {
@@ -119,6 +140,15 @@ G.poolFor = function (opts) {
   });
   var eras = opts.eras || G.erasForMode(mode);
   var lineage = opts.lineage || null;
+
+  /* country-aware filtering for international (non-UK) scenarios in non-wildcard modes */
+  var activeSysKey = G.state && G.state._electoralSystemKey;
+  var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
+  var activeCountry = activeSys ? activeSys.country : null;
+  /* In wildcard mode with a country scenario, prefer that country's politicians
+     but also allow globally-famous figures (appeal >= 76 or experience >= 85). */
+  var countryFilter = activeCountry && mode === "wildcard";
+
   return G.POLITICIANS.filter(function (p) {
     if (!G.inScope(p, mode)) return false;
     if (eras.indexOf(p.era) === -1) return false;
@@ -131,6 +161,18 @@ G.poolFor = function (opts) {
        always excluded via their scope gate in non-wildcard modes, so this
        only trims partisan figures within the player's accessible range. */
     if (filterAlign && G._alignDist(p, opts.alignValue) > threshold) return false;
+    /* country filter: for international wildcard scenarios, prefer country politicians
+       and globally famous figures; exclude scope:"uk" politicians */
+    if (countryFilter && p.scope === "wild") {
+      var polCountry = G.partyCountry(p.party);
+      if (polCountry === activeCountry) return true;  // always include same-country politicians
+      /* exclude UK scope politicians in non-UK scenarios */
+      /* for "wild" scope: allow globally famous (high appeal or experience) */
+      var st = p.stats || {};
+      if ((st.appeal || 0) >= 76 || (st.experience || 0) >= 85) return true;
+      return false;
+    }
+    if (countryFilter && p.scope === "uk") return false; // no UK-only politicians in non-UK scenarios
     return true;
   });
 };

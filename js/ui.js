@@ -612,7 +612,7 @@ G.UI.renderCareerParlStrip = function (elId, career) {
             : (t === "wipeout") ? "cps-lose" : "";
     parts.push(
       '<span class="cps-item ' + cls + '">' +
-        '<span class="cps-parl">Parl. ' + (h.parliament || "?") + '</span>' +
+        '<span class="cps-parl">' + ((G.UI.sysLabels ? G.UI.sysLabels(G.state && G.state._electoralSystemKey).termWord.slice(0,5) : "Parl") + ". " + (h.parliament || "?")) + '</span>' +
         '<span class="cps-seats">' + (h.seats || 0) + '</span>' +
         (h.electionYear ? '<span class="cps-year">' + h.electionYear + '</span>' : '') +
       '</span>'
@@ -713,6 +713,9 @@ G.UI.renderWatchIntl = function (res, sys) {
 
   var handle = G.UI.buildCountryMap ? G.UI.buildCountryMap("mapWatch", sys, res, colour, { revealed: false }) : false;
   G.UI.renderMapLegend("mapWatchLegend", colour, G.state.mode, res.breakdown);
+  var wLabels = G.UI.sysLabels(sys.key);
+  var wBdLabel = $("watchBreakdownLabel");
+  if (wBdLabel) wBdLabel.innerHTML = 'Projected ' + G.UI._esc(wLabels.chamber) + ' <span class="board-note">updating live</span>';
   G.UI.show("screen-watch");
   return { intl: true, byId: (handle && handle.byId) || {}, colour: colour };
 };
@@ -732,6 +735,21 @@ G.UI.setWatchTally = function (seats, declared) {
 };
 
 /* ============================================================== RESULTS == */
+
+/* Helper: return system-specific label strings for a given electoral system key.
+   Falls back gracefully to UK defaults when sysKey is absent or fptp_uk. */
+G.UI.sysLabels = function (sysKey) {
+  var sys = (sysKey && sysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[sysKey] : null;
+  return {
+    chamber:      sys ? (sys.chamberName || "Parliament")     : "House of Commons",
+    head:         sys ? (sys.headOfGovt  || "Prime Minister") : "Prime Minister",
+    termWord:     sys ? (sys.termWord    || "Parliament")     : "Parliament",
+    hung:         sys ? (sys.hungWord    || "No majority")    : "Hung parliament",
+    electorate:   sys ? (sys.registeredElectorate || 47586602) : 47586602,
+    turnoutRange: sys ? (sys.typicalTurnout || [0.60, 0.72])  : [0.60, 0.72]
+  };
+};
+
 /* =========================================================
    INTERNATIONAL RESULT RENDERER
    ========================================================= */
@@ -809,11 +827,11 @@ G.UI.renderResultIntl = function (res) {
 
   /* — standings — */
   G.UI.renderStandings("seatBreakdown", res.breakdown);
-  var bpEl = $("breakdownPanel");
-  if (bpEl) {
-    var bpLabel = bpEl.querySelector(".section-label");
-    if (bpLabel) bpLabel.textContent = sys.name + " — " + flag + " " + resultLabel;
-  }
+  var labels = G.UI.sysLabels(sys.key);
+  var breakdownLabelEl = $("breakdownLabel");
+  if (breakdownLabelEl) breakdownLabelEl.textContent = "The new " + labels.chamber;
+  var coalitionLabelEl = $("coalitionLabel");
+  if (coalitionLabelEl) coalitionLabelEl.textContent = labels.hung + " — your move";
 
   /* — map / visual panel — replace hexmap with system-appropriate display — */
   G.UI.renderResultMap(res, sys);
@@ -1049,6 +1067,13 @@ G.UI.renderResult = function (res) {
      text from a previous international game in the same session) */
   var ukMapLabel = $("resultMapLabel");
   if (ukMapLabel) ukMapLabel.innerHTML = 'The results map <span class="board-note" id="resultMapNote">650 seats · hover to explore</span>';
+  /* reset system-specific labels to UK defaults */
+  var ukBreakdownLabel = $("breakdownLabel");
+  if (ukBreakdownLabel) ukBreakdownLabel.textContent = "The new House of Commons";
+  var ukCoalitionLabel = $("coalitionLabel");
+  if (ukCoalitionLabel) ukCoalitionLabel.textContent = "Hung parliament — your move";
+  var ukWatchLabel = $("watchBreakdownLabel");
+  if (ukWatchLabel) ukWatchLabel.innerHTML = 'Projected Commons <span class="board-note">updating live</span>';
   /* career mode: show strip of previous parliaments above the result */
   G.UI.renderCareerParlStrip("careerParlStrip", G.career);
   var banner = $("govtBanner");
@@ -1634,9 +1659,30 @@ G.UI.renderWikiParliament = function (res, state, career) {
     if (dateEl)  dateEl.textContent  = "General election · United Kingdom";
   }
 
-  /* turnout (simulated: 60–72%) */
-  var turnout = (58 + Math.round((res.voteShare || 0) * 40)).toFixed(1) + "%";
+  /* system-specific labels */
+  var wikiLabels = G.UI.sysLabels(res.electoralSystem || (G.state && G.state._electoralSystemKey));
+
+  /* electorate */
+  var electorateEl = document.getElementById("wikiElectorate");
+  if (electorateEl) electorateEl.textContent = wikiLabels.electorate.toLocaleString();
+
+  /* turnout (derived from system's typicalTurnout range, scaled by vote share) */
+  var tRange = wikiLabels.turnoutRange;
+  var tMin = tRange[0], tMax = tRange[1];
+  var tVal = tMin + (res.voteShare || 0) * (tMax - tMin);
+  tVal = Math.max(tMin, Math.min(tMax, tVal));
+  var turnout = (tVal * 100).toFixed(1) + "%";
   var turnEl = document.getElementById("wikiTurnout"); if (turnEl) turnEl.textContent = turnout;
+
+  /* composition head */
+  var compHeadEl = document.getElementById("wikiCompHead");
+  if (compHeadEl) compHeadEl.textContent = "Composition of the " + wikiLabels.chamber + " after the election";
+
+  /* PM labels */
+  var pmBeforeLabelEl = document.getElementById("wikiPmBeforeLabel");
+  if (pmBeforeLabelEl) pmBeforeLabelEl.textContent = wikiLabels.head + " before";
+  var pmAfterLabelEl = document.getElementById("wikiPmAfterLabel");
+  if (pmAfterLabelEl) pmAfterLabelEl.textContent = wikiLabels.head + " after";
 
   /* ---- Player (RIGHT column) ---- */
   var bd = res.breakdown || [];
@@ -1683,7 +1729,7 @@ G.UI.renderWikiParliament = function (res, state, career) {
     leftLeader = prevParl.pmName || "—";
     leftSeats  = prevParl.seats;
     leftVote   = (prevParl.voteShare * 100).toFixed(1);
-    leftHead   = "Parliament " + (prevParl.parliament || (career.parliament - 1));
+    leftHead   = wikiLabels.termWord + " " + (prevParl.parliament || (career.parliament - 1));
     leftPriorSeats = "—";
     leftPriorVote  = "—";
     leftSeatDelta  = null;
@@ -1884,9 +1930,16 @@ G.UI.renderRetirements = function (retiring, career) {
   var listEl = document.getElementById("retList");
   var modsEl = document.getElementById("retMods");
   var parlEl = document.getElementById("retParlNum");
+  var termWordEl = document.getElementById("retTermWord");
   var introEl = document.getElementById("retIntro");
 
   if (parlEl && career) parlEl.textContent = career.parliament;
+  var retLabels = G.UI.sysLabels(G.state && G.state._electoralSystemKey);
+  if (termWordEl) termWordEl.textContent = retLabels.termWord;
+  var headingEl = document.getElementById("retHeading");
+  if (headingEl) headingEl.textContent = "Between " + retLabels.termWord + "s";
+  var miniHelpEl = document.getElementById("retMiniHelp");
+  if (miniHelpEl) miniHelpEl.textContent = "The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next " + retLabels.termWord.toLowerCase() + ".";
 
   if (introEl) {
     introEl.textContent = retiring && retiring.length
@@ -1937,7 +1990,7 @@ G.UI.renderCareerBanner = function (career) {
   var arrow = mod >= 0.005 ? "↑" : mod <= -0.005 ? "↓" : "→";
   var modTxt = Math.abs(mod) >= 0.001 ? ((mod >= 0 ? "+" : "") + (mod * 100).toFixed(1) + "% projected swing") : "neutral outlook";
   var rep = career.reputationScore != null ? Math.round(career.reputationScore) : 50;
-  el.innerHTML = '<span class="cb-arrow">' + arrow + '</span> Career outlook: <b>' + G.UI._esc(modTxt) + '</b> · Reputation <b>' + rep + '/100</b> · Parliament <b>' + (career.parliament || 1) + '</b>';
+  el.innerHTML = '<span class="cb-arrow">' + arrow + '</span> Career outlook: <b>' + G.UI._esc(modTxt) + '</b> · Reputation <b>' + rep + '/100</b> · ' + (G.UI.sysLabels ? G.UI.sysLabels(G.state && G.state._electoralSystemKey).termWord : 'Parliament') + ' <b>' + (career.parliament || 1) + '</b>';
   el.style.display = "";
 };
 

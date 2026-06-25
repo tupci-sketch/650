@@ -144,7 +144,10 @@
     var card = sel("continueCard"); if (!card) return;
     var car = snap.career, st = snap.state;
     var info = [];
-    if (car && car.parliament > 1) info.push("Parliament " + car.parliament);
+    if (car && car.parliament > 1) {
+      var _termLabels = G.UI && G.UI.sysLabels ? G.UI.sysLabels(st._electoralSystemKey) : { termWord: "Parliament" };
+      info.push(_termLabels.termWord + " " + car.parliament);
+    }
     var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
     info.push(modeMap[st.mode] || st.mode);
     info.push(((st.difficulty || "normal").charAt(0).toUpperCase() + (st.difficulty || "normal").slice(1)));
@@ -710,7 +713,8 @@
     if (!key || key === "fptp_uk") return "→ Next Parliament";
     var sys = G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[key];
     if (sys && (sys.despotMode || sys.coalitionStyle === "guided")) return "→ Next Term in Power";
-    return "→ Next Election";
+    var labels = G.UI && G.UI.sysLabels ? G.UI.sysLabels(key) : { termWord: "Parliament" };
+    return "→ Next " + labels.termWord;
   }
 
   /* declaration bounds over the per-seat results list. UK uses the 650-seat
