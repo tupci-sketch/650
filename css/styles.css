@@ -199,7 +199,7 @@ body::before {
 .wstep-title { margin: 0; font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
 .wizard-step { display: none; }
 .wizard-step.wactive { display: block; }
-.wizard-btn-row { display: flex; gap: 12px; justify-content: space-between; margin-top: 22px; align-items: center; }
+.wizard-btn-row { display: flex; gap: 16px; justify-content: center; margin-top: 22px; align-items: center; }
 .ready-summary { background: var(--paper-3); border: 1px solid var(--line); border-radius: 6px; padding: 16px 20px; font-size: 14px; margin-bottom: 8px; }
 .ready-summary p { margin: 4px 0; color: var(--ink-soft); }
 .ready-summary b { color: var(--ink); }
@@ -1182,7 +1182,7 @@ body::before {
 /* ---- Button centering fix ------------------------------------------- */
 .btn-row   { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .menu-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
-.wizard-btn-row { display: flex; gap: 10px; justify-content: space-between; margin-top: 20px; align-items: center; }
+.wizard-btn-row { display: flex; gap: 16px; justify-content: center; margin-top: 20px; align-items: center; }
 
 /* ---- PR Coalition Display ------------------------------------------- */
 .coalition-bar { height: 20px; border-radius: 3px; overflow: hidden; display: flex; margin: 8px 0; }
