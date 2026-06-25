@@ -110,9 +110,9 @@
           '<p>A national-unity ticket. Draft the best of every party and era. Stands in all 650 seats.</p></button>' +
         '<button class="opt" data-mode="dynasty"><h4>Single-Party Dynasty</h4>' +
           '<p>Pick one tradition and build a cabinet only from its ranks, across the decades.</p></button>' +
-        '<button class="opt" data-mode="wildcard"><h4>Wildcard</h4>' +
+        '<button class="opt" data-mode="wildcard"><h4>Wildcard ⚡</h4>' +
           '<p>The whole globe and all of history walk in — presidents, founders, despots. For political nerds only.</p></button>' +
-        '<button class="opt" data-mode="parl2024"><h4>2024 Parliament</h4>' +
+        '<button class="opt" data-mode="parl2024"><h4>2024 Parliament 🗳</h4>' +
           '<p>Draft from the 2024 general-election field — the current House of Commons.</p></button>';
       if (labelEl) labelEl.textContent = "2 · Choose your game";
       if (wildNote) wildNote.textContent = "Wildcard is satire — a rogues’ gallery, not an endorsement. Figures responsible for atrocities are included as historical fact, flagged plainly, and their disastrous records keep them poor picks. UK figures appear in every mode; the rest are wildcard-only.";
@@ -366,10 +366,11 @@
     var themeBtn = sel("themeToggleBtn");
     if (themeBtn) {
       var lightStored = localStorage.getItem("650_theme") === "light";
-      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.textContent = "Dark theme"; }
+      if (lightStored) { document.documentElement.classList.add("theme-light"); themeBtn.innerHTML = "🌙 Dark theme"; G.twemoji && G.twemoji(themeBtn); }
       themeBtn.onclick = function () {
         var isLight = document.documentElement.classList.toggle("theme-light");
-        themeBtn.textContent = isLight ? "Dark theme" : "Light theme";
+        themeBtn.innerHTML = isLight ? "🌙 Dark theme" : "☀ Light theme";
+        G.twemoji && G.twemoji(themeBtn);
         localStorage.setItem("650_theme", isLight ? "light" : "dark");
       };
     }
