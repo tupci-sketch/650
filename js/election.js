@@ -359,20 +359,30 @@ G.expandSeatResults = function (campaign, sys) {
    band. Everything comes off the run's seeded RNG, so it is reproducible.   */
 G.oppositionPartyLabels = function () {
   var seen = {}, out = [];
-  Object.keys(G.LANDSCAPE).forEach(function (rid) {
-    G.LANDSCAPE[rid].forEach(function (e) { if (!seen[e[0]]) { seen[e[0]] = 1; out.push(e[0]); } });
+  /* for international games use the country-specific landscape */
+  var sysKey = G.state && G.state._electoralSystemKey;
+  var sys = sysKey && G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[sysKey];
+  var countryLand = (sys && sys.regionKey && sys.regionKey !== "uk" && G.COUNTRY_LANDSCAPES)
+                    ? G.COUNTRY_LANDSCAPES[sys.regionKey] : null;
+  var source = countryLand || G.LANDSCAPE;
+  Object.keys(source).forEach(function (rid) {
+    (source[rid] || []).forEach(function (e) { if (!seen[e[0]]) { seen[e[0]] = 1; out.push(e[0]); } });
   });
   return out;
 };
 G._oppPool = function (label, mode, draftedNames) {
   var lineage = G.lineageOf(label);
+  /* international games need wild-scope politicians in opposition benches */
+  var sysKey = G.state && G.state._electoralSystemKey;
+  var isIntl = sysKey && sysKey !== "fptp_uk";
   return (G.POLITICIANS || []).filter(function (p) {
     if (draftedNames && draftedNames[p.name]) return false;        // the player got there first
     if (G.lineageOf(p.party) !== lineage) return false;            // party-locked
     if (G.isDespot && G.isDespot(p)) return false;                 // no despot benches
     if (G.castOf && G.castOf(p) !== "statesman") return false;     // nor SpAds, nor space warriors
     if (mode === "parl2024") return !!p.mp2024;                    // 2024: sitting MPs only
-    return p.scope !== "p24" && p.scope !== "wild";                // historical UK records
+    if (isIntl) return p.scope !== "p24";                          // international: allow wild
+    return p.scope !== "p24" && p.scope !== "wild";                // UK: historical UK records
   });
 };
 G.buildOppositionField = function (opts, rnd) {

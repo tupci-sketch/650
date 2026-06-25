@@ -12,6 +12,49 @@ var $ = function (id) { return document.getElementById(id); };
 /* role -> name colour class (admin dark red, moderator dark blue, user black) */
 G.UI.roleClass = function (level) { return (level >= 9) ? "role-admin" : (level >= 5) ? "role-mod" : "role-user"; };
 
+/* ---- party logos: pulled live as the party's website favicon, emoji-sized.
+   Parties without a real website (historical, fringe, despots, the satire
+   lineages) simply fall back to the existing colour dot. ------------------- */
+G.PARTY_LOGO = {
+  /* UK */
+  "Labour": "labour.org.uk", "Conservative": "conservatives.com", "Tory": "conservatives.com",
+  "Liberal Democrat": "libdems.org.uk", "Lib Dem": "libdems.org.uk",
+  "Reform UK": "reform.uk", "Brexit Party": "reform.uk",
+  "Green": "greenparty.org.uk", "Green Party": "greenparty.org.uk",
+  "SNP": "snp.org", "Plaid Cymru": "partyof.wales",
+  "Sinn Féin": "sinnfein.ie", "SDLP": "sdlp.ie", "DUP": "mydup.com",
+  "UUP": "uup.org", "Alliance": "allianceparty.org", "UKIP": "ukip.org",
+  "Your Party": "yourparty.uk",
+  /* United States */
+  "Democrat (USA)": "democrats.org", "US Democrat": "democrats.org",
+  "Republican (USA)": "gop.com", "US Republican": "gop.com",
+  /* Germany */
+  "SPD (DE)": "spd.de", "CDU (DE)": "cdu.de", "CDU/CSU": "cdu.de",
+  "Green (DE)": "gruene.de", "FDP (DE)": "fdp.de",
+  /* France */
+  "Parti Socialiste": "parti-socialiste.fr", "SFIO (FR)": "parti-socialiste.fr",
+  /* Australia */
+  "Australian Labor Party": "alp.org.au", "Labor (AU)": "alp.org.au",
+  "Liberal (AU)": "liberal.org.au",
+  /* Canada */
+  "Liberal (CA)": "liberal.ca", "Conservative (CA)": "conservative.ca", "NDP": "ndp.ca",
+  /* Japan */
+  "LDP (JP)": "jimin.jp",
+  /* India */
+  "INC": "inc.in", "Congress (IN)": "inc.in", "BJP": "bjp.org", "BJP (IN)": "bjp.org",
+  /* Russia / South Africa */
+  "United Russia": "er.ru", "ANC": "anc1912.org.za"
+};
+G.UI.partyBadge = function (label, colour) {
+  var dom = G.PARTY_LOGO && G.PARTY_LOGO[label];
+  if (dom) {
+    return '<img class="party-logo" src="https://www.google.com/s2/favicons?domain=' + dom +
+           '&sz=64" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;party-dot&quot; style=&quot;background:' +
+           (colour || "#999") + '&quot;></span>\'">';
+  }
+  return '<span class="party-dot" style="background:' + (colour || "#999") + '"></span>';
+};
+
 var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-campaign", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
 
 G.UI.show = function (screenId) {
@@ -113,7 +156,7 @@ G.UI.renderReels = function () {
   }
   var party = G.PARTIES[d.politician.party];
   var era = G.ERA_BY_ID[d.politician.era];
-  pv.innerHTML = '<span class="party-dot" style="background:' + (party ? party.colour : "#999") + '"></span>' + (party ? party.label : d.politician.party);
+  pv.innerHTML = G.UI.partyBadge(d.politician.party, party ? party.colour : "#999") + (party ? party.label : d.politician.party);
   ps.textContent = "your pick";
   ev.textContent = era ? era.label : d.politician.era;
   es.textContent = era ? era.years : "";
@@ -178,7 +221,7 @@ G.UI.renderPool = function () {
         : 'Suits: ' + G.UI._esc(fits.slice(0, 3).join(", ")) + (fits.length > 3 ? "\u2026" : "")) + '</div>';
     var main = '<div class="dc-main">' +
       '<div class="dc-nm">' + G.UI._esc(p.name) + '</div>' +
-      '<div class="dc-meta"><span class="party-dot" style="background:' + ((G.PARTIES[p.party]||{}).colour||"#999") + '"></span>' + G.UI._esc(p.party) + ' \u00b7 ' + ((G.ERA_BY_ID[p.era]||{}).label||p.era) + (p.scope==="wild"?' \u00b7 <span class="wild-tag">wildcard</span>':'') + (tierLabel?' \u00b7 <span class="tier-chip t-'+tierKey+'">'+tierLabel+'</span>':'') + '</div>' +
+      '<div class="dc-meta">' + G.UI.partyBadge(p.party, (G.PARTIES[p.party]||{}).colour||"#999") + G.UI._esc(p.party) + ' \u00b7 ' + ((G.ERA_BY_ID[p.era]||{}).label||p.era) + (p.scope==="wild"?' \u00b7 <span class="wild-tag">wildcard</span>':'') + (tierLabel?' \u00b7 <span class="tier-chip t-'+tierKey+'">'+tierLabel+'</span>':'') + '</div>' +
       (p.note ? '<div class="dc-note">' + G.UI._esc(p.note) + '</div>' : '') +
       fitLine +
       (despot ? '<div class="dc-despot">\u26a0 a despot \u2014 appointing them is a national scandal</div>' : '') +
@@ -902,6 +945,12 @@ G.UI.renderPostElectionIntl = function (res, sys) {
     };
     $("govLine").textContent = (govPhrases[sys.key] || "Take office and govern.") + " Your opening position looks " + word + ".";
     setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    /* update govern button text to match the country */
+    var govBtn = $("governBtn");
+    if (govBtn) {
+      var action = sys.govtBuildingAction || ("Take " + (sys.govtBuilding || "office"));
+      govBtn.textContent = action + " →";
+    }
     return;
   }
 
@@ -1214,6 +1263,8 @@ G.UI.renderPostElection = function (res) {
     $("govPct").textContent = gv.stability + "%";
     $("govLine").textContent = "Your opening position looks " + word + ". Take office and govern through a full parliament — steer approval, the economy and your party, survive the crises, and chase a lasting legacy.";
     setTimeout(function () { $("govFill").style.width = gv.stability + "%"; }, 90);
+    var govBtn = $("governBtn");
+    if (govBtn) govBtn.textContent = "Enter Downing Street →";
     return;
   }
 

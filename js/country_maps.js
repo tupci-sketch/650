@@ -1,16 +1,11 @@
 /* =============================================================================
-   650 — COUNTRY MAPS (v2)
+   650 — COUNTRY MAPS (v3)
    -----------------------------------------------------------------------------
-   Per-seat hex cartograms for every international electoral system, in the
-   spirit of the UK constituency hex map. Each country is drawn as a silhouette
-   of *region cells* (an ASCII mask that follows the real geography); every
-   region's cells are then packed with exactly that region's seat count — one
-   hex per seat, full resolution (China renders 2,980 hexes, India 543, and so
-   on). The hexes are coloured by who carried each seat: the player's ticket, or
-   the actual winning party from the per-seat declaration list.
-
-   The map scales to fit its panel (a 2,980-seat chamber simply draws smaller
-   hexes); the hex *count* always equals the real seat count.
+   Per-seat hex cartograms for every international electoral system, drawn as
+   geographic silhouettes. Each country's mask traces the real outline with
+   regions in their actual geographic positions. The renderer packs one hex per
+   seat into the mask cells, so seat density varies within the map (denser in
+   populous regions) mirroring real electoral cartograms.
 
    Loaded after electoral_systems.js / ui.js / election.js, before main.js.
    ============================================================================= */
@@ -20,196 +15,320 @@ G.UI = G.UI || {};
 /* =========================================================================
    1 · COUNTRY SHAPES
        regionKey → { mask: [rows…], legend: { char: regionId } }
-       Every non-space char in the mask is a cell belonging to a region; the
-       union of cells forms the country's silhouette and places each region in
-       its geographic position. Cell counts roughly track seat share so density
-       stays even. (The UK is omitted — it uses its real G.HEXMAP cartogram.)
+       Each non-space char is a cell belonging to a region; the union of all
+       filled cells forms the country silhouette. Regions are placed at their
+       real geographic positions. (UK omitted — uses the G.HEXMAP cartogram.)
    ========================================================================= */
 G.COUNTRY_SHAPES = {
 
-  /* ---- USA — House of Representatives (regional blocks) ----------------- */
+  /* ---- USA — House of Representatives ----------------------------------- */
+  /*  Continental US shape. Pacific coast left, Atlantic right.
+      PNW=Pacific NW, CA=California, SW=Southwest, PL=Plains,
+      GL=Great Lakes, NE=New England, MA=Mid-Atlantic, WV=Appalachia,
+      TX=Texas, SE=Southeast.                                               */
   usa_house: {
     legend: { P:"US_PNW", C:"US_CA", W:"US_SW", L:"US_PL", G:"US_GL",
               N:"US_NE", A:"US_MA", V:"US_WV", T:"US_TX", E:"US_SE" },
     mask: [
-      "PP     LLL  GGGG   NN",
-      "PP  WW LLL  GGGG  AANN",
-      "CCWWWW LL  GGG   AAAA",
-      "CCWWW  LL   GG  VAAA ",
-      "CC WW  TTT   EEE V   ",
-      "C  WW TTTT  EEEEE    ",
-      "      TTTT  EEEEEE   ",
-      "       TT    EEEE    "
+      "  PPP   LLL   GGGGG  NNN  ",
+      " PPPPWWLLL    GGGGG NAAAA ",
+      " CPPWWWLLLL   GGG  AAAAAAA",
+      " CCCWWWWLLL   GGG VVAAAAA ",
+      " CCCWWWWLLL  EEVVVAAAAA   ",
+      " CCCWWWWLLL  EEEEEVAAAA   ",
+      " CCCWWWTTLL   EEEEEVAA    ",
+      " CC  WTTTTLLL  EEEEEEE    ",
+      "      TTTTTLL   EEEEEEE   ",
+      "       TTTTLL    EEEEEEE  ",
+      "        TTTLL     EEEEEEE ",
+      "         TTTT     EEEEEEE ",
+      "          TTT      EEEEEE ",
+      "                   EEEE   "
     ]
   },
 
-  /* ---- USA — Electoral College (swing states + safe/lean blocks) -------- */
+  /* ---- USA — Electoral College ----------------------------------------- */
+  /*  Safe blocs on coasts, swing states in interior.
+      D=Safe Dem, d=Lean Dem, w=Wisconsin, m=Michigan, p=Pennsylvania,
+      v=Nevada, z=Arizona, g=Georgia, c=North Carolina,
+      r=Lean Rep, R=Safe Rep.                                               */
   usa_ec: {
     legend: { D:"EC_SAFE_DEM", d:"EC_LEAN_DEM", w:"EC_WI", m:"EC_MI", p:"EC_PA",
               v:"EC_NV", z:"EC_AZ", g:"EC_GA", c:"EC_NC", r:"EC_LEAN_REP", R:"EC_SAFE_REP" },
     mask: [
-      "DD   ww mm   d DD",
-      "DD   ww mm pp  DD",
-      "D  d        pp dd",
-      "D  vv       cc r ",
-      "D zz  RR R cc gg r",
-      "  zz RRRRR gg  RR ",
-      "     RRR RR   RR  "
+      "  DDD    d    mmm   DD  ",
+      " DDDD   ddd  pwwm  DDD  ",
+      " DDDD   dv   pp   DDDD  ",
+      " DDDD   vz    c   DDD   ",
+      " DDDD   zz  rccg  RRR   ",
+      "  DDD    rrRRRRRRRRRR   ",
+      "   D     RRRRRRRRRRRR   ",
+      "          RRRRRRRRRRR   ",
+      "           RRRRRRRRRR   ",
+      "            RRRRRRRR    "
     ]
   },
 
-  /* ---- Germany — Weimar Reichstag (Prussia dominant) -------------------- */
+  /* ---- Germany — Weimar Reichstag --------------------------------------- */
+  /*  Prussia (P) dominates the north and east; Bavaria (Y) in SE;
+      smaller states fill the west and south.
+      H=Hamburg, B=Bremen, P=Prussia, O=Other states (northwest + east),
+      E=Hesse, T=Thuringia, S=Saxony, W=Württemberg, A=Baden, Y=Bavaria. */
   germany_weimar: {
     legend: { H:"DE_HH", B:"DE_BR", P:"DE_PR", O:"DE_OT", E:"DE_HE",
               T:"DE_TH", S:"DE_SA", W:"DE_WU", A:"DE_BA", Y:"DE_BY" },
     mask: [
-      "  B H P P  ",
-      "  O P P P P",
-      "  O O P P S",
-      "  O E T S S",
-      "  W A E Y Y",
-      "  W A Y Y Y"
+      "OOOHBHPPPPPPPPPP   ",
+      "OOOOO PPPPPPPPPPOOO",
+      "OOOOO PPPPPPPPPPOO ",
+      " OOEEEPPPPPPPPPOO  ",
+      " OEEEEPPPPPSSPOO   ",
+      " OEEEEPPTTTSSSPP   ",
+      "  EEEEPTTTTSSPP    ",
+      "  WEEEATTTTSSS     ",
+      "  WWEAATTTTYYYY    ",
+      "  WWWAATTTYYYYY    ",
+      "  WWAAATYYYYYYY    ",
+      "   WAAAYYYYYYY     ",
+      "    AAAYYYYYY      ",
+      "     AAYYYYYYY     ",
+      "      AAYYYY       "
     ]
   },
 
-  /* ---- Germany — modern Bundestag (16 Länder) --------------------------- */
+  /* ---- Germany — modern Bundestag (16 Länder) -------------------------- */
+  /*  N=Schleswig-Holstein, h=Hamburg, b=Bremen, m=Mecklenburg-Vorpommern,
+      n=Lower Saxony, w=NRW, e=Hesse, t=Thuringia, x=Saxony-Anhalt,
+      k=Brandenburg, l=Berlin, a=Saxony, r=Rhineland-Palatinate, z=Saarland,
+      q=Baden-Württemberg, y=Bavaria.                                       */
   germany_modern: {
     legend: { s:"DM_SH", h:"DM_HH", b:"DM_HB", m:"DM_MV", n:"DM_NI", w:"DM_NW",
               e:"DM_HE", t:"DM_TH", x:"DM_ST", k:"DM_BB", l:"DM_BE", a:"DM_SN",
               r:"DM_RP", z:"DM_SL", q:"DM_BW", y:"DM_BY" },
     mask: [
-      "   s s    ",
-      "  b h m m ",
-      "  n n k l m",
-      "w w n k k ",
-      "w w n x a ",
-      "r e e t a ",
-      "z r q y y ",
-      "  q q y y ",
-      "  q q y y "
+      "   sssss hh mmmmmmm  ",
+      "  bssss h  mmmmmmm   ",
+      "  bnnnnn  kkkkl mmm  ",
+      "  bnnnnnn kkkll aaa  ",
+      "  wwnnnnn kkx  laa   ",
+      "  wwwnnnn  xxt  aa   ",
+      "  wwwwnnnn ettt aa   ",
+      "  wwwwnnne ettt yy   ",
+      "  wwwwwrne ettyyyy   ",
+      "   wwwrrrn ettyyyy   ",
+      "   zwwrrrn  tyyyyyy  ",
+      "   zqqrrrre tyyyyyy  ",
+      "    qqqqqqe yyyyyyy  ",
+      "    qqqqqqq yyyyyyy  ",
+      "     qqqqqq  yyyyy   ",
+      "      qqqqq  yyyy    "
     ]
   },
 
-  /* ---- France — the Hexagon (Paris central-north, Outre-mer detached) --- */
+  /* ---- France — the Hexagon -------------------------------------------- */
+  /*  N=North (Nord-Picardie), I=Île-de-France, E=East (Alsace-Lorraine),
+      O=West (Bretagne-Normandie), C=Centre/Aquitaine, S=South/Midi,
+      M=Outre-mer (small inset top-left).                                   */
   france: {
     legend: { N:"FR_NO", I:"FR_IDF", E:"FR_NE", O:"FR_OUE", C:"FR_CEN", S:"FR_SUD", M:"FR_OUT" },
     mask: [
-      "  N N    ",
-      " O I I E ",
-      " O O C E ",
-      " O C C S ",
-      "   C S S ",
-      "   S S S ",
-      "M        "
+      "    NNNNNN NNN    ",
+      "   NNNNNIII NNE   ",
+      "  OONNNIII  EEEE  ",
+      "  OOOONIIII EEEE  ",
+      "  OOONOIIICCEEE   ",
+      "  OOOOOCCCCCEE    ",
+      "  OOOOOCCCCCSS    ",
+      "  OOOOOCCCCSSSS   ",
+      "   OOOOCCCSSSSSS  ",
+      "    OOCCCCSSSSSS  ",
+      "     OCCCSSSSSS   ",
+      "      CCCSSSSSSS  ",
+      "       CCSSSSSSS  ",
+      "        CSSSSS    ",
+      "M         SSSSS   "
     ]
   },
 
-  /* ---- Australia -------------------------------------------------------- */
+  /* ---- Australia ------------------------------------------------------- */
+  /*  Continental shape: WA (huge west), ACT+NT (north/center), QLD (NE),
+      NSW (east), VIC (SE corner), TAS (island below VIC), SA (center-south).
+      W=WA, A=SA, Q=QLD, N=NSW, V=VIC, T=TAS, C=ACT&NT.                  */
   australia: {
     legend: { W:"AU_WA", A:"AU_SA", Q:"AU_QLD", N:"AU_NSW", V:"AU_VIC", T:"AU_TAS", C:"AU_ACT" },
     mask: [
-      "W W A A Q Q",
-      "W W A A Q Q",
-      "W W A N N Q",
-      "    N N N C",
-      "    V V V C",
-      "    V V    ",
-      "      T    "
+      "WWWWWWWWWWCCCQQQQQQQQQ",
+      "WWWWWWWWWWCCCQQQQQQQQQ",
+      "WWWWWWWWWWCCCQQQQQQQQ ",
+      "WWWWWWWWWWCCCQQQQQQQQ ",
+      "WWWWWWWWWWCAAQQQQNNNN ",
+      "WWWWWWWWWWCAAQNNNNNNN ",
+      "WWWWWWWWWWAAAANNNNNN  ",
+      "WWWWWWWWWWAAANNNNN    ",
+      "WWWWWWWWWWAAANNNNN    ",
+      "WWWWWWWWWWAAAANNNVVV  ",
+      "        WWAAAAAVVVVVVV",
+      "          AAAAVVVVVVVV",
+      "           AAAVVVVVVV ",
+      "            AAVVVVVVV ",
+      "              AVVVVV  ",
+      "               TVVVV  ",
+      "               TT     "
     ]
   },
 
-  /* ---- Canada ----------------------------------------------------------- */
+  /* ---- Canada ---------------------------------------------------------- */
+  /*  Wide E-W strip; territories (N) above provinces.
+      B=BC, P=Prairies (AB+SK+MB), O=Ontario, Q=Quebec, A=Atlantic, N=Territories. */
   canada: {
     legend: { B:"CA_BC", P:"CA_PR", O:"CA_ON", Q:"CA_QC", A:"CA_ATL", N:"CA_NT" },
     mask: [
-      "N N N N N    ",
-      "B P P O O Q Q A",
-      "B P P O O Q Q A",
-      "B     O O Q   A"
+      "NNNNN NNNNNN NNNN       ",
+      "BBBBB PPPPPP OOOOO QQ   ",
+      "BBBBB PPPPPPPOOOOOQQQAAA",
+      "BBBBB PPPPPPPOOOOOQQAAAA",
+      " BBBB PPPPPPPOOOOOQQAAAA",
+      "  BBB  PPPPPPOOOOOQQAAA ",
+      "   BB  PPPPPP OOOOOO AA "
     ]
   },
 
-  /* ---- Japan — archipelago SW→NE --------------------------------------- */
+  /* ---- Japan — archipelago SW to NE ------------------------------------ */
+  /*  K=Kyushu, G=Chugoku+Shikoku, O=Kinki/Osaka, C=Chubu/Nagoya,
+      A=Kanto (non-Tokyo), T=Tokyo, H=Tohoku, D=Hokkaido, P=Proportional. */
   japan: {
     legend: { K:"JP_KY", G:"JP_CG", O:"JP_OS", C:"JP_CH", A:"JP_KA",
               T:"JP_TO", H:"JP_TH", D:"JP_HK", P:"JP_PR" },
     mask: [
-      "          D D",
-      "          D D",
-      "         H H ",
-      "        H A T",
-      "      C C A A",
-      "    O O C    ",
-      "   G O P     ",
-      "  K G        ",
-      " K K         "
+      "PPPPPP           DDD    ",
+      "PPPPPP          DDDDD   ",
+      "  PPP           DDDDD   ",
+      "  PPP          HHDDD    ",
+      "  PPP         HHHHHH    ",
+      "  PPP        HHHHHA     ",
+      "  PPP       THHHHAA     ",
+      "  PPP       TTHAAA      ",
+      "   PP      TTTAAAA      ",
+      "   PP     TTCAAAA       ",
+      "   PP    TCCCCAAA       ",
+      "   P     CCCCOOO        ",
+      "    P   GGOOOOO         ",
+      "    P  GGGOOOO          ",
+      "   PP KGGOOOO           ",
+      "   PKKKKGOO             ",
+      "   KKKKKK               "
     ]
   },
 
-  /* ---- India — northern plains down to the southern peninsula ----------- */
+  /* ---- India — triangular subcontinent --------------------------------- */
+  /*  Wide northern plains narrowing to southern peninsula.
+      O=Other (NE+J&K), W=Northwest (Punjab/Raj/Delhi), N=North (UP/Bihar),
+      E=East (WB/Odisha/Assam), G=Gujarat+MP, M=Maharashtra, S=South.     */
   india: {
     legend: { O:"IN_OTH", W:"IN_NWE", N:"IN_NOR", E:"IN_EAS", G:"IN_GUJ", M:"IN_MAH", S:"IN_SOU" },
     mask: [
-      "   O     ",
-      " W W N N ",
-      " W W N N E E",
-      " G G N M E E",
-      " G M M S E ",
-      "   M S S S ",
-      "   S S S   ",
-      "    S S    "
+      " OOOOWWWWWNNNNNNNEEE  ",
+      "  OOOWWWWWNNNNNNNEEEE ",
+      "  OWWWWWWWNNNNNNNEEEE ",
+      "  WWWWWWWWNNNNNNNEEEE ",
+      "  WWWWWWNNNNNNNNN EEE ",
+      "  WWGGGGNNNMNNNNEEEE  ",
+      "   WGGGGGNMMMMNEEEE   ",
+      "   GGGGGGGMMMMSSEEE   ",
+      "   GGGGGGGMMMMSSSS    ",
+      "    GGGGGMMMSSSSSS    ",
+      "    GGGGMMMSSSSSSS    ",
+      "     GGGMMSSSSSSS     ",
+      "      GGMSSSSSSSS     ",
+      "       GMSSSSSSSS     ",
+      "        MSSSSSSSS     ",
+      "         SSSSSSSS     ",
+      "          SSSSSS      ",
+      "           SSSS       ",
+      "            SS        "
     ]
   },
 
-  /* ---- North Korea ------------------------------------------------------ */
+  /* ---- North Korea ----------------------------------------------------- */
+  /*  Y=Pyongyang, N=North Pyongan+Chagang, S=South Pyongan+Nampho,
+      K=Kangwon, W=Hwanghae, H=North Hamgyong, M=South Hamgyong,
+      R=Ryanggang, O=Other.                                                 */
   north_korea: {
     legend: { Y:"KP_PY", N:"KP_NN", S:"KP_SN", K:"KP_KG", W:"KP_HW",
               H:"KP_HN", M:"KP_HS", R:"KP_RY", O:"KP_OT" },
     mask: [
-      "   N R H ",
-      "   N R H ",
-      "  N S M M",
-      "  S S M K",
-      "  Y W O K",
-      "  W W O  ",
-      "   W O   "
+      "  NNNN RRRHHHHHH  ",
+      " NNNNNN RRRHHHHH  ",
+      " NNNNNNN RHMMMMMM ",
+      " NNOSSSSRHMMMMMM  ",
+      " NOOSSSSRHMMMMM   ",
+      "  OOSSSSYMMMMMM   ",
+      "  OOWWWSSYMMMM    ",
+      "  OOWWWWWYKKKKK   ",
+      "   OWWWWWYKKKK    ",
+      "   OWWWWWYKKKK    ",
+      "    WWWWYYKKK     "
     ]
   },
 
-  /* ---- Soviet Union — broad east–west span ------------------------------ */
+  /* ---- Soviet Union 1937 ----------------------------------------------- */
+  /*  Russia (R) dominates; other republics on western and southern margins.
+      B=Byelorussia, U=Ukraine, R=Russia SFSR, T=Transcaucasus,
+      K=Kazakhstan+Central Asia, O=Other (Baltic+Moldavia).                */
   soviet_1937: {
     legend: { B:"SU_BE", U:"SU_UK", R:"SU_RS", T:"SU_TR", K:"SU_KZ", O:"SU_OT" },
     mask: [
-      "B R R R R R R R",
-      "U R R R R R R O",
-      "U R R R R R O O",
-      "  T T K K K K  "
+      "OOBBRRRRRRRRRRRRRRRRRRRRRRR ",
+      "OOUURRRRRRRRRRRRRRRRRRRRRRR ",
+      "OUUURRRRRRRRRRRRRRRRRRRRRRRR",
+      " UUURRRRRRRRRRRRRRRRRRRRRRRO",
+      " UURRRRRRRRRRRRRRRRRRRRRROOO",
+      "  URRRKKKKKKKKKRRRRRRRRRROOO",
+      "  TRRRRKKKKKKKRRRRRRROOOOOO ",
+      "  TTRRKKKKKKKRRRRROOOOOOOO  ",
+      "   TTKKKKKKKKKRRROOOOOOOO   ",
+      "    TKKKKKKKKKKROOOOOOOO    "
     ]
   },
 
-  /* ---- Cuba — the long island, west→east -------------------------------- */
+  /* ---- Cuba — long narrow island --------------------------------------- */
+  /*  P=Pinar del Río, H=Havana, M=Matanzas, V=Villa Clara,
+      C=Camagüey, G=Granma, O=Oriente.                                     */
   cuba: {
     legend: { P:"CU_PNR", H:"CU_HAB", M:"CU_MAT", V:"CU_VIL", C:"CU_CAM", G:"CU_GRA", O:"CU_OR" },
     mask: [
-      "PP HHH MM VVV CC GG OOO",
-      " P HHH MM VVV CC GG OOO",
-      "        V   C  G  O O  "
+      "PPPHHHHHHHMMMMMMVVVVVCCCCGGGGGGOOOOOOOO",
+      " PPHHHHHHHMMMMMVVVVVCCCCCGGGGGGOOOOOOOOO",
+      "   HHHHHH MMMM VVVV CCCC GGGGG OOOOOO  ",
+      "           MM   VV   CC   GGG    OOO    "
     ]
   },
 
-  /* ---- China — broad west, populous east; OTH detached ------------------ */
+  /* ---- China ----------------------------------------------------------- */
+  /*  N=Northeast, B=Beijing+Tianjin, W=Northwest (Xinjiang+Tibet+Qinghai),
+      C=Central provinces, H=Hubei+Hunan+Jiangxi, S=Shanghai,
+      G=Guangdong+Guangxi, U=Southern coastal, O=Other (military+HK/MC). */
   china: {
     legend: { N:"CN_NOR", B:"CN_BJ", W:"CN_NWE", C:"CN_CEN", H:"CN_HUB",
               S:"CN_SH", G:"CN_GUA", U:"CN_SOU", O:"CN_OTH" },
     mask: [
-      "W W W W N N N",
-      "W W W W B N N",
-      "W W C C C S S",
-      "W C C C H H S",
-      "  C C H H U U",
-      "  H H G G U U",
-      "    G G G U U",
-      "O O O O O O  "
+      " WWWWWWWWWWNNNNNNNNNNN   ",
+      " WWWWWWWWWWBNNNNNNNNNN   ",
+      " WWWWWWWWWWBNNNNNNNNSS   ",
+      " WWWWWWWWWWCCCCNNNNSSOO  ",
+      " WWWWWWWWWWCCCCCCCSSOOOO ",
+      " WWWWWWWWWWCCCCCHHSSOOOOO",
+      " WWWWWWWWWWCCCCCHHHSSOOOO",
+      " WWWWWWWWCCCCCHHHHHUUUOOO",
+      " WWWWWWWCCCCCHHHHUUUUUOOO",
+      "  WWWWWWCCCCHHHHGUUUUUOOO",
+      "  WWWWWCCCCCHHHGGUUUUUOOO",
+      "  WWWWWCCCCCCHHGGGGUUUUOO",
+      "   WWWWCCCCCCHGGGGGGUUUOO",
+      "    WWWCCCCCCGGGGGGGUUUOO",
+      "     WWCCCCCCGGGGGGGUUOOO",
+      "      WCCCCCGGGGGGGGUUOOO",
+      "       CCCCCCGGGGGGUUOOOO"
     ]
   }
 };
