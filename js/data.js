@@ -313,7 +313,6 @@ G.POLITICIANS = [
   P("John Prescott",      "Labour",       "e6", ["deputy"],                 [60,76,58,64,76], "Long-serving Deputy Prime Minister; party's working-class anchor."),
   P("Alistair Darling",   "Labour",       "e6", ["chancellor"],            [58,78,64,78,64], "Steady hand as Chancellor through the 2008 crash."),
   P("Mo Mowlam",          "Labour",       "e6", ["whip"],                   [72,64,74,70,60], "Drove the Good Friday Agreement."),
-  P("Andy Burnham",       "Labour",       "e6", ["pm","health","home","leader"], [78,76,80,74,72], "Mayor of Greater Manchester 2017–26; won Makerfield by-election June 2026, frontrunner to become PM and Labour leader."),
   P("William Hague",      "Conservative", "e6", ["foreign","leader"],       [60,74,84,70,64], "Conservative leader, later a notable Foreign Secretary."),
   P("Michael Howard",     "Conservative", "e6", ["home","leader"],          [52,76,66,68,60], "Home Secretary and Conservative leader."),
   P("Iain Duncan Smith",  "Conservative", "e6", ["leader","business"],      [44,66,56,58,50], "Conservative leader; later welfare-reform minister."),
