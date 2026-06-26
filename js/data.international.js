@@ -53,6 +53,7 @@ window.G = window.G || {};
   reg("Conservative (CA)",      "ConCA",     "#1a237e",  1.2, 338);
   reg("NDP",                    "NDP",       "#f37021", -1.2, 338);
   reg("Bloc Québécois",         "BQ",        "#00bcd4", -0.8,  78);
+  reg("Green (CA)",             "GreenCA",   "#4caf50", -1.1, 338);
   /* Japan */
   reg("LDP",                    "LDP",       "#1565c0",  1.0, 465);
   reg("CDP (JP)",               "CDP_JP",    "#c62828", -0.8, 465);
@@ -275,11 +276,11 @@ window.G = window.G || {};
 
   /* -- Canada — Federal Election 2021 ---------------------------------------- */
   G.INT_LANDSCAPES["canada_2021"] = {
-    CA_BC:  [["Liberal (CA)",34],["NDP",26],["Conservative (CA)",26],["Greens (AU)",8],["Independent",6]],
+    CA_BC:  [["Liberal (CA)",34],["NDP",26],["Conservative (CA)",26],["Green (CA)",8],["Independent",6]],
     CA_PR:  [["Conservative (CA)",57],["NDP",18],["Liberal (CA)",18],["Independent",7]],
-    CA_ON:  [["Liberal (CA)",37],["Conservative (CA)",35],["NDP",20],["Greens (AU)",3],["Independent",5]],
+    CA_ON:  [["Liberal (CA)",37],["Conservative (CA)",35],["NDP",20],["Green (CA)",3],["Independent",5]],
     CA_QC:  [["Bloc Québécois",33],["Liberal (CA)",33],["NDP",17],["Conservative (CA)",14],["Independent",3]],
-    CA_ATL: [["Liberal (CA)",42],["Conservative (CA)",30],["NDP",22],["Greens (AU)",4],["Independent",2]],
+    CA_ATL: [["Liberal (CA)",42],["Conservative (CA)",30],["NDP",22],["Green (CA)",4],["Independent",2]],
     CA_NT:  [["Liberal (CA)",40],["NDP",30],["Conservative (CA)",22],["Independent",8]]
   };
 

@@ -920,6 +920,8 @@ G.UI.renderPostElectionIntl = function (res, sys) {
     $("govPct").textContent = (res.seats / sys.totalSeats * 100).toFixed(1) + "%";
     $("govLine").textContent = "The result is beyond question. Consolidate power and continue the revolution.";
     setTimeout(function () { $("govFill").style.width = "100%"; }, 90);
+    var despotBtn = $("governBtn");
+    if (despotBtn) despotBtn.textContent = (sys.govtBuildingAction || "Consolidate power") + " →";
     return;
   }
 
@@ -950,6 +952,27 @@ G.UI.renderPostElectionIntl = function (res, sys) {
     if (govBtn) {
       var action = sys.govtBuildingAction || ("Take " + (sys.govtBuilding || "office"));
       govBtn.textContent = action + " →";
+    }
+    return;
+  }
+
+  /* presidential system: largest EV holder wins (contingent House election if <270) */
+  if (sys.coalitionStyle === "presidential") {
+    if (co && co.largest) {
+      gp.style.display = "";
+      var gv2 = res.governVerdict;
+      $("govPct").textContent = res.seats + " / " + sys.totalSeats + " EVs";
+      $("govLine").textContent = res.seats < sys.majority
+        ? "No candidate reached " + sys.majority + " — the House confirms you President. Your opening position looks " + (gv2 && gv2.stability >= 50 ? "workable" : "precarious") + "."
+        : "You won the Electoral College. Your opening position looks " + (gv2 && gv2.stability >= 66 ? "commanding" : gv2 && gv2.stability >= 50 ? "workable" : "precarious") + ".";
+      setTimeout(function () { $("govFill").style.width = Math.round(res.seats / sys.totalSeats * 100) + "%"; }, 90);
+      var presGovBtn = $("governBtn");
+      if (presGovBtn) presGovBtn.textContent = (sys.govtBuildingAction || "Enter the White House") + " →";
+    } else {
+      op.style.display = "";
+      $("oppositionLine").textContent = "Your opponent won the election. Lead the opposition and fight for the next race.";
+      var presOppBtn = $("oppositionBtn");
+      if (presOppBtn) presOppBtn.textContent = "Lead the Opposition →";
     }
     return;
   }
