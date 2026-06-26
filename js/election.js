@@ -588,6 +588,8 @@ G._tagRank = function (tag) { return G.COALITION_TAGS.indexOf(tag); };
 /* seats = your seats; campaign = the run's campaign; playerAlign = number */
 G.coalitionOptions = function (seats, campaign, playerAlign) {
   var C = G.CONFIG, bd = campaign.breakdown, blocLabel = campaign.blocLabel;
+  /* use the active system's majority threshold, not the hardcoded UK value */
+  var majority = (G.activeMajority ? G.activeMajority() : C.majority);
   if (playerAlign == null) playerAlign = 0;
   var largest = bd.length > 0 && bd[0].party === blocLabel;
   var opp = bd.filter(function (p) { return !p.isYou && p.party !== "Sinn Féin"; });
@@ -607,7 +609,7 @@ G.coalitionOptions = function (seats, campaign, playerAlign) {
   var deals = [];
   /* single-party deals */
   opp.forEach(function (p) {
-    if (seats + p.seats >= C.majority) {
+    if (seats + p.seats >= majority) {
       var tag = pairTag([p]);
       deals.push({ parties: [p], combined: seats + p.seats, tag: tag, natural: tag === "natural" });
     }
@@ -618,8 +620,8 @@ G.coalitionOptions = function (seats, campaign, playerAlign) {
     for (var i = 0; i < top.length; i++) {
       for (var j = i + 1; j < top.length; j++) {
         var a = top[i], b = top[j];
-        if (seats + a.seats >= C.majority || seats + b.seats >= C.majority) continue; // already a single
-        if (seats + a.seats + b.seats >= C.majority) {
+        if (seats + a.seats >= majority || seats + b.seats >= majority) continue; // already a single
+        if (seats + a.seats + b.seats >= majority) {
           var tag2 = pairTag([a, b]);
           deals.push({ parties: [a, b], combined: seats + a.seats + b.seats, tag: tag2, natural: tag2 === "natural" });
         }
@@ -630,11 +632,11 @@ G.coalitionOptions = function (seats, campaign, playerAlign) {
   deals = deals.slice(0, 5);
 
   return {
-    soloMajority: seats >= C.majority,
+    soloMajority: seats >= majority,
     largest: largest,
-    need: Math.max(0, C.majority - seats),
+    need: Math.max(0, majority - seats),
     deals: deals,
-    canMinority: largest && seats < C.majority
+    canMinority: largest && seats < majority
   };
 };
 

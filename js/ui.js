@@ -920,6 +920,8 @@ G.UI.renderPostElectionIntl = function (res, sys) {
     $("govPct").textContent = (res.seats / sys.totalSeats * 100).toFixed(1) + "%";
     $("govLine").textContent = "The result is beyond question. Consolidate power and continue the revolution.";
     setTimeout(function () { $("govFill").style.width = "100%"; }, 90);
+    var despotBtn = $("governBtn");
+    if (despotBtn) despotBtn.textContent = (sys.govtBuildingAction || "Consolidate power") + " →";
     return;
   }
 
@@ -951,6 +953,15 @@ G.UI.renderPostElectionIntl = function (res, sys) {
       var action = sys.govtBuildingAction || ("Take " + (sys.govtBuilding || "office"));
       govBtn.textContent = action + " →";
     }
+    return;
+  }
+
+  /* presidential system: no parliamentary coalition-forming — either win outright or go to opposition */
+  if (sys.coalitionStyle === "presidential") {
+    op.style.display = "";
+    $("oppositionLine").textContent = "Your opponent won the election. Lead the opposition and fight for the next race.";
+    var presOppBtn = $("oppositionBtn");
+    if (presOppBtn) presOppBtn.textContent = "Lead the Opposition →";
     return;
   }
 

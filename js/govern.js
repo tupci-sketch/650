@@ -527,11 +527,20 @@ G.startTerm = function (res, opts) {
   var seats = res.seats;
   if (opts.coalition) seats = opts.coalition.combined;
 
-  var approval = G._clampM(38 + (res.voteShare - 0.33) * 120 + (res.tier.govt ? 4 : 0));
-  approval = Math.max(cfg.startApprovalMin, Math.min(cfg.startApprovalMax, approval));
-  var economy = G._clampM(46 + (G.ministerStat("chancellor", "statecraft") - 50) * 0.30);
   /* governing context — the chamber you actually hold (UK or an international one) */
   var sysKey = G.state && G.state._electoralSystemKey;
+  var activeSys = (sysKey && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[sysKey] : null;
+  var isDespot = activeSys && (activeSys.despotMode || activeSys.coalitionStyle === "guided");
+
+  var approval;
+  if (isDespot) {
+    /* despotic governments start with fabricated high approval (85–95%) */
+    approval = 85 + Math.round(Math.random() * 10);
+  } else {
+    approval = G._clampM(38 + (res.voteShare - 0.33) * 120 + (res.tier.govt ? 4 : 0));
+    approval = Math.max(cfg.startApprovalMin, Math.min(cfg.startApprovalMax, approval));
+  }
+  var economy = G._clampM(46 + (G.ministerStat("chancellor", "statecraft") - 50) * 0.30);
   var termMajority  = (G.activeMajority ? G.activeMajority() : C.majority);
   var termTotalSeats = (G.activeTotalSeats ? G.activeTotalSeats() : C.totalSeats);
   var termDeck = (G.govDeckFor ? G.govDeckFor(sysKey) : null);
@@ -930,6 +939,10 @@ G._byElection = function (log) {
 
 G._rebellion = function (log) {
   var t = G.term;
+  /* no backbench rebellions in one-party authoritarian systems */
+  var _sysKey = t.systemKey;
+  var _sys = (_sysKey && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[_sysKey] : null;
+  if (_sys && (_sys.despotMode || _sys.coalitionStyle === "guided")) return;
   var grip = (G.ministerStat("whip", "partyMgmt") + G.ministerStat("leader", "partyMgmt")) / 2;
   var p = 0.35 + (grip - 50) / 100 * 0.8 + (t.seats - (t.majority || G.CONFIG.majority)) / 400;
   p = Math.max(0.1, Math.min(0.9, p));
@@ -944,6 +957,10 @@ G._rebellion = function (log) {
 };
 
 G._confidenceAtRisk = function () {
+  /* no confidence votes in one-party authoritarian systems */
+  var _sysKey = G.term && G.term.systemKey;
+  var _sys = (_sysKey && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[_sysKey] : null;
+  if (_sys && (_sys.despotMode || _sys.coalitionStyle === "guided")) return false;
   var m = G.term.meters;
   if (m.approval < 26 && m.unity < 40) return true;
   if (G.term.seats < (G.term.majority || G.CONFIG.majority) && m.unity < 36) return true;
@@ -1510,7 +1527,8 @@ G.oppPressConference = function () {
 
 G.oppVerdict = function () {
   var t = G.term, m = t.meters;
-  var seatScore = Math.max(0, Math.min(16, t.seats / G.CONFIG.totalSeats * 16));
+  var totalSeats = (G.activeTotalSeats ? G.activeTotalSeats() : G.CONFIG.totalSeats);
+  var seatScore = Math.max(0, Math.min(16, t.seats / totalSeats * 16));
   var raw = m.approval * 0.40 + m.economy * 0.30 + m.unity * 0.18 + seatScore;
   if (t.outcome === "forced")   raw += 10 + Math.round(((t.killQuality || 60) - 50) / 4);
   if (t.outcome === "survived") raw += 4;

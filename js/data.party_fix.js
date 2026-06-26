@@ -116,6 +116,12 @@ window.G = window.G || {};
     /* Soviet / Russia */
     G.PARTY_COUNTRY["United Russia"]     = "SU";
     G.PARTY_COUNTRY["Russia (RU)"]       = "SU";
+    /* Canada */
+    G.PARTY_COUNTRY["Liberal (CA)"]      = "CA";
+    G.PARTY_COUNTRY["Conservative (CA)"] = "CA";
+    G.PARTY_COUNTRY["NDP"]               = "CA";
+    G.PARTY_COUNTRY["Bloc Québécois"]    = "CA";
+    G.PARTY_COUNTRY["Green (CA)"]        = "CA";
   }
 
   /* ── 3. Patch politicians with generic catch-all parties ─────────────────── */

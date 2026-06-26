@@ -173,11 +173,13 @@ G.poolFor = function (opts) {
     if (isIntl) {
       /* Wild-scope: bypass inScope, handled by country filter below */
       if (p.scope === "wild") { /* fall through */ }
-      /* UK / p24: only globally famous figures pass (appeal≥72 OR exp≥82) */
+      /* UK / p24 figures: only wildcard mode allows any to cross into international pools.
+         Unity (Greatest Cabinet) and dynasty are both nation-locked to the active country. */
       else if (p.scope === "uk" || p.scope === "p24") {
+        if (mode !== "wildcard") return false;
         var _st = p.stats || {};
         if ((_st.appeal || 0) < 72 && (_st.experience || 0) < 82) return false;
-        /* famous UK figures let through; skip remaining country filter below */
+        /* wildcard-mode famous UK figures: skip remaining country filter below */
       }
       /* anything else falls through */
     } else {
@@ -207,10 +209,11 @@ G.poolFor = function (opts) {
         if (cc === "novelty" && !casts.novelty) return false;
         return true;
       }
-      /* Not same country: only include if globally famous */
+      /* Not same country: wildcard mode only — let globally famous cross-country figures through */
+      if (mode !== "wildcard") return false;
       var _st2 = p.stats || {};
       if ((_st2.appeal || 0) < 76 && (_st2.experience || 0) < 85) return false;
-      /* globally famous figure: fall through to alignment + cast filters */
+      /* wildcard globally famous figure: fall through to alignment + cast filters */
     }
 
     var c = G.castOf(p);
