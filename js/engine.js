@@ -149,6 +149,10 @@ G.poolFor = function (opts) {
   if (!activeCountry && opts.country && opts.country !== "uk") {
     activeCountry = opts.country.toUpperCase();
   }
+  /* normalize full-name country strings to the 2-letter codes used in PARTY_COUNTRY */
+  var _CNAME_TO_CODE = { "Japan": "JP", "China": "CN", "Germany": "DE", "France": "FR",
+                         "Australia": "AU", "Canada": "CA", "India": "IN" };
+  if (activeCountry && _CNAME_TO_CODE[activeCountry]) activeCountry = _CNAME_TO_CODE[activeCountry];
   var isIntl = !!activeCountry;  /* true for any non-UK scenario regardless of mode */
 
   /* Some historically important figures are stored under generic party labels
@@ -181,7 +185,16 @@ G.poolFor = function (opts) {
     }
 
     if (eras.indexOf(p.era) === -1) return false;
-    if (mode === "dynasty") return G.lineageOf(p.party) === lineage;
+    if (mode === "dynasty") {
+      if (isIntl) {
+        /* international dynasty: must be wild-scope from the active country */
+        if (p.scope !== "wild") return false;
+        var dpc = (FIGURE_COUNTRY[p.name] !== "other" && FIGURE_COUNTRY[p.name]) ||
+                  G.partyCountry(p.party);
+        return dpc === activeCountry && G.lineageOf(p.party) === lineage;
+      }
+      return G.lineageOf(p.party) === lineage;
+    }
 
     /* ── Country filter for international scenarios (before alignment) ── */
     if (isIntl && p.scope === "wild") {

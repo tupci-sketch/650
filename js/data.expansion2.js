@@ -107,9 +107,9 @@ window.G = window.G || {};
      ------------------------------------------------------------------------- */
   G.DYNASTY_MIN = 30;
   var _origEligible = G.eligibleDynastyLineages;
-  G.eligibleDynastyLineages = function (eras, need) {
+  G.eligibleDynastyLineages = function (eras, need, country) {
     var floor = Math.max(need || (G.PORTFOLIOS_BASE ? G.PORTFOLIOS_BASE.length : 12), G.DYNASTY_MIN || 0);
-    return _origEligible.call(G, eras, floor);
+    return _origEligible.call(G, eras, floor, country);
   };
 
   /* ---------------------------------------------------------------------------
