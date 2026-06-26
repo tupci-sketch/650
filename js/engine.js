@@ -244,6 +244,7 @@ G.eligibleDynastyLineages = function (eras, need, country) {
     }
     if (eras.indexOf(p.era) === -1) return;
     var lin = G.lineageOf(p.party);
+    if (!lin) return;
     counts[lin] = (counts[lin] || 0) + 1;
   });
   return Object.keys(counts).filter(function (lin) { return counts[lin] >= need; });
