@@ -80,10 +80,14 @@ window.G = window.G || {};
     G.PARTY_COUNTRY["US Republican"]     = "US";
     G.PARTY_COUNTRY["US Democrat"]       = "US";
     /* Australian label variants */
-    G.PARTY_COUNTRY["Australian Labor"]  = "AU";
-    G.PARTY_COUNTRY["Liberal (AU)"]      = "AU";
-    G.PARTY_COUNTRY["National (AU)"]     = "AU";
-    G.PARTY_COUNTRY["ALP (AU)"]          = "AU";
+    G.PARTY_COUNTRY["Australian Labor"]       = "AU";
+    G.PARTY_COUNTRY["Liberal (AU)"]           = "AU";
+    G.PARTY_COUNTRY["National (AU)"]          = "AU";
+    G.PARTY_COUNTRY["ALP (AU)"]               = "AU";
+    G.PARTY_COUNTRY["Liberal Party"]          = "AU";
+    G.PARTY_COUNTRY["National Party"]         = "AU";
+    G.PARTY_COUNTRY["Labor (AU)"]             = "AU";
+    G.PARTY_COUNTRY["Australian Labor Party"] = "AU";
     /* French label variants */
     G.PARTY_COUNTRY["SFIO (FR)"]         = "FR";
     G.PARTY_COUNTRY["MRP (FR)"]          = "FR";
@@ -102,6 +106,10 @@ window.G = window.G || {};
     G.PARTY_COUNTRY["BVP"]               = "DE";
     G.PARTY_COUNTRY["DVP"]               = "DE";
     G.PARTY_COUNTRY["DDP"]               = "DE";
+    G.PARTY_COUNTRY["DVP"]               = "DE";
+    G.PARTY_COUNTRY["DDP (DE)"]          = "DE";
+    G.PARTY_COUNTRY["DVP (DE)"]          = "DE";
+    G.PARTY_COUNTRY["CSU (DE)"]          = "DE";
     G.PARTY_COUNTRY["Greens (DE)"]       = "DE";
     /* Japan */
     G.PARTY_COUNTRY["LDP"]               = "JP";
@@ -257,8 +265,15 @@ window.G = window.G || {};
     "Republican":             "Republican (USA)",
     "Whig(USA)":              "Whig (USA)",
     /* Australia — fold label variants */
-    "ALP (AU)":               "Australian Labor",
-    "Liberal Party":          "Liberal (AU)"
+    "ALP (AU)":               "Australian Labor Party",
+    "Australian Labor":       "Australian Labor Party",
+    "Labor (AU)":             "Australian Labor Party",
+    "National (AU)":          "National Party",
+    "Liberal Party":          "Liberal Party",
+    /* Germany — (DE)-suffix variants used in historical data files */
+    "DDP (DE)":               "DDP",
+    "DVP (DE)":               "DVP",
+    "CSU (DE)":               "CDU/CSU"
   };
 
   var patched = 0;
