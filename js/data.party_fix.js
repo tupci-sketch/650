@@ -26,6 +26,29 @@ window.G = window.G || {};
   reg("Radical (FR)",      "RadicalFR",   "#c0392b", -0.2, 577);
   reg("United Russia",     "UnitedRU",    "#0b3d91",  1.5, 450);
   reg("Russia (RU)",       "RusPost",     "#4a90d9", -0.2, 450);
+
+  /* India — (IN)-suffix party labels used in data.politicians*.js */
+  reg("Janata Dal (IN)",   "janatal_in",  "#ff6f00",  0.1, 543);
+  reg("Janata Party (IN)", "janata_in",   "#ff8f00",  0.5, 543);
+  reg("JDU (IN)",          "janatal_in",  "#ff6f00",  0.3, 543);
+  reg("Lok Dal (IN)",      "janatal_in",  "#ff9800",  0.2, 543);
+  reg("SP (IN)",           "SP_IN",       "#cc0000", -0.5, 543);
+  reg("TMC (IN)",          "AITC",        "#2196f3", -0.5, 543);
+  reg("BSP (IN)",          "BSP_IN",      "#0d47a1", -0.8, 543);
+  reg("NCP (IN)",          "NCP_IN",      "#4caf50",  0.0, 543);
+  reg("RJD (IN)",          "rjd_in",      "#c62828", -0.5, 543);
+  reg("CPI(M) (IN)",       "cpim_in",     "#b71c1c", -1.2, 543);
+  reg("AAP (IN)",          "AAP_IN",      "#0057a8", -0.5, 543);
+  reg("AIADMK (IN)",       "AIADMK_IN",   "#ff9800",  0.8, 543);
+  reg("DMK (IN)",          "DMK_IN",      "#cc0000", -0.5, 543);
+  reg("TDP (IN)",          "TDP_IN",      "#ffeb3b",  0.5, 543);
+  reg("YSRCP (IN)",        "YSRCP_IN",    "#1565c0",  0.5, 543);
+  reg("BJD (IN)",          "BJD_IN",      "#009688",  0.3, 543);
+  reg("BRS (IN)",          "BRS_IN",      "#ff6d00",  0.5, 543);
+  reg("Shiv Sena (IN)",    "ShivSena_IN", "#ff6f00",  1.0, 543);
+  reg("NC (IN)",           "NC_IN",       "#1a237e", -0.3, 543);
+  reg("JMM (IN)",          "JMM_IN",      "#4caf50", -0.3, 543);
+  reg("SCOF (IN)",         "SCOF_IN",     "#1a237e", -0.8, 543);
   reg("Kuomintang",        "KMT",         "#000095",  0.8, 225);
   reg("PNF",               "PNF",         "#8b1a1a",  2.0, 535);
 
@@ -116,9 +139,16 @@ window.G = window.G || {};
     G.PARTY_COUNTRY["Komeito"]           = "JP";
     G.PARTY_COUNTRY["Nippon Ishin"]      = "JP";
     G.PARTY_COUNTRY["CDP (JP)"]          = "JP";
-    /* India */
+    /* India — bare labels (no suffix) that win the dedup race from earlier data files */
+    G.PARTY_COUNTRY["INC"]               = "IN";
+    G.PARTY_COUNTRY["BJP"]               = "IN";
+    G.PARTY_COUNTRY["BSP"]               = "IN";
+    G.PARTY_COUNTRY["AAP"]               = "IN";
+    G.PARTY_COUNTRY["RJD"]               = "IN";
+    G.PARTY_COUNTRY["NCP"]               = "IN";
     G.PARTY_COUNTRY["AITC"]              = "IN";
     G.PARTY_COUNTRY["Samajwadi Party"]   = "IN";
+    G.PARTY_COUNTRY["Samajwadi"]         = "IN";
     /* China */
     G.PARTY_COUNTRY["Chinese Communist Party"] = "CN";
     /* Soviet / Russia */
@@ -387,10 +417,21 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["TMC_IN"]     = "Trinamool Congress";
     G.LINEAGE_PARTY["BSP_IN"]     = "BSP";
     G.LINEAGE_PARTY["NCP_IN"]     = "NCP";
-    G.LINEAGE_PARTY["janata_in"]  = "Janata Party";
-    G.LINEAGE_PARTY["janatal_in"] = "Janata Dal";
-    G.LINEAGE_PARTY["cpim_in"]    = "CPI(M)";
-    G.LINEAGE_PARTY["rjd_in"]     = "RJD";
+    G.LINEAGE_PARTY["janata_in"]   = "Janata Party";
+    G.LINEAGE_PARTY["janatal_in"]  = "Janata Dal";
+    G.LINEAGE_PARTY["cpim_in"]     = "CPI(M)";
+    G.LINEAGE_PARTY["rjd_in"]      = "RJD";
+    G.LINEAGE_PARTY["AAP_IN"]      = "Aam Aadmi Party";
+    G.LINEAGE_PARTY["AIADMK_IN"]   = "AIADMK";
+    G.LINEAGE_PARTY["DMK_IN"]      = "DMK";
+    G.LINEAGE_PARTY["TDP_IN"]      = "Telugu Desam";
+    G.LINEAGE_PARTY["YSRCP_IN"]    = "YSR Congress";
+    G.LINEAGE_PARTY["BJD_IN"]      = "BJD";
+    G.LINEAGE_PARTY["BRS_IN"]      = "BRS";
+    G.LINEAGE_PARTY["ShivSena_IN"] = "Shiv Sena";
+    G.LINEAGE_PARTY["NC_IN"]       = "National Conference";
+    G.LINEAGE_PARTY["JMM_IN"]      = "JMM";
+    G.LINEAGE_PARTY["SCOF_IN"]     = "Sched. Castes Federation";
     /* Soviet / Russia */
     G.LINEAGE_PARTY["CPSU"]       = "Communist Party";
     G.LINEAGE_PARTY["UnitedRU"]   = "United Russia";
