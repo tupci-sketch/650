@@ -497,7 +497,8 @@
   function poolCount() {
     return G.poolFor({
       mode: choice.mode, eras: choice.eras, casts: choice.casts,
-      lineage: choice.mode === "dynasty" ? choice.lineage : null
+      lineage: choice.mode === "dynasty" ? choice.lineage : null,
+      country: choice.country || null
     }).length;
   }
   function updateHint() {
