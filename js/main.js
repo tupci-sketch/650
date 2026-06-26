@@ -1217,8 +1217,14 @@
 
   function wireGovern() {
     sel("governBtn").onclick = function () {
-      if (!lastResult || !lastResult.coalition || !lastResult.coalition.soloMajority) return;
-      enterGovernment(lastResult);
+      if (!lastResult) return;
+      var co = lastResult.coalition;
+      if (co && co.soloMajority) { enterGovernment(lastResult); return; }
+      var sys = G.activeElectoralSystem && G.activeElectoralSystem();
+      /* presidential: largest EV holder governs, even if <270 via House contingent */
+      if (sys && sys.coalitionStyle === "presidential" && co && co.largest) { enterGovernment(lastResult); return; }
+      /* despot / guided: outcome is never in doubt */
+      if (sys && (sys.despotMode || sys.coalitionStyle === "guided")) { enterGovernment(lastResult); return; }
     };
     sel("eventTurnCards").addEventListener("click", function (e) {
       var n = e.target;
