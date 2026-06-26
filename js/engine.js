@@ -141,10 +141,14 @@ G.poolFor = function (opts) {
   var eras = opts.eras || G.erasForMode(mode);
   var lineage = opts.lineage || null;
 
-  /* country-aware filtering: active whenever an international electoral system is set */
+  /* country-aware filtering: active whenever an international electoral system is set
+     OR when country is explicitly passed (e.g. dynasty draft before applyScenario runs) */
   var activeSysKey = G.state && G.state._electoralSystemKey;
   var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
   var activeCountry = activeSys ? activeSys.country : null;
+  if (!activeCountry && opts.country && opts.country !== "uk") {
+    activeCountry = opts.country.toUpperCase();
+  }
   var isIntl = !!activeCountry;  /* true for any non-UK scenario regardless of mode */
 
   /* Some historically important figures are stored under generic party labels
@@ -204,13 +208,24 @@ G.poolFor = function (opts) {
   });
 };
 
-/* lineages that can field a full cabinet within the allowed eras (Dynasty mode) */
-G.eligibleDynastyLineages = function (eras, need) {
+/* lineages that can field a full cabinet within the allowed eras (Dynasty mode).
+   country: lowercase ISO code ("uk", "de", "fr", …) — when non-UK, scans the
+   wild-scope international roster filtered to that country. */
+G.eligibleDynastyLineages = function (eras, need, country) {
   eras = eras || G.erasForMode("dynasty");
   need = need || G.PORTFOLIOS_BASE.length;
+  var isIntl = country && country !== "uk";
+  /* For international pools the roster is much smaller — require fewer figures */
+  if (isIntl) need = Math.min(need, 8);
   var counts = {};
   G.POLITICIANS.forEach(function (p) {
-    if (p.scope === "wild") return;
+    if (isIntl) {
+      if (p.scope !== "wild") return;
+      var pc = G.partyCountry(p.party);
+      if (!pc || pc.toLowerCase() !== country.toLowerCase()) return;
+    } else {
+      if (p.scope === "wild") return;
+    }
     if (eras.indexOf(p.era) === -1) return;
     var lin = G.lineageOf(p.party);
     counts[lin] = (counts[lin] || 0) + 1;
@@ -249,7 +264,7 @@ G.newGame = function (opts) {
 
   /* pass player alignment to poolFor so out-of-spectrum candidates are excluded */
   var pool = G.poolFor({ mode: mode, eras: eras, lineage: lineage, casts: casts,
-                         alignValue: alignValue });
+                         alignValue: alignValue, country: opts.country || null });
   var redos = (typeof opts.redos === "number") ? opts.redos : 1;
   var pityUses = (G.CONFIG.pityUses || {})[opts.difficulty || "normal"];
   if (typeof pityUses !== "number") pityUses = 1;
