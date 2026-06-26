@@ -25,6 +25,7 @@ window.G = window.G || {};
   reg("Gaulliste (FR)",    "Gaullist",    "#003189",  0.7, 577);
   reg("Radical (FR)",      "RadicalFR",   "#c0392b", -0.2, 577);
   reg("United Russia",     "UnitedRU",    "#0b3d91",  1.5, 450);
+  reg("Russia (RU)",       "RusPost",     "#4a90d9", -0.2, 450);
   reg("Kuomintang",        "KMT",         "#000095",  0.8, 225);
   reg("PNF",               "PNF",         "#8b1a1a",  2.0, 535);
 
@@ -87,6 +88,34 @@ window.G = window.G || {};
     G.PARTY_COUNTRY["SFIO (FR)"]         = "FR";
     G.PARTY_COUNTRY["MRP (FR)"]          = "FR";
     G.PARTY_COUNTRY["Gaulliste (FR)"]    = "FR";
+    /* Germany — canonical labels without (DE) suffix lack heuristic detection */
+    G.PARTY_COUNTRY["CDU/CSU"]           = "DE";
+    G.PARTY_COUNTRY["SPD"]               = "DE";
+    G.PARTY_COUNTRY["AfD"]               = "DE";
+    G.PARTY_COUNTRY["FDP"]               = "DE";
+    G.PARTY_COUNTRY["Die Linke"]         = "DE";
+    G.PARTY_COUNTRY["BSW"]               = "DE";
+    G.PARTY_COUNTRY["NSDAP"]             = "DE";
+    G.PARTY_COUNTRY["KPD"]               = "DE";
+    G.PARTY_COUNTRY["Zentrum"]           = "DE";
+    G.PARTY_COUNTRY["DNVP"]              = "DE";
+    G.PARTY_COUNTRY["BVP"]               = "DE";
+    G.PARTY_COUNTRY["DVP"]               = "DE";
+    G.PARTY_COUNTRY["DDP"]               = "DE";
+    G.PARTY_COUNTRY["Greens (DE)"]       = "DE";
+    /* Japan */
+    G.PARTY_COUNTRY["LDP"]               = "JP";
+    G.PARTY_COUNTRY["Komeito"]           = "JP";
+    G.PARTY_COUNTRY["Nippon Ishin"]      = "JP";
+    G.PARTY_COUNTRY["CDP (JP)"]          = "JP";
+    /* India */
+    G.PARTY_COUNTRY["AITC"]              = "IN";
+    G.PARTY_COUNTRY["Samajwadi Party"]   = "IN";
+    /* China */
+    G.PARTY_COUNTRY["Chinese Communist Party"] = "CN";
+    /* Soviet / Russia */
+    G.PARTY_COUNTRY["United Russia"]     = "SU";
+    G.PARTY_COUNTRY["Russia (RU)"]       = "SU";
   }
 
   /* ── 3. Patch politicians with generic catch-all parties ─────────────────── */
@@ -176,25 +205,54 @@ window.G = window.G || {};
   /* Merge variant parties into the canonical version that shares a lineage.
      Applied to wild-scope politicians regardless of their current party. */
   var NORMALIZE = {
-    /* Germany */
-    "SPD (DE)":       "SPD",
-    "CDU":            "CDU/CSU",
+    /* Germany — unregistered (DE)-suffix variants → canonical labels */
+    "SPD (DE)":               "SPD",
+    "CDU":                    "CDU/CSU",
+    "CDU (DE)":               "CDU/CSU",
+    "AfD (DE)":               "AfD",
+    "FDP (DE)":               "FDP",
+    "BSW (DE)":               "BSW",
+    "Die Linke (DE)":         "Die Linke",
+    "Green (DE)":             "Greens (DE)",
     /* France */
-    "RPR":            "Gaullist",
-    "UMP":            "Gaullist",
-    "Gaulliste (FR)": "Gaullist",
-    "PS (FR)":        "Parti Socialiste",
-    "LREM":           "Ensemble",
-    /* Soviet */
-    "CPSU":           "Communist Party (SU)",
+    "RPR":                    "Gaullist",
+    "RPR (FR)":               "Gaullist",
+    "UMP":                    "Gaullist",
+    "UMP (FR)":               "Gaullist",
+    "LR (FR)":                "Les Républicains",
+    "RN (FR)":                "Rassemblement National",
+    "Gaulliste (FR)":         "Gaullist",
+    "PS (FR)":                "Parti Socialiste",
+    "LREM":                   "Ensemble",
+    /* Japan */
+    "LDP (JP)":               "LDP",
+    "DPJ":                    "DPJ (JP)",
+    /* India */
+    "INC (IN)":               "INC",
+    "Congress (IN)":          "INC",
+    "BJP (IN)":               "BJP",
+    "AITC (IN)":              "AITC",
+    /* Soviet / Russia */
+    "CPSU":                   "Communist Party (SU)",
+    "CPSU (RU)":              "Communist Party (SU)",
+    /* China */
+    "CPC (CN)":               "Chinese Communist Party",
+    "Kuomintang (CN)":        "Kuomintang",
+    "Chinese Nationalist Party (CN)": "Kuomintang",
+    /* Cuba */
+    "PCC (CU)":               "Communist Party (CU)",
+    /* Canada */
+    "PC (CA)":                "Conservative (CA)",
+    "CPC (CA)":               "Conservative (CA)",
     /* USA — fold remaining variants into canonical labels */
-    "Democratic (US)":"Democrat (USA)",
-    "Democrat":        "Democrat (USA)",
-    "Republican (US)": "Republican (USA)",
-    "Republican":      "Republican (USA)",
+    "Democratic (US)":        "Democrat (USA)",
+    "Democrat":               "Democrat (USA)",
+    "Republican (US)":        "Republican (USA)",
+    "Republican":             "Republican (USA)",
+    "Whig(USA)":              "Whig (USA)",
     /* Australia — fold label variants */
-    "ALP (AU)":        "Australian Labor",
-    "Liberal Party":   "Liberal (AU)"
+    "ALP (AU)":               "Australian Labor",
+    "Liberal Party":          "Liberal (AU)"
   };
 
   var patched = 0;
@@ -214,8 +272,7 @@ window.G = window.G || {};
     if (cn && G.PARTIES[cn]) { p.party = cn; normalized++; }
   });
 
-  /* Also patch non-wild politicians who slipped into the wrong party
-     (e.g. Gaullist/Ensemble confusion for some historical French figures) */
+  /* Also patch non-wild politicians who slipped into the wrong party */
   G.POLITICIANS.forEach(function (p) {
     if (p.scope === "wild") return;  /* already handled */
   });
@@ -295,6 +352,10 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["Komeito"]    = "Komeito";
     G.LINEAGE_PARTY["Ishin"]      = "Nippon Ishin";
     G.LINEAGE_PARTY["DPJ"]        = "DPJ";
+    G.LINEAGE_PARTY["DPJ_JP"]     = "DPJ";
+    G.LINEAGE_PARTY["JSP_JP"]     = "Japan Socialist Party";
+    G.LINEAGE_PARTY["jsp_jp"]     = "Japan Socialist Party";
+    G.LINEAGE_PARTY["taisei_jp"]  = "Imperial Rule Assistance";
     G.LINEAGE_PARTY["seiyukai_jp"]= "Seiyukai";
     G.LINEAGE_PARTY["minseito_jp"]= "Minseito";
     /* India */
@@ -302,10 +363,19 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["INC"]        = "Congress";
     G.LINEAGE_PARTY["SP_IN"]      = "Samajwadi Party";
     G.LINEAGE_PARTY["AITC"]       = "All India Trinamool";
+    G.LINEAGE_PARTY["TMC_IN"]     = "Trinamool Congress";
+    G.LINEAGE_PARTY["BSP_IN"]     = "BSP";
+    G.LINEAGE_PARTY["NCP_IN"]     = "NCP";
+    G.LINEAGE_PARTY["janata_in"]  = "Janata Party";
+    G.LINEAGE_PARTY["janatal_in"] = "Janata Dal";
+    G.LINEAGE_PARTY["cpim_in"]    = "CPI(M)";
+    G.LINEAGE_PARTY["rjd_in"]     = "RJD";
     /* Soviet / Russia */
     G.LINEAGE_PARTY["CPSU"]       = "Communist Party";
     G.LINEAGE_PARTY["UnitedRU"]   = "United Russia";
     G.LINEAGE_PARTY["rsdlp_su"]   = "RSDLP";
+    G.LINEAGE_PARTY["bolshevik_su"] = "Bolsheviks";
+    G.LINEAGE_PARTY["RusPost"]    = "Post-Soviet Russia";
     /* China */
     G.LINEAGE_PARTY["CPC"]        = "Chinese Communist Party";
     G.LINEAGE_PARTY["KMT"]        = "Kuomintang";
@@ -313,6 +383,19 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["KWP"]        = "Korean Workers' Party";
     /* Cuba */
     G.LINEAGE_PARTY["PCC"]        = "Communist Party";
+    /* China — fallback if not fully normalized */
+    G.LINEAGE_PARTY["kmt_cn"]     = "Kuomintang";
+    G.LINEAGE_PARTY["kmt2_cn"]    = "Kuomintang";
+    /* Canada historical parties */
+    G.LINEAGE_PARTY["socialcredit_ca"] = "Social Credit";
+    G.LINEAGE_PARTY["ccf_ca"]          = "CCF";
+    G.LINEAGE_PARTY["reform_ca"]       = "Reform Party";
+    G.LINEAGE_PARTY["NDP_CA"]          = "NDP";
+    /* UK historical Whig party */
+    G.LINEAGE_PARTY["Whig"]       = "Whig Party";
+    G.LINEAGE_PARTY["Whigs"]      = "Whig Party";
+    /* Germany SED (East Germany) */
+    G.LINEAGE_PARTY["sed_de"]     = "SED";
     /* Ireland */
     G.LINEAGE_PARTY["FiannaFail"] = "Fianna Fáil";
     G.LINEAGE_PARTY["FineGael"]   = "Fine Gael";
