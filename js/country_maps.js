@@ -344,6 +344,14 @@ G.UI.buildCountryMap = function (containerId, sys, res, colour, opts) {
   var box = document.getElementById(containerId);
   if (!box || !sys) return false;
 
+  /* Prefer a real external hex cartogram (US / Canada) when one exists for this
+     system — renders the true country silhouette, coloured by game-region result. */
+  var hexLayout = sys.regionKey && G.COUNTRY_HEXLAYOUTS && G.COUNTRY_HEXLAYOUTS[sys.regionKey];
+  if (hexLayout && G.UI.buildCountryMapHex) {
+    var hx = G.UI.buildCountryMapHex(containerId, sys, res, colour, opts, hexLayout);
+    if (hx) return hx;
+  }
+
   var shape    = sys.regionKey && G.COUNTRY_SHAPES[sys.regionKey];
   var byRegion = (res.campaign && res.campaign.byRegion) || res.byRegion;
   if (!shape || !byRegion || !byRegion.length) return false;
@@ -441,6 +449,119 @@ G.UI.buildCountryMap = function (containerId, sys, res, colour, opts) {
   Object.keys(byId).forEach(function (id) { byId[id] = polys[byId[id]]; });
 
   /* tooltip wiring (shares the global map tip element) */
+  var tip = G.UI._tip();
+  function showTip(t, x, y) {
+    var n = t.getAttribute("data-name"), inf = t.getAttribute("data-info");
+    tip.textContent = n + (inf ? " — " + inf + " seats" : "");
+    tip.style.display = "block"; tip.style.left = x + "px"; tip.style.top = (y - 14) + "px";
+  }
+  svgEl.addEventListener("mousemove", function (e) {
+    if (e.target.tagName === "polygon") showTip(e.target, e.clientX, e.clientY);
+    else tip.style.display = "none";
+  });
+  svgEl.addEventListener("mouseleave", function () { tip.style.display = "none"; });
+  svgEl.addEventListener("click", function (e) {
+    if (e.target.tagName === "polygon") showTip(e.target, e.clientX, e.clientY);
+  });
+
+  return { byId: byId };
+};
+
+/* =========================================================================
+   2b · REAL HEX-CARTOGRAM RENDERER
+        Draws a genuine external hex cartogram (see country_hexmaps.js). Each
+        hex carries a game-region tag ("gr"); a region's win/loss proportion is
+        painted deterministically across its hexes, so the map matches the
+        seeded result without any engine change. Same {byId} contract as the
+        mask renderer, so the live count and result screen both work.
+   ========================================================================= */
+G.UI.buildCountryMapHex = function (containerId, sys, res, colour, opts, layout) {
+  opts = opts || {};
+  var box = document.getElementById(containerId);
+  if (!box || !layout || !layout.hexes) return false;
+
+  var byRegion = (res.campaign && res.campaign.byRegion) || res.byRegion;
+  if (!byRegion || !byRegion.length) return false;
+
+  var camp       = res.campaign || res;
+  var blocLabel  = camp.blocLabel || res.blocLabel;
+  var blocColour = camp.blocColour || res.blocColour || colour;
+  var despot     = sys.despotMode || sys.coalitionStyle === "guided";
+
+  var results = camp.results || res.results;
+  if ((!results || !results.length) && G.expandSeatResults) results = G.expandSeatResults(camp, sys);
+  var resByRegion = {};
+  (results || []).forEach(function (r) { (resByRegion[r.region] = resByRegion[r.region] || []).push(r); });
+
+  var reg = {};
+  byRegion.forEach(function (r) { reg[r.id] = r; });
+
+  /* group the layout's hexes by their game-region tag */
+  var hexesByRegion = {};
+  Object.keys(layout.hexes).forEach(function (k) {
+    var h = layout.hexes[k];
+    (hexesByRegion[h.gr] = hexesByRegion[h.gr] || []).push({ key: k, q: h.q, r: h.r, n: h.n });
+  });
+
+  var esc         = G.UI._esc;
+  var partyColour = G.partyColour || function () { return "#7a7f88"; };
+  var S = 12, pitchX = Math.sqrt(3) * S, pitchY = 1.5 * S;
+
+  var parts = [], byId = {}, idx = 0;
+  var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+
+  Object.keys(hexesByRegion).forEach(function (gr) {
+    var r = reg[gr];
+    var hexes = hexesByRegion[gr];
+    hexes.sort(function (a, b) { return (a.r - b.r) || (a.q - b.q); });
+    var M = hexes.length;
+    var rlist = resByRegion[gr] || [];
+    var total = r ? Math.max(0, r.total | 0) : 0;
+    var won   = r ? Math.max(0, r.won | 0)   : 0;
+    /* how many of this region's hexes to paint as player wins (proportional) */
+    var wonHexes = total > 0 ? Math.round(won / total * M) : (despot ? M : 0);
+    /* opposition winners actually seen in this region, for realistic loss colours */
+    var oppWinners = rlist.filter(function (x) { return !x.won; }).map(function (x) { return x.winner; });
+
+    var nm   = esc((r && r.name) || gr).replace(/"/g, "&quot;");
+    var info = r ? (r.won + " / " + r.total) : "";
+    var oppI = 0;
+
+    hexes.forEach(function (hx, hi) {
+      var isWon = hi < wonHexes;
+      /* keep the live-count contract: tie this hex to a real seat id when we can */
+      var rec = rlist.length ? rlist[Math.min(rlist.length - 1, Math.floor(hi * rlist.length / M))] : null;
+      var winner = isWon ? blocLabel
+                 : (oppWinners.length ? oppWinners[oppI++ % oppWinners.length]
+                    : (rec && rec.winner) || "Opposition");
+      var fill = "rgba(220,229,240,.10)", st = "undeclared";
+      if (opts.revealed) {
+        if (isWon) { fill = colour; st = "won"; }
+        else       { fill = partyColour(winner, blocLabel, blocColour); st = "lost"; }
+      }
+      var cx = (hx.q + 0.5 * (hx.r & 1)) * pitchX;
+      var cy = hx.r * pitchY;
+      var id = rec ? rec.id : (gr + "#" + idx);
+      parts.push('<polygon points="' + G.UI._hexPts(cx, cy, S) + '" fill="' + fill +
+        '" data-name="' + nm + '" data-info="' + info + '" data-id="' + id + '"' +
+        (st !== "undeclared" ? ' data-state="' + st + '"' : '') + '></polygon>');
+      byId[id] = idx++;
+      if (cx - pitchX < minX) minX = cx - pitchX; if (cx + pitchX > maxX) maxX = cx + pitchX;
+      if (cy - S < minY) minY = cy - S;           if (cy + S > maxY) maxY = cy + S;
+    });
+  });
+
+  if (!parts.length) return false;
+
+  var pad = 10, vbW = (maxX - minX) + pad * 2, vbH = (maxY - minY) + pad * 2;
+  box.innerHTML = '<svg class="hexsvg country-hexsvg" viewBox="' + (minX - pad) + ' ' + (minY - pad) +
+    ' ' + vbW + ' ' + vbH + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' +
+    esc((sys.country || "") + " " + (sys.resultLabel || "results") + " map") + '">' + parts.join("") + '</svg>';
+
+  var svgEl = box.querySelector("svg");
+  var polys = svgEl.querySelectorAll("polygon");
+  Object.keys(byId).forEach(function (id) { byId[id] = polys[byId[id]]; });
+
   var tip = G.UI._tip();
   function showTip(t, x, y) {
     var n = t.getAttribute("data-name"), inf = t.getAttribute("data-info");
