@@ -247,7 +247,42 @@ window.G = window.G || {};
     "Kim Il-sung":            "Korean Workers' Party",
 
     /* Japan */
-    "Hirohito":               "LDP"
+    "Hirohito":               "LDP",
+
+    /* ── Masked marquee figures ──────────────────────────────────────────
+       These icons are defined FIRST in early files (data.more.js /
+       data.expansion.js) under generic buckets ("World Leaders", "Dictators",
+       "Revolutionaries"), which win the name dedup over their proper
+       country-specific definitions in later files. Without this they never
+       appear in their own nation's dynasty. Each mapping is hand-vetted for
+       historical accuracy (Vietnamese/Belarusian/anti-communist mismatches
+       intentionally excluded). */
+    "Gough Whitlam":          "Australian Labor Party",
+    "Bob Hawke":              "Australian Labor Party",
+    "Paul Keating":           "Australian Labor Party",
+    "Julia Gillard":          "Australian Labor Party",
+    "Kevin Rudd":             "Australian Labor Party",
+    "Robert Menzies":         "Liberal Party",
+    "Pierre Trudeau":         "Liberal (CA)",
+    "Justin Trudeau":         "Liberal (CA)",
+    "Jean Chrétien":          "Liberal (CA)",
+    "Brian Mulroney":         "Conservative (CA)",
+    "Xi Jinping":             "Chinese Communist Party",
+    "Otto von Bismarck":      "DNVP",
+    "Willy Brandt":           "SPD",
+    "Rosa Luxemburg":         "SPD",
+    "François Mitterrand":    "Parti Socialiste",
+    "Jawaharlal Nehru":       "INC",
+    "Indira Gandhi":          "INC",
+    "Subhas Chandra Bose":    "INC",
+    "Shinzo Abe":             "LDP",
+    "Junichiro Koizumi":      "LDP",
+    "Kim Jong-il":            "Korean Workers' Party",
+    "Mikhail Gorbachev":      "Communist Party (SU)",
+    "Vladimir Lenin":         "Communist Party (SU)",
+    "Leon Trotsky":           "Communist Party (SU)",
+    "George Washington":      "Federalist",
+    "Frederick Douglass":     "Republican (USA)"
   };
 
   /* ── 4. Normalise non-generic variant party labels ───────────────────────── */
