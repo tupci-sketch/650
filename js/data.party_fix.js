@@ -74,6 +74,31 @@ window.G = window.G || {};
      "Chinese Communist Party" — same party, 中国共产党) */
   if (G.PARTIES["CCP"]) G.PARTIES["CCP"].lineage = "CPC";
 
+  /* ── Fold undersized historical parties into their real successor lineages ──
+     so every dynasty fields a full 30+ bench. Each fold follows the actual line
+     of political succession; done by lineage key so all label variants follow. */
+  var FOLD = {
+    /* Germany — Weimar & GDR parties → their modern successor party */
+    "Zentrum": "CDU",   /* Catholic Centre Party → CDU/CSU (Christian democracy)   */
+    "DNVP":    "CDU",   /* national-conservatives absorbed into the postwar Union   */
+    "DDP":     "FDP",   /* left-liberals  → Free Democrats (FDP formed from both)   */
+    "DVP":     "FDP",   /* national-liberals → Free Democrats                       */
+    "SED_DE":  "Linke", /* SED → PDS → Die Linke (direct succession)                */
+    "sed_de":  "Linke",
+    "BSW":     "Linke", /* Wagenknecht Alliance — 2024 splinter from Die Linke      */
+    /* India — the Janata Parivar offshoots rejoin the Janata Dal dynasty */
+    "janata_in": "janatal_in", /* Janata Party — the family's 1977 progenitor       */
+    "SP_IN":     "janatal_in", /* Samajwadi Party — Mulayam's Janata Dal breakaway  */
+    "RJD_IN":    "janatal_in", /* RJD — Lalu Prasad Yadav's Bihar breakaway         */
+    "BJD_IN":    "janatal_in"  /* Biju Janata Dal — Naveen Patnaik's 1997 breakaway */
+  };
+  Object.keys(G.PARTIES).forEach(function (lbl) {
+    var cur = G.PARTIES[lbl].lineage;
+    if (FOLD[cur]) G.PARTIES[lbl].lineage = FOLD[cur];
+  });
+  /* the enlarged Janata Dal dynasty now spans the whole family */
+  if (G.LINEAGE_PARTY) G.LINEAGE_PARTY["janatal_in"] = "Janata Parivar";
+
   /* Normalise French historical lineage keys left by earlier files */
   if (G.PARTIES["SFIO (FR)"]) G.PARTIES["SFIO (FR)"].lineage = "SFIO";
   if (G.PARTIES["MRP (FR)"])  G.PARTIES["MRP (FR)"].lineage  = "MRP";
@@ -462,7 +487,7 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["BSP_IN"]     = "BSP";
     G.LINEAGE_PARTY["NCP_IN"]     = "NCP";
     G.LINEAGE_PARTY["janata_in"]   = "Janata Party";
-    G.LINEAGE_PARTY["janatal_in"]  = "Janata Dal";
+    G.LINEAGE_PARTY["janatal_in"]  = "Janata Parivar";
     G.LINEAGE_PARTY["cpim_in"]     = "CPI(M)";
     G.LINEAGE_PARTY["rjd_in"]      = "RJD";
     G.LINEAGE_PARTY["AAP_IN"]      = "Aam Aadmi Party";
