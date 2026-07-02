@@ -224,4 +224,141 @@ window.G = window.G || {};
   I("Ram Vilas Paswan",    "Janata Dal (IN)", "e6", ["work","business","leader"],     [56,64,58,54,54], "Dalit leader and perennial Union Minister; LJP founder.", { wiki: "Ram Vilas Paswan" });
   I("Dushyant Chautala",   "Lok Dal (IN)", "e7", ["deputy","work"],                   [48,50,50,48,50], "JJP leader and Deputy Chief Minister of Haryana.", { wiki: "Dushyant Chautala" });
 
+  /* ═══════════════════════════════════════════════════════════════
+     FRANCE — Les Républicains · Radicals · RN · MRP · Gaullists · PS
+     ═══════════════════════════════════════════════════════════════ */
+  I("Christian Estrosi",   "Les Républicains", "e7", ["home","business","leader"],    [56,62,58,56,54], "LR Mayor of Nice and former Industry Minister.", { wiki: "Christian Estrosi" });
+  I("Renaud Muselier",     "Les Républicains", "e7", ["leader","foreign"],            [52,58,54,54,52], "LR president of the Provence-Alpes-Côte d'Azur region.", { wiki: "Renaud Muselier" });
+  I("Gaston Doumergue",    "Radical (FR)", "e2", ["pm","leader","foreign"],           [54,72,58,60,58], "Radical President of France and Third-Republic Premier.", { wiki: "Gaston Doumergue" });
+  I("Théophile Delcassé",  "Radical (FR)", "e2", ["foreign","leader"],                [52,70,56,64,52], "Architect of the Entente Cordiale as Foreign Minister.", { wiki: "Théophile Delcassé" });
+  I("Ferdinand Buisson",   "Radical (FR)", "e2", ["education","justice"],             [54,62,58,54,50], "Nobel-laureate radical; father of French secular schooling.", { wiki: "Ferdinand Buisson" });
+  I("Wallerand de Saint-Just","Rassemblement National", "e7", ["chancellor","justice"],[46,56,52,52,52], "Long-time RN treasurer and Paris regional councillor.", { wiki: "Wallerand de Saint-Just" });
+  I("Julien Odoul",        "Rassemblement National", "e7", ["home","leader"],         [48,50,58,46,48], "Prominent RN MP and party spokesman.", { wiki: "Julien Odoul" });
+  I("Laurent Jacobelli",   "Rassemblement National", "e7", ["leader","culture"],      [48,50,56,46,48], "RN national spokesman and MP for Moselle.", { wiki: "Laurent Jacobelli" });
+  I("Paul Bacon",          "MRP (FR)", "e4", ["work","health"],                       [48,60,50,54,50], "MRP Labour Minister across the Fourth and Fifth Republics.", { wiki: "Paul Bacon" });
+  I("Robert Buron",        "MRP (FR)", "e4", ["transport","chancellor"],             [48,60,50,54,50], "MRP minister who signed the Évian Accords ending the Algerian War.", { wiki: "Robert Buron" });
+  I("Pierre Abelin",       "MRP (FR)", "e5", ["foreign","chancellor"],               [46,58,48,52,48], "MRP minister for cooperation and centrist deputy.", { wiki: "Pierre Abelin" });
+  I("Michèle Alliot-Marie","Gaullist", "e6", ["defence","justice","home"],           [58,72,60,64,58], "First woman to hold Defence, Interior and Justice in France.", { wiki: "Michèle Alliot-Marie" });
+  I("Jean-Louis Debré",    "Gaullist", "e6", ["home","justice","leader"],            [54,68,58,60,56], "Gaullist Interior Minister and President of the Constitutional Council.", { wiki: "Jean-Louis Debré" });
+  I("Philippe Douste-Blazy","Gaullist", "e6", ["health","foreign"],                  [52,62,54,56,50], "Gaullist Health and Foreign Minister; later UNITAID chief.", { wiki: "Philippe Douste-Blazy" });
+  I("Roselyne Bachelot",   "Gaullist", "e6", ["health","culture"],                    [58,60,60,54,50], "Outspoken Gaullist Health and Culture Minister.", { wiki: "Roselyne Bachelot" });
+  I("Xavier Darcos",       "Gaullist", "e6", ["education","work"],                     [52,62,56,56,50], "Gaullist Education and Labour Minister; academician.", { wiki: "Xavier Darcos" });
+  I("Bernard Accoyer",     "Gaullist", "e6", ["leader","health"],                     [50,62,52,56,54], "Gaullist President of the National Assembly 2007–12.", { wiki: "Bernard Accoyer" });
+  I("Bernard Cazeneuve",   "Parti Socialiste", "e7", ["pm","home","leader"],          [58,68,60,64,58], "Socialist Interior Minister then Prime Minister 2016–17.", { wiki: "Bernard Cazeneuve" });
+  I("Jean-Marc Ayrault",   "Parti Socialiste", "e7", ["pm","foreign","leader"],       [54,66,56,60,58], "Socialist Prime Minister 2012–14 under Hollande.", { wiki: "Jean-Marc Ayrault" });
+  I("Arnaud Montebourg",   "Parti Socialiste", "e7", ["business","chancellor","leader"],[56,58,66,52,50], "Socialist industry minister and champion of 'made in France'.", { wiki: "Arnaud Montebourg" });
+  I("Najat Vallaud-Belkacem","Parti Socialiste", "e7", ["education","culture"],       [58,58,62,54,52], "First woman Education Minister of France.", { wiki: "Najat Vallaud-Belkacem" });
+  I("Olivier Faure",       "Parti Socialiste", "e7", ["leader"],                       [52,58,56,54,56], "First Secretary of the Socialist Party from 2018.", { wiki: "Olivier Faure" });
+  I("Marisol Touraine",    "Parti Socialiste", "e7", ["health","work"],               [52,58,52,56,50], "Socialist Health Minister 2012–17.", { wiki: "Marisol Touraine" });
+  I("Stéphane Le Foll",    "Parti Socialiste", "e7", ["environment","culture","leader"],[52,58,56,54,52], "Socialist Agriculture Minister and government spokesman.", { wiki: "Stéphane Le Foll" });
+  I("Jean-Christophe Cambadélis","Parti Socialiste", "e6", ["leader"],               [48,60,54,52,54], "First Secretary of the Socialist Party 2014–17.", { wiki: "Jean-Christophe Cambadélis" });
+  I("Élisabeth Guigou",    "Parti Socialiste", "e6", ["justice","foreign"],           [52,64,54,58,50], "Socialist Justice Minister who introduced the PACS civil union.", { wiki: "Élisabeth Guigou" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     GERMANY — active parties: CDU/CSU · AfD · FDP · Greens · Die Linke · KPD
+     ═══════════════════════════════════════════════════════════════ */
+  I("Daniel Günther",      "CDU/CSU", "e7", ["leader"],                                [58,60,56,58,58], "CDU Minister-President of Schleswig-Holstein.", { wiki: "Daniel Günther" });
+  I("Hendrik Wüst",        "CDU/CSU", "e7", ["leader","transport"],                    [56,58,56,56,56], "CDU Minister-President of North Rhine-Westphalia.", { wiki: "Hendrik Wüst" });
+  I("Jens Spahn",          "CDU/CSU", "e7", ["health","leader"],                       [56,58,60,54,54], "CDU Health Minister during the pandemic.", { wiki: "Jens Spahn" });
+  I("Sebastian Münzenmaier","AfD", "e7", ["business","leader"],                        [46,50,52,46,50], "AfD Bundestag deputy leader from Rhineland-Palatinate.", { wiki: "Sebastian Münzenmaier" });
+  I("Bernd Baumann",       "AfD", "e7", ["leader"],                                    [44,52,52,48,52], "AfD chief whip in the Bundestag.", { wiki: "Bernd Baumann" });
+  I("Peter Boehringer",    "AfD", "e7", ["chancellor","business"],                     [44,52,50,48,48], "AfD chair of the Bundestag budget committee.", { wiki: "Peter Boehringer" });
+  I("Wolfgang Kubicki",    "FDP", "e7", ["justice","leader"],                          [58,64,66,56,56], "FDP Deputy Bundestag President and party heavyweight.", { wiki: "Wolfgang Kubicki" });
+  I("Marco Buschmann",     "FDP", "e7", ["justice","leader"],                          [54,58,56,56,54], "FDP Justice Minister in the traffic-light coalition.", { wiki: "Marco Buschmann" });
+  I("Bettina Stark-Watzinger","FDP", "e7", ["education","chancellor"],                 [50,54,52,54,50], "FDP Education and Research Minister.", { wiki: "Bettina Stark-Watzinger" });
+  I("Volker Wissing",      "FDP", "e7", ["transport","business"],                      [50,56,50,54,50], "FDP Transport and Digital Minister.", { wiki: "Volker Wissing" });
+  I("Alexander Graf Lambsdorff","FDP", "e7", ["foreign","leader"],                     [52,60,54,56,50], "FDP foreign-policy voice and Ambassador to Russia.", { wiki: "Alexander Graf Lambsdorff" });
+  I("Christian Dürr",      "FDP", "e7", ["chancellor","leader"],                       [50,54,54,52,52], "FDP Bundestag parliamentary group leader.", { wiki: "Christian Dürr" });
+  I("Marie-Agnes Strack-Zimmermann","FDP", "e7", ["defence","leader"],                [54,58,62,52,52], "FDP chair of the Bundestag defence committee.", { wiki: "Marie-Agnes Strack-Zimmermann" });
+  I("Nicola Beer",         "FDP", "e7", ["foreign","education"],                       [50,56,52,54,50], "FDP Vice-President of the European Parliament.", { wiki: "Nicola Beer" });
+  I("Sabine Leutheusser-Schnarrenberger","FDP", "e6", ["justice"],                     [54,64,56,58,50], "Two-time FDP Justice Minister and civil-liberties champion.", { wiki: "Sabine Leutheusser-Schnarrenberger" });
+  I("Gerhart Baum",        "FDP", "e5", ["home","justice"],                            [52,66,56,56,50], "Liberal FDP Interior Minister and human-rights advocate.", { wiki: "Gerhart Baum" });
+  I("Wolfgang Mischnick",  "FDP", "e5", ["leader"],                                    [50,66,52,56,58], "Long-serving FDP Bundestag group leader.", { wiki: "Wolfgang Mischnick" });
+  I("Erich Mende",         "FDP", "e4", ["leader","deputy"],                           [50,64,54,54,56], "FDP chairman and Vice-Chancellor in the 1960s.", { wiki: "Erich Mende" });
+  I("Thomas Dehler",       "FDP", "e4", ["justice","leader"],                          [52,62,60,54,52], "First Justice Minister of West Germany and FDP chairman.", { wiki: "Thomas Dehler" });
+  I("Rainer Brüderle",     "FDP", "e7", ["business","chancellor"],                     [52,60,56,54,52], "FDP Economics Minister and 2013 lead candidate.", { wiki: "Rainer Brüderle" });
+  I("Hermann Otto Solms",  "FDP", "e6", ["chancellor","leader"],                       [48,62,50,56,52], "FDP finance spokesman and Bundestag Vice-President.", { wiki: "Hermann Otto Solms" });
+  I("Katja Suding",        "FDP", "e7", ["education","leader"],                        [52,52,54,50,48], "FDP Hamburg leader and deputy federal chair.", { wiki: "Katja Suding" });
+  I("Ricarda Lang",        "Greens (DE)", "e7", ["leader","work"],                     [52,52,56,50,54], "Co-leader of the Greens 2022–24.", { wiki: "Ricarda Lang" });
+  I("Omid Nouripour",      "Greens (DE)", "e7", ["leader","foreign"],                  [52,54,56,52,52], "Iranian-born co-leader of the Greens 2022–24.", { wiki: "Omid Nouripour" });
+  I("Anton Hofreiter",     "Greens (DE)", "e7", ["environment","transport","leader"],  [52,58,58,52,50], "Green Bundestag group co-leader and Europe committee chair.", { wiki: "Anton Hofreiter" });
+  I("Britta Haßelmann",    "Greens (DE)", "e7", ["leader"],                            [50,56,54,52,54], "Green Bundestag parliamentary group co-leader.", { wiki: "Britta Haßelmann" });
+  I("Steffi Lemke",        "Greens (DE)", "e7", ["environment"],                       [50,56,52,54,52], "Green Federal Environment Minister from 2021.", { wiki: "Steffi Lemke" });
+  I("Franziska Brantner",  "Greens (DE)", "e7", ["business","foreign"],               [50,52,52,52,50], "Green economics state-secretary and co-leader.", { wiki: "Franziska Brantner" });
+  I("Reinhard Bütikofer",  "Greens (DE)", "e6", ["foreign","leader"],                 [50,60,54,52,52], "Green party co-chair and MEP on China policy.", { wiki: "Reinhard Bütikofer" });
+  I("Volker Beck",         "Greens (DE)", "e6", ["justice","home"],                   [50,58,56,50,48], "Green rights campaigner and long-time Bundestag MP.", { wiki: "Volker Beck" });
+  I("Sven Giegold",        "Greens (DE)", "e7", ["chancellor","business"],            [50,56,52,54,48], "Green economist, Attac co-founder and state-secretary.", { wiki: "Sven Giegold" });
+  I("Katharina Dröge",     "Greens (DE)", "e7", ["business","leader"],                [50,52,54,50,50], "Green Bundestag group co-leader.", { wiki: "Katharina Dröge" });
+  I("Terry Reintke",       "Greens (DE)", "e7", ["foreign","leader"],                 [50,50,54,48,48], "Green co-president of the European Parliament group.", { wiki: "Terry Reintke" });
+  I("Anja Hajduk",         "Greens (DE)", "e6", ["chancellor","business"],            [48,56,50,52,48], "Green budget expert and economics state-secretary.", { wiki: "Anja Hajduk" });
+  I("Irene Mihalic",       "Greens (DE)", "e7", ["home","justice"],                   [48,52,50,50,48], "Green Bundestag first parliamentary secretary; ex-police officer.", { wiki: "Irene Mihalic" });
+  I("Oskar Lafontaine",    "Die Linke", "e6", ["chancellor","leader"],               [62,72,74,60,58], "SPD then Left-party firebrand; Saarland Minister-President.", { wiki: "Oskar Lafontaine" });
+  I("Petra Pau",           "Die Linke", "e6", ["home","leader"],                      [48,60,50,50,50], "Left-party Bundestag Vice-President.", { wiki: "Petra Pau" });
+  I("Jan van Aken",        "Die Linke", "e7", ["foreign","leader"],                   [52,54,58,50,52], "Left-party co-leader from 2024 and disarmament expert.", { wiki: "Jan van Aken" });
+  I("Caren Lay",           "Die Linke", "e7", ["work","business"],                    [48,52,52,48,48], "Left-party housing-policy spokeswoman.", { wiki: "Caren Lay" });
+  I("Jan Korte",           "Die Linke", "e7", ["leader","justice"],                   [48,54,52,50,52], "Left-party Bundestag chief whip.", { wiki: "Jan Korte" });
+  I("Gesine Lötzsch",      "Die Linke", "e6", ["chancellor","leader"],               [48,58,50,52,52], "Left-party co-chair and budget committee chair.", { wiki: "Gesine Lötzsch" });
+  I("André Hahn",          "Die Linke", "e7", ["home","justice"],                     [46,52,48,48,48], "Left-party intelligence-oversight spokesman.", { wiki: "André Hahn" });
+  I("Sören Pellmann",      "Die Linke", "e7", ["leader","work"],                       [48,50,50,48,48], "Left-party Leipzig MP who held a crucial direct seat.", { wiki: "Sören Pellmann" });
+  I("Martina Renner",      "Die Linke", "e7", ["home","justice"],                      [46,50,50,48,46], "Left-party anti-fascism and interior-affairs spokeswoman.", { wiki: "Martina Renner" });
+  I("Ernst Torgler",       "KPD", "e3", ["leader"],                                    [48,58,54,48,50], "Last KPD Reichstag group leader, tried after the Reichstag fire.", { wiki: "Ernst Torgler" });
+  I("Franz Dahlem",        "KPD", "e3", ["leader","defence"],                          [46,58,50,48,52], "KPD leader and resistance organiser imprisoned by the Nazis.", { wiki: "Franz Dahlem" });
+  I("Hugo Eberlein",       "KPD", "e3", ["leader","chancellor"],                       [44,56,48,48,50], "KPD co-founder and Comintern delegate; killed in Stalin's purges.", { wiki: "Hugo Eberlein" });
+  I("Hermann Remmele",     "KPD", "e3", ["leader"],                                    [44,54,50,46,48], "KPD Politburo member; a victim of the Soviet Great Purge.", { wiki: "Hermann Remmele" });
+  I("Werner Scholem",      "KPD", "e3", ["leader"],                                    [46,54,52,46,46], "KPD organisational chief of the party's left wing.", { wiki: "Werner Scholem" });
+  I("Ottomar Geschke",     "KPD", "e3", ["home","leader"],                             [42,54,46,46,48], "KPD Reichstag deputy and concentration-camp survivor.", { wiki: "Ottomar Geschke" });
+  I("Wilhelm Koenen",      "KPD", "e3", ["leader"],                                    [42,54,46,46,48], "KPD Reichstag deputy and later East German official.", { wiki: "Wilhelm Koenen" });
+  I("Philipp Dengel",      "KPD", "e3", ["leader","culture"],                          [42,52,46,44,46], "KPD Central Committee member and party journalist.", { wiki: "Philipp Dengel" });
+
+  /* ── active-party top-ups: PS, Die Linke, FDP ── */
+  I("Pierre Moscovici",    "Parti Socialiste", "e7", ["chancellor","foreign"],        [52,64,54,60,50], "Socialist Finance Minister and European Commissioner.", { wiki: "Pierre Moscovici" });
+  I("Jean-Yves Le Drian",  "Parti Socialiste", "e7", ["defence","foreign"],           [54,68,54,62,54], "Socialist Defence then Foreign Minister across two presidencies.", { wiki: "Jean-Yves Le Drian" });
+  I("Nicole Gohlke",       "Die Linke", "e7", ["education","leader"],                  [46,50,52,48,48], "Left-party deputy federal chair and Bundestag group deputy.", { wiki: "Nicole Gohlke" });
+  I("Ali Al-Dailami",      "Die Linke", "e7", ["foreign","leader"],                    [44,48,50,46,46], "Left-party deputy leader and foreign-affairs spokesman.", { wiki: "Ali Al-Dailami" });
+  I("Johannes Vogel",      "FDP", "e7", ["work","leader"],                             [52,54,58,52,52], "FDP deputy leader and labour-policy spokesman.", { wiki: "Johannes Vogel" });
+  I("Konstantin Kuhle",    "FDP", "e7", ["home","justice"],                            [50,52,54,50,50], "FDP deputy parliamentary group leader on interior affairs.", { wiki: "Konstantin Kuhle" });
+  I("Cornelia Pieper",     "FDP", "e6", ["foreign","education"],                       [48,58,50,52,48], "FDP Minister of State at the Foreign Office.", { wiki: "Cornelia Pieper" });
+  I("Walter Döring",       "FDP", "e6", ["business","chancellor"],                     [48,58,50,52,50], "FDP economics minister of Baden-Württemberg.", { wiki: "Walter Döring" });
+  I("Birgit Homburger",    "FDP", "e6", ["leader","environment"],                      [48,56,50,50,52], "FDP Bundestag parliamentary group leader.", { wiki: "Birgit Homburger" });
+
+  /* ── East Germany — SED Politburo (toward the real historical ceiling) ── */
+  I("Kurt Hager",          "SED (DE)", "e5", ["culture","education","leader"],         [42,66,48,52,58], "SED chief ideologist and Politburo culture boss.", { wiki: "Kurt Hager" });
+  I("Günter Mittag",       "SED (DE)", "e5", ["chancellor","business"],               [42,66,46,54,58], "SED economics supremo of the GDR planned economy.", { wiki: "Günter Mittag" });
+  I("Horst Sindermann",    "SED (DE)", "e5", ["pm","leader"],                          [42,64,48,50,56], "SED Chairman of the GDR Council of Ministers.", { wiki: "Horst Sindermann" });
+  I("Paul Verner",         "SED (DE)", "e4", ["home","leader"],                        [40,62,46,48,56], "SED Berlin party chief and Politburo member.", { wiki: "Paul Verner" });
+  I("Hermann Matern",      "SED (DE)", "e4", ["justice","leader"],                     [40,62,46,48,56], "SED control-commission chairman and purge enforcer.", { wiki: "Hermann Matern" });
+  I("Alfred Neumann",      "SED (DE)", "e5", ["business","chancellor"],               [40,62,44,50,54], "SED Politburo member overseeing GDR industry.", { wiki: "Alfred Neumann (politician)" });
+  I("Werner Lamberz",      "SED (DE)", "e5", ["culture","foreign"],                    [46,58,52,48,54], "Rising SED agitprop chief killed in a 1978 helicopter crash.", { wiki: "Werner Lamberz" });
+  I("Margot Honecker",     "SED (DE)", "e5", ["education","leader"],                    [40,60,46,48,54], "SED Minister of Education; wife of Erich Honecker.", { wiki: "Margot Honecker" });
+  I("Hilde Benjamin",      "SED (DE)", "e4", ["justice"],                              [40,60,50,48,50], "SED Justice Minister known as 'Red Guillotine'.", { wiki: "Hilde Benjamin" });
+  I("Werner Krolikowski",  "SED (DE)", "e5", ["chancellor","leader"],                  [38,60,42,48,52], "SED Politburo hardliner and deputy premier.", { wiki: "Werner Krolikowski" });
+  I("Fritz Selbmann",      "SED (DE)", "e4", ["business","culture"],                   [42,58,48,48,50], "SED industry minister and later writer.", { wiki: "Fritz Selbmann" });
+  I("Erich Apel",          "SED (DE)", "e5", ["chancellor","business"],               [44,58,44,52,50], "SED planning chief whose 1965 suicide shook the leadership.", { wiki: "Erich Apel" });
+
+  /* ── Weimar Centre Party (Zentrum) — historical figures ── */
+  I("Ludwig Windthorst",   "Zentrum", "e1", ["leader","justice"],                      [58,70,72,58,60], "Founder-leader of the Centre Party and Bismarck's great foe.", { wiki: "Ludwig Windthorst" });
+  I("Constantin Fehrenbach","Zentrum", "e3", ["pm","leader"],                          [52,66,58,56,54], "Centre Party Chancellor of the early Weimar Republic.", { wiki: "Constantin Fehrenbach" });
+  I("Peter Reichensperger","Zentrum", "e1", ["justice","leader"],                      [50,62,56,54,50], "Co-founder of the Centre Party and jurist.", { wiki: "Peter Reichensperger" });
+  I("August Reichensperger","Zentrum", "e1", ["culture","justice"],                    [48,60,56,50,48], "Centre Party co-founder and Gothic-revival champion.", { wiki: "August Reichensperger" });
+  I("Felix Porsch",        "Zentrum", "e2", ["leader"],                                [46,60,50,50,52], "Centre Party leader in the Prussian House of Lords.", { wiki: "Felix Porsch" });
+  I("Adolf Gröber",        "Zentrum", "e2", ["justice","leader"],                      [48,60,52,52,50], "Centre Party co-drafter of the German civil code.", { wiki: "Adolf Gröber" });
+  I("Joseph Ersing",       "Zentrum", "e3", ["work","leader"],                         [44,56,48,48,50], "Christian trade-unionist and Centre Party Reichstag deputy.", { wiki: "Joseph Ersing" });
+
+  /* ── Weimar DDP (left-liberal) — historical figures ── */
+  I("Walther Rathenau",    "DDP", "e3", ["foreign","business","chancellor"],           [58,72,66,66,54], "DDP industrialist and Foreign Minister assassinated in 1922.", { wiki: "Walther Rathenau" });
+  I("Gertrud Bäumer",      "DDP", "e3", ["education","culture"],                        [52,62,58,50,48], "DDP feminist leader and Reichstag deputy.", { wiki: "Gertrud Bäumer" });
+  I("Ludwig Quidde",       "DDP", "e3", ["foreign","culture"],                         [50,62,56,50,46], "DDP pacifist and Nobel Peace Prize laureate.", { wiki: "Ludwig Quidde" });
+  I("Conrad Haußmann",     "DDP", "e2", ["justice","leader"],                          [48,60,56,50,48], "Left-liberal co-founder of the DDP and Weimar constitution drafter.", { wiki: "Conrad Haußmann" });
+  I("Hermann Dietrich",    "DDP", "e3", ["chancellor","business"],                     [48,62,50,54,50], "DDP Finance Minister and Vice-Chancellor.", { wiki: "Hermann Dietrich" });
+  I("Bernhard Dernburg",   "DDP", "e2", ["chancellor","business"],                     [48,62,52,54,48], "Colonial secretary and short-lived Weimar Finance Minister.", { wiki: "Bernhard Dernburg" });
+
+  /* ── Weimar DNVP (national-conservative) — historical figures ── */
+  I("Oskar Hergt",         "DNVP", "e3", ["leader","justice"],                         [46,62,52,52,54], "DNVP chairman and Vice-Chancellor.", { wiki: "Oskar Hergt" });
+  I("Gottfried Treviranus", "DNVP", "e3", ["chancellor","transport"],                  [46,58,52,50,48], "Conservative minister who broke with Hugenberg's DNVP.", { wiki: "Gottfried Reinhold Treviranus" });
+  I("Otto Schmidt-Hannover","DNVP", "e3", ["leader"],                                  [42,56,50,46,50], "DNVP Reichstag group leader under Hugenberg.", { wiki: "Otto Schmidt-Hannover" });
+
+  /* ── Weimar DVP (national-liberal) — historical figures ── */
+  I("Siegfried von Kardorff","DVP", "e3", ["leader","business"],                       [46,60,50,52,50], "DVP Vice-President of the Reichstag.", { wiki: "Siegfried von Kardorff" });
+  I("Otto Hugo",           "DVP", "e3", ["business","work"],                           [42,56,46,48,48], "DVP industrialist and Reichstag deputy.", { wiki: "Otto Hugo" });
+
 })();
