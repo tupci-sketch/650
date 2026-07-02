@@ -49,8 +49,28 @@
     });
   };
   NET.save      = function (prefs) { NET.prefs = prefs || NET.prefs; return NET._auth("save", { prefs: NET.prefs }); };
-  NET.saveGame  = function (snapshot) { NET.prefs = NET.prefs || {}; NET.prefs.savedGame = snapshot; return NET.save(NET.prefs); };
-  NET.clearGame = function () { NET.prefs = NET.prefs || {}; delete NET.prefs.savedGame; return NET.save(NET.prefs); };
+
+  /* Local (offline) save slot — mirrors the cloud save so progress survives a
+     reload even when the player is not signed in. */
+  NET.KEY_SAVE = "650.savedGame";
+  NET.localGame   = function () { try { var v = window.localStorage.getItem(NET.KEY_SAVE); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
+  NET._saveLocal  = function (s) { try { if (s) window.localStorage.setItem(NET.KEY_SAVE, JSON.stringify(s)); } catch (e) {} };
+  NET._clearLocal = function () { try { window.localStorage.removeItem(NET.KEY_SAVE); } catch (e) {} };
+
+  /* Save always writes the local slot; it additionally syncs to the cloud when
+     the player is signed in. Returns a soft-resolving Promise either way. */
+  NET.saveGame  = function (snapshot) {
+    NET._saveLocal(snapshot);
+    NET.prefs = NET.prefs || {}; NET.prefs.savedGame = snapshot;
+    return NET.me ? NET.save(NET.prefs) : Promise.resolve({ ok: true, local: true });
+  };
+  NET.clearGame = function () {
+    NET._clearLocal();
+    NET.prefs = NET.prefs || {}; delete NET.prefs.savedGame;
+    return NET.me ? NET.save(NET.prefs) : Promise.resolve({ ok: true, local: true });
+  };
+  /* the best available saved game: cloud when signed in, else the local slot */
+  NET.bestSave = function () { return (NET.me && NET.prefs && NET.prefs.savedGame) || NET.localGame() || null; };
   NET.playerRuns = function () { return NET._auth("player_runs"); };
 
   NET.loadConfig = function () { return NET._call("config").then(function (d) { if (d && d.config) NET.config = d.config; return NET.config; }); };

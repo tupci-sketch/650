@@ -210,7 +210,9 @@
   }
 
   function autoSave(screenTag) {
-    if (!G.NET || !G.NET.me || !G.state) return;
+    /* Local save works for everyone; the cloud sync (inside NET.saveGame) only
+       fires when signed in. No longer gated on being logged in. */
+    if (!G.NET || !G.state) return;
     if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
     _saveTimer = setTimeout(function () {
       _saveTimer = null;
@@ -221,6 +223,21 @@
       if (b) { b.style.display = ""; setTimeout(function () { b.style.display = "none"; }, 2500); }
     }, 800);
   }
+
+  /* immediate (non-debounced) save — used when leaving the game via the logo */
+  function autoSaveNow(screenTag) {
+    if (!G.NET || !G.state) return;
+    var snap = buildSaveSnapshot(screenTag);
+    if (snap) G.NET.saveGame(snap);
+  }
+
+  /* the gameplay screens a live game can be resumed to */
+  var GAMEPLAY_SCREENS = {
+    "screen-draft": 1, "screen-watch": 1, "screen-result": 1, "screen-govern": 1,
+    "screen-coalition": 1, "screen-policy": 1, "screen-campaign": 1,
+    "screen-retirement": 1, "screen-legacy": 1
+  };
+  var activeGameScreen = null;   // last gameplay screen shown (in-memory resume)
 
   function tryRestoreGame(snap) {
     if (!snap || !snap.state) return;
@@ -264,7 +281,56 @@
     var btn = sel("continueBtn");
     if (btn) btn.onclick = function () { card.style.display = "none"; restoreFromSave(snap); };
     var dis = sel("continueDismiss");
-    if (dis) dis.onclick = function () { card.style.display = "none"; if (G.NET && G.NET.me) G.NET.clearGame(); };
+    if (dis) dis.onclick = function () { card.style.display = "none"; if (G.NET) G.NET.clearGame(); };
+  }
+
+  /* Splash "session" card: prefer resuming the live in-memory game exactly where
+     you left it; otherwise offer to restore the most recent saved game (cloud
+     when signed in, else the local slot). Called on boot and whenever we return
+     to the menu. */
+  function showSessionCard() {
+    var card = sel("continueCard"); if (!card) return;
+    if (activeGameScreen && G.state) { renderResumeCard(card); return; }
+    var snap = (G.NET && G.NET.bestSave) ? G.NET.bestSave() : null;
+    if (snap) tryRestoreGame(snap); else card.style.display = "none";
+  }
+
+  function renderResumeCard(card) {
+    var st = G.state;
+    var modeMap = { unity: "Greatest Cabinet", wildcard: "Wildcard", dynasty: "Dynasty", parl2024: "2024 Parliament" };
+    var bits = [];
+    if (G.career && G.career.parliament > 1) {
+      var tl = G.UI && G.UI.sysLabels ? G.UI.sysLabels(st._electoralSystemKey) : { termWord: "Parliament" };
+      bits.push(tl.termWord + " " + G.career.parliament);
+    }
+    bits.push(modeMap[st.mode] || st.mode);
+    bits.push((st.difficulty || "normal").charAt(0).toUpperCase() + (st.difficulty || "normal").slice(1));
+    if (st.scenarioKey && st.scenarioKey !== "freshstart") {
+      var sc = G.SCENARIOS && G.SCENARIOS.filter(function (s) { return s.key === st.scenarioKey; })[0];
+      bits.push(sc ? sc.name : st.scenarioKey.replace(/_/g, " "));
+    }
+    var screenMap = {
+      "screen-draft": "Building your cabinet", "screen-watch": "Election night",
+      "screen-result": "Election result", "screen-govern": "In government",
+      "screen-coalition": "Coalition talks", "screen-policy": "Writing the manifesto",
+      "screen-campaign": "On the campaign trail", "screen-retirement": "Between parliaments",
+      "screen-legacy": "Your legacy"
+    };
+    card.innerHTML =
+      '<div class="cont-body">' +
+        '<p class="cont-label">Game in progress</p>' +
+        '<p class="cont-desc">' + G.UI._esc(bits.join(" · ")) + '</p>' +
+        '<p class="cont-at">' + G.UI._esc(screenMap[activeGameScreen] || "In play") + '</p>' +
+      '</div>' +
+      '<div class="cont-btns">' +
+        '<button class="btn btn-primary" id="resumeBtn">Resume game →</button>' +
+        '<button class="link-btn cont-dismiss" id="resumeNewBtn">Start a new game instead</button>' +
+      '</div>';
+    card.style.display = "";
+    var rb = sel("resumeBtn");
+    if (rb) rb.onclick = function () { card.style.display = "none"; G.UI.show(activeGameScreen); };
+    var nb = sel("resumeNewBtn");
+    if (nb) nb.onclick = function () { card.style.display = "none"; };
   }
 
   function restoreFromSave(snap) {
@@ -345,6 +411,13 @@
 
   /* ---------------------------------------------------------------- boot -- */
   function boot() {
+    /* record the last gameplay screen so the logo/menu can offer an in-place
+       "Resume game" without rebuilding or losing state */
+    if (G.UI && G.UI.show && !G.UI._showWrapped) {
+      var _origShow = G.UI.show;
+      G.UI.show = function (id) { if (GAMEPLAY_SCREENS[id]) activeGameScreen = id; return _origShow.apply(this, arguments); };
+      G.UI._showWrapped = true;
+    }
     sel("metaCount").textContent = G.POLITICIANS.length;
     sel("metaEras").textContent = G.ERAS.filter(function (e) { return !e.wildOnly; }).length;
     if (sel("metaSystems") && G.ELECTORAL_SYSTEMS) sel("metaSystems").textContent = Object.keys(G.ELECTORAL_SYSTEMS).length;
@@ -380,8 +453,10 @@
     if (G.NET) {
       G.NET.onAuth = function (me) {
         G.UI.applyAuth(me); updateLbWho();
+        /* surface a saved game (cloud when signed in, else the local slot) —
+           unless a live in-memory game is already offering an in-place resume */
+        showSessionCard();
         if (me) {
-          if (G.NET.prefs && G.NET.prefs.savedGame) tryRestoreGame(G.NET.prefs.savedGame);
           /* load run history for the account screen */
           if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
             var rp = sel("runsPanel"); if (!rp) return;
@@ -391,7 +466,6 @@
             } else rp.style.display = "none";
           });
         } else {
-          var card = sel("continueCard"); if (card) card.style.display = "none";
           var rp2 = sel("runsPanel"); if (rp2) rp2.style.display = "none";
         }
       };
@@ -1004,7 +1078,13 @@
     openXIntent(text, url);
   }
 
-  function goMenu() { cancelWatch(); stopChatPoll(); G.UI.show("screen-menu"); }
+  function goMenu() {
+    cancelWatch(); stopChatPoll();
+    /* capture the current spot so the logo never loses progress */
+    if (activeGameScreen && G.state) autoSaveNow(activeGameScreen);
+    G.UI.show("screen-menu");
+    showSessionCard();
+  }
 
   /* --------------------------------------------------------- leaderboard -- */
   function wireLeaderboard() {
