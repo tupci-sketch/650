@@ -859,6 +859,10 @@
         seats: res.seats,
         byRegion: res.campaign && res.campaign.byRegion,
         blocSupport: res.blocSupport,
+        totalSeats: res.totalSeats || (G.activeTotalSeats ? G.activeTotalSeats() : 650),
+        majority: (G.activeMajority ? G.activeMajority() : ((G.CONFIG && G.CONFIG.majority) || 326)),
+        coalition: res.coalition,
+        largest: !!(res.coalition && res.coalition.largest),
         electoralSystem: res.electoralSystem || (G.state && G.state._electoralSystemKey),
         country: choice.country || "uk",
         scenario: res.scenarioKey || (G.state && G.state.scenarioKey)
@@ -1426,6 +1430,10 @@
         blocSupport: G.term && G.term.blocSupport,
         byRegion: lastResult && lastResult.campaign && lastResult.campaign.byRegion,
         seats: lastResult && lastResult.seats,
+        totalSeats: (lastResult && lastResult.totalSeats) || (G.activeTotalSeats ? G.activeTotalSeats() : 650),
+        majority: (G.activeMajority ? G.activeMajority() : ((G.CONFIG && G.CONFIG.majority) || 326)),
+        coalition: lastResult && lastResult.coalition,
+        largest: !!(lastResult && lastResult.coalition && lastResult.coalition.largest),
         electoralSystem: G.state && G.state._electoralSystemKey,
         country: choice.country || "uk",
         scenario: G.state && G.state.scenarioKey
