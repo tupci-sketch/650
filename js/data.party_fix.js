@@ -69,6 +69,11 @@ window.G = window.G || {};
      United Russia used post-1991 only — the eras separation handles the split) */
   if (G.PARTIES["CPSU"]) G.PARTIES["CPSU"].lineage = "CPSU";
 
+  /* Merge the "CCP" party label into the "CPC" lineage so all Chinese Communist
+     figures form one dynasty (some data files label it "CCP", others
+     "Chinese Communist Party" — same party, 中国共产党) */
+  if (G.PARTIES["CCP"]) G.PARTIES["CCP"].lineage = "CPC";
+
   /* Normalise French historical lineage keys left by earlier files */
   if (G.PARTIES["SFIO (FR)"]) G.PARTIES["SFIO (FR)"].lineage = "SFIO";
   if (G.PARTIES["MRP (FR)"])  G.PARTIES["MRP (FR)"].lineage  = "MRP";
