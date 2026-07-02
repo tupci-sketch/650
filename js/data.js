@@ -610,14 +610,15 @@ G.CONFIG = {
   tierOdds: {                   /* relative appetite per tier, by difficulty */
     easy:   { a: 4.5, b: 3.2, c: 1.4, d: 0.6 },
     normal: { a: 3.5, b: 2.8, c: 1.5, d: 0.7 },
-    hard:   { a: 2.0, b: 2.2, c: 1.8, d: 1.3 }
+    hard:   { a: 2.0, b: 2.2, c: 1.8, d: 1.3 },
+    brutal: { a: 1.4, b: 1.9, c: 2.0, d: 1.7 }
   },
   /* the pity valve: if your bench is genuinely poor part-way through, the
      party grandees MAY intervene with a top-tier deal — sometimes the game
      saves you, sometimes you never needed saving. That's luck. */
   pityFloor: 56,                    /* per-seat strength that counts as "struggling" */
   pityAfter: 4,                     /* only once this many seats are filled */
-  pityUses:  { easy: 2, normal: 1, hard: 0 },
+  pityUses:  { easy: 2, normal: 1, hard: 0, brutal: 0 },
   /* flagged figures (conspiracists etc.) — a milder scandal than a despot */
   flaggedPenalty: 0.92,
 
@@ -670,9 +671,15 @@ G.CONFIG = {
      seat curve; noiseMul scales campaign randomness; oppBoost scales the
      strength of the rival parties' random front benches */
   difficulties: {
-    easy:   { label: "Easy",   voteShift:  0.045, midShift: -0.020, noiseMul: 0.80, oppBoost: 0.97 },
-    normal: { label: "Normal", voteShift:  0.000, midShift:  0.000, noiseMul: 1.00, oppBoost: 1.00 },
-    hard:   { label: "Hard",   voteShift: -0.035, midShift:  0.022, noiseMul: 1.25, oppBoost: 1.04 }
+    easy:   { label: "Easy",    voteShift:  0.045, midShift: -0.020, noiseMul: 0.80, oppBoost: 0.97 },
+    normal: { label: "Normal",  voteShift:  0.000, midShift:  0.000, noiseMul: 1.00, oppBoost: 1.00 },
+    /* Hard rebalanced (v7): a merely good cabinet used to landslide because the
+       old −0.035 barely touched a ~0.47 vote share. Now only an elite, near-
+       perfect bench wins a working majority; a good one falls to a hung result. */
+    hard:   { label: "Hard",    voteShift: -0.062, midShift:  0.038, noiseMul: 1.32, oppBoost: 1.12 },
+    /* Brutal: for players who find Hard too easy — the opposition is elite and
+       the seat curve is unforgiving. Only a genuinely all-time cabinet governs. */
+    brutal: { label: "Brutal",  voteShift: -0.090, midShift:  0.052, noiseMul: 1.42, oppBoost: 1.22 }
   },
 
   /* career mode: per-term retirement probability by number of terms served.

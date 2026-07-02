@@ -2075,10 +2075,11 @@ G.UI.renderElectorate = function (blocSupport) {
   var panel = $("electoratePanel");
   var list  = $("blocList");
   if (!panel || !list) return;
-  if (!blocSupport || !G.ELECTORATE_BLOCS) { panel.style.display = "none"; return; }
+  var _blocs = G.activeBlocs ? G.activeBlocs() : G.ELECTORATE_BLOCS;
+  if (!blocSupport || !_blocs) { panel.style.display = "none"; return; }
   panel.style.display = "";
   var html = "";
-  G.ELECTORATE_BLOCS.forEach(function (b) {
+  _blocs.forEach(function (b) {
     var s = Math.round(blocSupport[b.key] != null ? blocSupport[b.key] : 50);
     var cls = s >= 58 ? "bloc-good" : s < 42 ? "bloc-bad" : "bloc-mid";
     var pct = s + "%";
@@ -2153,10 +2154,11 @@ G.UI.renderCampaign = function () {
 
   /* region allocation chips */
   var rAlloc = $("campaignRegionAlloc");
-  if (rAlloc && G.REGIONS) {
+  var _campRegions = (G.activeRegions ? G.activeRegions() : null) || G.REGIONS;
+  if (rAlloc && _campRegions) {
     var html = '<p class="section-label" style="margin-top:0">Spend days in key regions</p>';
     html += '<div class="camp-alloc-grid">';
-    G.REGIONS.forEach(function (r) {
+    _campRegions.forEach(function (r) {
       var days = c.allocation["region_" + r.id] || 0;
       html += '<div class="camp-slot" data-slot="region_' + r.id + '">' +
         '<span class="camp-slot-name">' + G.UI._esc(r.name) + '</span>' +
@@ -2172,10 +2174,11 @@ G.UI.renderCampaign = function () {
 
   /* bloc allocation chips */
   var bAlloc = $("campaignBlocAlloc");
-  if (bAlloc && G.ELECTORATE_BLOCS) {
+  var _campBlocs = G.activeBlocs ? G.activeBlocs() : G.ELECTORATE_BLOCS;
+  if (bAlloc && _campBlocs) {
     var html2 = '<p class="section-label">Spend days courting voter blocs</p>';
     html2 += '<div class="camp-alloc-grid">';
-    G.ELECTORATE_BLOCS.forEach(function (b) {
+    _campBlocs.forEach(function (b) {
       var days2 = c.allocation["bloc_" + b.key] || 0;
       html2 += '<div class="camp-slot" data-slot="bloc_' + b.key + '">' +
         '<span class="camp-slot-name">' + G.UI._esc(b.name) + '</span>' +
