@@ -49,10 +49,13 @@ G.campaignOutputs = function (campaign) {
   var theme = (G.CAMPAIGN_THEMES || []).filter(function (t) { return t.key === campaign.theme; })[0];
   var alloc = campaign.allocation || {};
 
+  var blocs   = G.activeBlocs ? G.activeBlocs() : (G.ELECTORATE_BLOCS || []);
+  var regions = (G.activeRegions ? G.activeRegions() : null) || G.REGIONS || [];
+
   /* theme → bloc shifts */
   var blocDeltas = {};
-  if (theme && G.ELECTORATE_BLOCS && G.electorateIssueNudge) {
-    G.ELECTORATE_BLOCS.forEach(function (b) {
+  if (theme && blocs && G.electorateIssueNudge) {
+    blocs.forEach(function (b) {
       var sens = b.issues[theme.axis] || 0;
       if (Math.abs(sens) < 0.05) return;
       blocDeltas[b.key] = (blocDeltas[b.key] || 0) + theme.dir * sens * 3;
@@ -62,32 +65,31 @@ G.campaignOutputs = function (campaign) {
   /* day allocation → regional logit tilt */
   var regionTilt = {};
   var REGION_K = 0.003;
-  (G.REGIONS || []).forEach(function (r) {
+  regions.forEach(function (r) {
     var d = alloc["region_" + r.id] || 0;
     if (d) regionTilt[r.id] = (regionTilt[r.id] || 0) + d * REGION_K;
   });
 
   /* day allocation → bloc support shifts */
   var BLOC_K = 1.2;
-  (G.ELECTORATE_BLOCS || []).forEach(function (b) {
+  blocs.forEach(function (b) {
     var d = alloc["bloc_" + b.key] || 0;
     if (d) blocDeltas[b.key] = (blocDeltas[b.key] || 0) + d * BLOC_K;
   });
 
-  /* debate result */
+  /* debate result — swings the persuadable (centrist) blocs either way */
   var voteDelta = 0;
   if (campaign.debateWon === true) {
     voteDelta += 0.012;
-    blocDeltas.urbanprog = (blocDeltas.urbanprog || 0) + 3;
-    blocDeltas.students  = (blocDeltas.students  || 0) + 2;
+    blocs.forEach(function (b) { if (Math.abs(b.align) < 0.8) blocDeltas[b.key] = (blocDeltas[b.key] || 0) + 3; });
   } else if (campaign.debateWon === false) {
     voteDelta -= 0.008;
-    blocDeltas.reform    = (blocDeltas.reform    || 0) + 2;
+    blocs.forEach(function (b) { if (Math.abs(b.align) < 0.8) blocDeltas[b.key] = (blocDeltas[b.key] || 0) - 3; });
   }
 
   /* compact sig for seed inclusion */
-  var rKeys = (G.REGIONS || []).map(function (r) { return alloc["region_" + r.id] || 0; }).join("");
-  var bKeys = (G.ELECTORATE_BLOCS || []).map(function (b) { return Math.round(alloc["bloc_" + b.key] || 0); }).join("");
+  var rKeys = regions.map(function (r) { return alloc["region_" + r.id] || 0; }).join("");
+  var bKeys = blocs.map(function (b) { return Math.round(alloc["bloc_" + b.key] || 0); }).join("");
   var sig = (campaign.theme || "none") + "|" +
             (campaign.debateWon === true ? "W" : campaign.debateWon === false ? "L" : "N") + "|" +
             rKeys + "|" + bKeys;

@@ -496,8 +496,9 @@ G.hold = function () {
   var campaignVoteDelta = (campOut && campOut.voteDelta) || 0;
 
   /* fold bloc snapshot + campaign sig into seed for full reproducibility */
-  var blocSig = blocSupport && G.ELECTORATE_BLOCS
-    ? G.ELECTORATE_BLOCS.map(function (b) { return Math.round(blocSupport[b.key] || 50); }).join(".")
+  var _sigBlocs = G.activeBlocs ? G.activeBlocs() : G.ELECTORATE_BLOCS;
+  var blocSig = blocSupport && _sigBlocs
+    ? _sigBlocs.map(function (b) { return Math.round(blocSupport[b.key] || 50); }).join(".")
     : "baseline";
   var campaignSig = campOut ? campOut.sig : "nocampaign";
   var seed = G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
