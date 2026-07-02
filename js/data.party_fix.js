@@ -74,9 +74,38 @@ window.G = window.G || {};
      "Chinese Communist Party" — same party, 中国共产党) */
   if (G.PARTIES["CCP"]) G.PARTIES["CCP"].lineage = "CPC";
 
+  /* ── Fold undersized historical parties into their real successor lineages ──
+     so every dynasty fields a full 30+ bench. Each fold follows the actual line
+     of political succession; done by lineage key so all label variants follow. */
+  var FOLD = {
+    /* Germany — Weimar & GDR parties → their modern successor party */
+    "Zentrum": "CDU",   /* Catholic Centre Party → CDU/CSU (Christian democracy)   */
+    "DNVP":    "CDU",   /* national-conservatives absorbed into the postwar Union   */
+    "DDP":     "FDP",   /* left-liberals  → Free Democrats (FDP formed from both)   */
+    "DVP":     "FDP",   /* national-liberals → Free Democrats                       */
+    "SED_DE":  "Linke", /* SED → PDS → Die Linke (direct succession)                */
+    "sed_de":  "Linke",
+    "BSW":     "Linke", /* Wagenknecht Alliance — 2024 splinter from Die Linke      */
+    /* India — the Janata Parivar offshoots rejoin the Janata Dal dynasty */
+    "janata_in": "janatal_in", /* Janata Party — the family's 1977 progenitor       */
+    "SP_IN":     "janatal_in", /* Samajwadi Party — Mulayam's Janata Dal breakaway  */
+    "RJD_IN":    "janatal_in", /* RJD — Lalu Prasad Yadav's Bihar breakaway         */
+    "BJD_IN":    "janatal_in"  /* Biju Janata Dal — Naveen Patnaik's 1997 breakaway */
+  };
+  Object.keys(G.PARTIES).forEach(function (lbl) {
+    var cur = G.PARTIES[lbl].lineage;
+    if (FOLD[cur]) G.PARTIES[lbl].lineage = FOLD[cur];
+  });
+  /* the enlarged Janata Dal dynasty now spans the whole family */
+  if (G.LINEAGE_PARTY) G.LINEAGE_PARTY["janatal_in"] = "Janata Parivar";
+
   /* Normalise French historical lineage keys left by earlier files */
   if (G.PARTIES["SFIO (FR)"]) G.PARTIES["SFIO (FR)"].lineage = "SFIO";
   if (G.PARTIES["MRP (FR)"])  G.PARTIES["MRP (FR)"].lineage  = "MRP";
+
+  /* Merge the historical "Tory" lineage into "Conservative" — the Tories are
+     the direct ancestors of the Conservative Party, so they share one dynasty */
+  if (G.PARTIES["Tory"]) G.PARTIES["Tory"].lineage = "Conservative";
 
   /* Consolidate Australian Liberal variants into one lineage */
   if (G.PARTIES["Liberal (AU)"]) G.PARTIES["Liberal (AU)"].lineage = "LibAU";
@@ -247,7 +276,42 @@ window.G = window.G || {};
     "Kim Il-sung":            "Korean Workers' Party",
 
     /* Japan */
-    "Hirohito":               "LDP"
+    "Hirohito":               "LDP",
+
+    /* ── Masked marquee figures ──────────────────────────────────────────
+       These icons are defined FIRST in early files (data.more.js /
+       data.expansion.js) under generic buckets ("World Leaders", "Dictators",
+       "Revolutionaries"), which win the name dedup over their proper
+       country-specific definitions in later files. Without this they never
+       appear in their own nation's dynasty. Each mapping is hand-vetted for
+       historical accuracy (Vietnamese/Belarusian/anti-communist mismatches
+       intentionally excluded). */
+    "Gough Whitlam":          "Australian Labor Party",
+    "Bob Hawke":              "Australian Labor Party",
+    "Paul Keating":           "Australian Labor Party",
+    "Julia Gillard":          "Australian Labor Party",
+    "Kevin Rudd":             "Australian Labor Party",
+    "Robert Menzies":         "Liberal Party",
+    "Pierre Trudeau":         "Liberal (CA)",
+    "Justin Trudeau":         "Liberal (CA)",
+    "Jean Chrétien":          "Liberal (CA)",
+    "Brian Mulroney":         "Conservative (CA)",
+    "Xi Jinping":             "Chinese Communist Party",
+    "Otto von Bismarck":      "DNVP",
+    "Willy Brandt":           "SPD",
+    "Rosa Luxemburg":         "SPD",
+    "François Mitterrand":    "Parti Socialiste",
+    "Jawaharlal Nehru":       "INC",
+    "Indira Gandhi":          "INC",
+    "Subhas Chandra Bose":    "INC",
+    "Shinzo Abe":             "LDP",
+    "Junichiro Koizumi":      "LDP",
+    "Kim Jong-il":            "Korean Workers' Party",
+    "Mikhail Gorbachev":      "Communist Party (SU)",
+    "Vladimir Lenin":         "Communist Party (SU)",
+    "Leon Trotsky":           "Communist Party (SU)",
+    "George Washington":      "Federalist",
+    "Frederick Douglass":     "Republican (USA)"
   };
 
   /* ── 4. Normalise non-generic variant party labels ───────────────────────── */
@@ -423,7 +487,7 @@ window.G = window.G || {};
     G.LINEAGE_PARTY["BSP_IN"]     = "BSP";
     G.LINEAGE_PARTY["NCP_IN"]     = "NCP";
     G.LINEAGE_PARTY["janata_in"]   = "Janata Party";
-    G.LINEAGE_PARTY["janatal_in"]  = "Janata Dal";
+    G.LINEAGE_PARTY["janatal_in"]  = "Janata Parivar";
     G.LINEAGE_PARTY["cpim_in"]     = "CPI(M)";
     G.LINEAGE_PARTY["rjd_in"]      = "RJD";
     G.LINEAGE_PARTY["AAP_IN"]      = "Aam Aadmi Party";
