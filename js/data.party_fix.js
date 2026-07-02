@@ -78,6 +78,10 @@ window.G = window.G || {};
   if (G.PARTIES["SFIO (FR)"]) G.PARTIES["SFIO (FR)"].lineage = "SFIO";
   if (G.PARTIES["MRP (FR)"])  G.PARTIES["MRP (FR)"].lineage  = "MRP";
 
+  /* Merge the historical "Tory" lineage into "Conservative" — the Tories are
+     the direct ancestors of the Conservative Party, so they share one dynasty */
+  if (G.PARTIES["Tory"]) G.PARTIES["Tory"].lineage = "Conservative";
+
   /* Consolidate Australian Liberal variants into one lineage */
   if (G.PARTIES["Liberal (AU)"]) G.PARTIES["Liberal (AU)"].lineage = "LibAU";
   if (G.PARTIES["National (AU)"]) G.PARTIES["National (AU)"].lineage = "NatAU";
