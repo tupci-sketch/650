@@ -1083,6 +1083,7 @@
     /* capture the current spot so the logo never loses progress */
     if (activeGameScreen && G.state) autoSaveNow(activeGameScreen);
     G.UI.show("screen-menu");
+    goWizardStep(1);        /* always land on the first setup step */
     showSessionCard();
   }
 
