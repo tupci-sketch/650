@@ -22,7 +22,10 @@ G.GOVCONFIG = {
   diff: {                      // multipliers by difficulty
     easy:   { bad: 0.78, confidence: -0.12, byEloss: 0.7 },
     normal: { bad: 1.00, confidence:  0.00, byEloss: 1.0 },
-    hard:   { bad: 1.28, confidence:  0.12, byEloss: 1.3 }
+    /* Hard/Brutal (v7): bad outcomes bite harder, no-confidence motions are
+       likelier to bring you down, and by-elections cost you more seats. */
+    hard:   { bad: 1.45, confidence:  0.20, byEloss: 1.5 },
+    brutal: { bad: 1.70, confidence:  0.30, byEloss: 1.8 }
   }
 };
 
