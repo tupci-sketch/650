@@ -126,5 +126,102 @@ window.G = window.G || {};
   I("Charlie Angus",       "NDP", "e7", ["culture","work","leader"],                   [58,56,64,52,52], "Northern Ontario New Democrat MP and author-musician.", { wiki: "Charlie Angus" });
   I("Niki Ashton",         "NDP", "e7", ["leader","work","education"],                 [54,52,60,50,50], "Left-wing Manitoba New Democrat MP and leadership contender.", { wiki: "Niki Ashton" });
   I("Peggy Nash",          "NDP", "e7", ["chancellor","work"],                         [52,54,56,52,52], "NDP finance critic and leadership contender from Toronto.", { wiki: "Peggy Nash" });
+  I("Libby Davies",        "NDP", "e7", ["home","health","leader"],                    [54,58,56,52,52], "Long-serving Vancouver New Democrat MP and House Leader.", { wiki: "Libby Davies" });
+  I("Svend Robinson",      "NDP", "e6", ["justice","home","leader"],                   [56,58,62,52,50], "Pioneering BC New Democrat MP and human-rights campaigner.", { wiki: "Svend Robinson" });
+  I("Blaine Higgs",        "Conservative (CA)", "e7", ["leader","chancellor"],         [52,58,52,56,54], "Progressive Conservative Premier of New Brunswick 2018–24.", { wiki: "Blaine Higgs" });
+  I("Tim Houston",         "Conservative (CA)", "e7", ["leader","health"],             [56,56,58,56,56], "Progressive Conservative Premier of Nova Scotia from 2021.", { wiki: "Tim Houston" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     INDIA — BJP
+     ═══════════════════════════════════════════════════════════════ */
+  I("Murli Manohar Joshi", "BJP", "e6", ["education","home","leader"],                 [56,68,60,58,58], "BJP elder and former party president; a Ram Janmabhoomi figurehead.", { wiki: "Murli Manohar Joshi" });
+  I("Venkaiah Naidu",      "BJP", "e6", ["deputy","culture","leader"],                 [58,66,64,58,60], "BJP president turned Vice-President of India 2017–22.", { wiki: "Venkaiah Naidu" });
+  I("Nitin Gadkari",       "BJP", "e7", ["transport","business","leader"],            [66,68,62,66,60], "BJP Roads Minister renowned for India's highway expansion.", { wiki: "Nitin Gadkari" });
+  I("Shivraj Singh Chouhan","BJP", "e7", ["leader","work","home"],                    [62,68,60,62,64], "Long-serving BJP Chief Minister of Madhya Pradesh; 'Mama'.", { wiki: "Shivraj Singh Chouhan" });
+  I("Vasundhara Raje",     "BJP", "e7", ["leader","culture"],                          [58,64,58,58,60], "BJP Chief Minister of Rajasthan and Scindia royal.", { wiki: "Vasundhara Raje" });
+  I("B.S. Yediyurappa",    "BJP", "e7", ["leader","work"],                             [56,66,56,56,60], "BJP strongman and repeated Chief Minister of Karnataka.", { wiki: "B. S. Yediyurappa" });
+  I("Manohar Lal Khattar", "BJP", "e7", ["leader","home"],                             [52,58,52,56,56], "BJP Chief Minister of Haryana 2014–24; RSS organiser.", { wiki: "Manohar Lal Khattar" });
+  I("Kalyan Singh",        "BJP", "e6", ["leader","home"],                             [54,64,58,54,56], "BJP UP Chief Minister during the 1992 Babri demolition.", { wiki: "Kalyan Singh" });
+  I("Uma Bharti",          "BJP", "e6", ["culture","environment","leader"],           [58,58,64,52,52], "Firebrand BJP sadhvi and Chief Minister of Madhya Pradesh.", { wiki: "Uma Bharti" });
+  I("S. Jaishankar",       "BJP", "e7", ["foreign","leader"],                          [64,80,66,74,58], "Career diplomat turned BJP External Affairs Minister.", { wiki: "S. Jaishankar" });
+  I("Piyush Goyal",        "BJP", "e7", ["chancellor","trade","business"],            [58,64,58,62,56], "BJP Commerce and Railways Minister; party floor manager.", { wiki: "Piyush Goyal" });
+  I("Dharmendra Pradhan",  "BJP", "e7", ["education","business"],                      [56,60,54,58,56], "BJP Education and former Petroleum Minister from Odisha.", { wiki: "Dharmendra Pradhan" });
+  I("Ravi Shankar Prasad", "BJP", "e7", ["justice","business","leader"],              [56,62,62,58,54], "BJP Law and IT Minister and senior party spokesman.", { wiki: "Ravi Shankar Prasad" });
+  I("Sushil Kumar Modi",   "BJP", "e6", ["chancellor","deputy"],                       [52,62,54,58,56], "BJP Deputy Chief Minister of Bihar and GST architect.", { wiki: "Sushil Kumar Modi" });
+  I("Bhupendra Patel",     "BJP", "e7", ["leader","business"],                         [50,54,48,54,54], "BJP Chief Minister of Gujarat from 2021.", { wiki: "Bhupendra Patel" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     INDIA — Janata Dal / Janata family (janatal_in lineage)
+     ═══════════════════════════════════════════════════════════════ */
+  I("Ramakrishna Hegde",   "Janata Dal (IN)", "e5", ["leader","chancellor"],          [58,66,60,60,58], "Janata Chief Minister of Karnataka and reformist face of the party.", { wiki: "Ramakrishna Hegde" });
+  I("S.R. Bommai",         "Janata Dal (IN)", "e5", ["leader","justice"],             [54,64,56,58,54], "Janata Dal Karnataka CM; namesake of the landmark federalism ruling.", { wiki: "S. R. Bommai" });
+  I("Biju Patnaik",        "Janata Dal (IN)", "e4", ["leader","business","defence"],  [62,66,62,58,60], "Aviator-statesman and Janata Chief Minister of Odisha.", { wiki: "Biju Patnaik" });
+  I("Devi Lal",            "Janata Dal (IN)", "e5", ["deputy","work","leader"],        [58,64,58,54,58], "Jat farmer-leader; Deputy PM and Haryana Chief Minister.", { wiki: "Devi Lal" });
+  I("George Fernandes",    "Janata Dal (IN)", "e5", ["defence","work","leader"],       [64,68,70,58,56], "Firebrand trade-unionist; Defence Minister and socialist icon.", { wiki: "George Fernandes" });
+  I("Sharad Yadav",        "Janata Dal (IN)", "e6", ["leader","work"],                [56,66,64,56,58], "Long-time Janata Dal (United) president and socialist stalwart.", { wiki: "Sharad Yadav" });
+  I("Madhu Dandavate",     "Janata Dal (IN)", "e5", ["chancellor","transport"],       [54,62,58,58,52], "Janata finance and railways minister; introduced second-class sleeper.", { wiki: "Madhu Dandavate" });
+  I("H.D. Kumaraswamy",    "Janata Dal (IN)", "e7", ["leader","work"],                [54,58,54,54,56], "JD(S) Chief Minister of Karnataka; Deve Gowda's son.", { wiki: "H. D. Kumaraswamy" });
+  I("Karpoori Thakur",     "Janata Dal (IN)", "e5", ["leader","work","education"],    [58,60,58,54,56], "Socialist Chief Minister of Bihar; champion of OBC reservation.", { wiki: "Karpoori Thakur" });
+  I("Raj Narain",          "Janata Dal (IN)", "e5", ["leader","home"],                [52,56,60,48,50], "Socialist giant-killer who defeated Indira Gandhi in 1977.", { wiki: "Raj Narain" });
+  I("Ram Sundar Das",      "Janata Dal (IN)", "e5", ["leader"],                        [48,58,48,52,50], "Janata Chief Minister of Bihar and JD(U) MP.", { wiki: "Ram Sundar Das" });
+  I("Jitan Ram Manjhi",    "Janata Dal (IN)", "e7", ["leader","work"],                [48,54,50,48,48], "Dalit leader and Chief Minister of Bihar; later HAM founder.", { wiki: "Jitan Ram Manjhi" });
+  I("Upendra Kushwaha",    "Janata Dal (IN)", "e7", ["education","leader"],            [48,52,50,48,50], "JD(U) leader and Union Minister for OBC empowerment.", { wiki: "Upendra Kushwaha" });
+  I("K.C. Tyagi",          "Janata Dal (IN)", "e7", ["leader"],                        [50,58,58,48,52], "Veteran socialist and JD(U) national spokesman.", { wiki: "K. C. Tyagi" });
+  I("Om Prakash Chautala", "Lok Dal (IN)", "e6", ["leader","work"],                   [52,62,54,52,56], "INLD patriarch and repeated Chief Minister of Haryana.", { wiki: "Om Prakash Chautala" });
+  I("Ajit Singh",          "Lok Dal (IN)", "e6", ["work","business","leader"],        [54,60,54,54,52], "RLD founder and Union Minister; Charan Singh's son.", { wiki: "Ajit Singh (Uttar Pradesh politician)" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     CHINA — Kuomintang (ROC & Taiwan)
+     ═══════════════════════════════════════════════════════════════ */
+  I("Chiang Ching-kuo",    "Kuomintang", "e5", ["pm","leader","defence"],             [66,80,64,74,72], "ROC President who lifted martial law and democratised Taiwan.", { wiki: "Chiang Ching-kuo" });
+  I("Lee Teng-hui",        "Kuomintang", "e6", ["pm","leader","foreign"],             [70,76,72,72,66], "'Father of Taiwan's democracy'; first directly-elected president.", { wiki: "Lee Teng-hui" });
+  I("Lien Chan",           "Kuomintang", "e6", ["pm","foreign","leader"],             [54,70,56,62,60], "KMT chairman and Vice-President; opened cross-strait dialogue.", { wiki: "Lien Chan" });
+  I("Wu Poh-hsiung",       "Kuomintang", "e6", ["leader","home"],                     [52,64,52,56,60], "KMT chairman and former Taipei mayor.", { wiki: "Wu Poh-hsiung" });
+  I("Eric Chu",            "Kuomintang", "e7", ["leader","chancellor"],               [56,60,58,58,58], "KMT chairman and 2016 presidential nominee.", { wiki: "Eric Chu" });
+  I("Hung Hsiu-chu",       "Kuomintang", "e7", ["leader","education"],                [52,56,60,50,54], "KMT chairwoman known as the 'Little Hot Pepper'.", { wiki: "Hung Hsiu-chu" });
+  I("Han Kuo-yu",          "Kuomintang", "e7", ["leader"],                            [60,52,66,48,52], "Populist Kaohsiung mayor and 2020 KMT presidential nominee.", { wiki: "Han Kuo-yu" });
+  I("Hau Pei-tsun",        "Kuomintang", "e5", ["pm","defence","leader"],             [54,74,54,64,60], "ROC Premier and general; hardline anti-communist.", { wiki: "Hau Pei-tsun" });
+  I("Chen Cheng",          "Kuomintang", "e4", ["pm","defence","chancellor"],         [56,74,56,68,62], "ROC Premier and Vice-President; land reform architect on Taiwan.", { wiki: "Chen Cheng" });
+  I("Yen Chia-kan",        "Kuomintang", "e5", ["pm","chancellor"],                   [46,68,46,58,52], "ROC President 1975–78, bridging the two Chiangs.", { wiki: "Yen Chia-kan" });
+  I("H.H. Kung",           "Kuomintang", "e3", ["chancellor","business"],             [50,70,52,64,56], "ROC Finance Minister and one of the era's richest financiers.", { wiki: "H. H. Kung" });
+  I("T.V. Soong",          "Kuomintang", "e3", ["chancellor","foreign","business"],   [54,72,56,66,58], "ROC Premier and financier; brother-in-law of Chiang Kai-shek.", { wiki: "T. V. Soong" });
+  I("Sun Fo",              "Kuomintang", "e3", ["pm","leader"],                        [50,64,54,56,52], "ROC Premier and son of Sun Yat-sen.", { wiki: "Sun Fo" });
+  I("Bai Chongxi",         "Kuomintang", "e3", ["defence","leader"],                  [58,72,56,60,58], "Nationalist 'War God' general and first ROC Defence Minister.", { wiki: "Bai Chongxi" });
+  I("Yan Xishan",          "Kuomintang", "e3", ["leader","home","business"],          [54,70,52,58,60], "The 'Model Governor' warlord of Shanxi allied to the KMT.", { wiki: "Yan Xishan" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     NORTH KOREA — Workers' Party officials
+     ═══════════════════════════════════════════════════════════════ */
+  I("Kim Tu-bong",         "Korean Workers' Party", "e4", ["leader","education"],     [44,60,48,50,54], "First WPK chairman; purged early by Kim Il-sung.", { wiki: "Kim Tu-bong" });
+  I("Choe Yong-gon",       "Korean Workers' Party", "e4", ["defence","leader"],       [42,62,44,50,56], "WPK marshal and long-serving nominal head of state.", { wiki: "Choe Yong-gon (politician, born 1900)" });
+  I("Kim Chaek",           "Korean Workers' Party", "e4", ["defence","business"],     [46,60,46,50,54], "Revolutionary general; an industrial city bears his name.", { wiki: "Kim Chaek" });
+  I("Jo Yong-won",         "Korean Workers' Party", "e7", ["leader","home"],          [40,54,42,50,58], "Kim Jong-un's powerful organisation-secretary confidant.", { wiki: "Jo Yong-won" });
+  I("Kim Tok-hun",         "Korean Workers' Party", "e7", ["pm","chancellor"],        [40,56,42,50,52], "WPK Premier of North Korea from 2020.", { wiki: "Kim Tok-hun" });
+  I("Kim Ki-nam",          "Korean Workers' Party", "e6", ["culture","education"],    [42,62,50,48,54], "Long-serving WPK propaganda chief; the regime's 'Goebbels'.", { wiki: "Kim Ki-nam" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     CUBA — Communist Party
+     ═══════════════════════════════════════════════════════════════ */
+  I("Guillermo García Frías","Communist Party (CU)", "e4", ["defence","leader"],      [46,64,48,50,54], "Comandante of the Revolution and Politburo veteran.", { wiki: "Guillermo García Frías" });
+  I("Carlos Lage",         "Communist Party (CU)", "e6", ["chancellor","health","deputy"],[54,60,54,58,52], "Vice-President who ran the economy in the Special Period.", { wiki: "Carlos Lage" });
+  I("José Ramón Fernández","Communist Party (CU)", "e5", ["defence","education"],     [50,64,52,56,52], "Bay of Pigs battlefield commander and education minister.", { wiki: "José Ramón Fernández" });
+  I("Jorge Risquet",       "Communist Party (CU)", "e5", ["foreign","leader"],        [48,60,52,54,52], "Politburo member and key figure in Cuba's Africa policy.", { wiki: "Jorge Risquet" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     RUSSIA — United Russia (post-Soviet)
+     ═══════════════════════════════════════════════════════════════ */
+  I("Boris Gryzlov",       "United Russia", "e7", ["leader","home"],                  [46,64,48,54,62], "Founding United Russia chairman and Duma speaker.", { wiki: "Boris Gryzlov" });
+  I("Vyacheslav Volodin",  "United Russia", "e7", ["leader","justice"],              [44,64,50,56,64], "State Duma chairman and former Kremlin domestic-politics chief.", { wiki: "Vyacheslav Volodin" });
+  I("Valentina Matviyenko","United Russia", "e7", ["leader","foreign"],             [48,68,52,58,60], "Chair of the Federation Council and former governor of St Petersburg.", { wiki: "Valentina Matviyenko" });
+  I("Sergei Sobyanin",     "United Russia", "e7", ["leader","business","transport"], [52,66,50,60,58], "Powerful Mayor of Moscow and former Kremlin chief of staff.", { wiki: "Sergei Sobyanin" });
+
+  /* ═══════════════════════════════════════════════════════════════
+     INDIA — Congress top-up + a few more Janata-family figures
+     ═══════════════════════════════════════════════════════════════ */
+  I("K. Kamaraj",          "INC", "e4", ["leader","education","work"],                [60,68,60,64,66], "'Kingmaker' Congress president and Chief Minister of Madras.", { wiki: "K. Kamaraj" });
+  I("Jagjivan Ram",        "INC", "e5", ["defence","deputy","work"],                  [58,72,62,62,60], "Dalit Congress giant; Deputy PM and 1971-war Defence Minister.", { wiki: "Jagjivan Ram" });
+  I("Y.B. Chavan",         "INC", "e5", ["defence","home","deputy"],                  [56,70,58,62,58], "First Chief Minister of Maharashtra; Deputy PM and Defence Minister.", { wiki: "Y. B. Chavan" });
+  I("Ram Vilas Paswan",    "Janata Dal (IN)", "e6", ["work","business","leader"],     [56,64,58,54,54], "Dalit leader and perennial Union Minister; LJP founder.", { wiki: "Ram Vilas Paswan" });
+  I("Dushyant Chautala",   "Lok Dal (IN)", "e7", ["deputy","work"],                   [48,50,50,48,50], "JJP leader and Deputy Chief Minister of Haryana.", { wiki: "Dushyant Chautala" });
 
 })();
