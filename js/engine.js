@@ -503,7 +503,8 @@ G.hold = function () {
   var campaignSig = campOut ? campOut.sig : "nocampaign";
   var seed = G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
                       "|" + st.mode + "|" + st.difficulty + "|" + st.cabinetSize +
-                      "|" + blocSig + "|" + campaignSig);
+                      "|" + blocSig + "|" + campaignSig +
+                      "|" + (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"));
 
   var res = G.runElection(st.cabinet, {
     mode: st.mode, lineage: st.lineage,

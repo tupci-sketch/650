@@ -449,7 +449,9 @@ G.simulateCampaign = function (params) {
   var baseLogit = C.seatsK * (params.vote - (C.seatsMid + params.midShift)) - pressure;
   var noise = C.seatNoise * params.noiseMul;
   var rswing = C.regionSwing * params.noiseMul;
-  var nat = G.gaussR(rnd) * 0.30 * params.noiseMul;     // national swing for this campaign
+  /* national swing for this campaign — fat-tailed (SimCore v2) so upsets and
+     blowouts live in the tails; mean-zero, so the central projection is intact */
+  var nat = G.SimCore ? G.SimCore.fatSwing(rnd, params.noiseMul) : G.gaussR(rnd) * 0.30 * params.noiseMul;
 
   var bloc = G.playerBloc(params.mode, params.lineage, params.custom);
   var totals = {};
@@ -501,26 +503,8 @@ G.estimateSeats = function (params) {
   /* Route to active international electoral system if one is set */
   var _sys2 = G.activeElectoralSystem && G.activeElectoralSystem();
   if (_sys2 && _sys2.estimateFn) return _sys2.estimateFn(params, params.rnd || Math.random);
-
-  var C = G.CONFIG;
-  var rnd = params.rnd || Math.random;
-  var pressure = params.opposition ? (params.opposition._pressure || 0) : 0;
-  var baseLogit = C.seatsK * (params.vote - (C.seatsMid + params.midShift)) - pressure;
-  var rswing = C.regionSwing * params.noiseMul;
-  var nat = G.gaussR(rnd) * 0.30 * params.noiseMul;
-  var total = 0;
-  G.REGIONS.forEach(function (r) {
-    var lean = G.regionLeanFor(params.mode, params.lineage, r.id);
-    if (lean === null) return;
-    if (params.mode !== "dynasty") lean = G.gaussR(rnd) * C.unityLeanSpread;
-    lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);
-    lean += (params.regionTilt && params.regionTilt[r.id]) || 0;
-    var p = G.sigmoid(baseLogit + lean + nat + G.gaussR(rnd) * rswing);
-    var mean = r.seats * p, sd = Math.sqrt(Math.max(0.0001, r.seats * p * (1 - p)));
-    var wins = Math.round(mean + G.gaussR(rnd) * sd);
-    total += Math.max(0, Math.min(r.seats, wins));
-  });
-  return total;
+  /* UK/default path is the shared SimCore trial (fat-tailed, correlated) */
+  return G.SimCore.trial(params, params.rnd || Math.random).total;
 };
 
 /* ---- central (deterministic) projection ---------------------------------- */
@@ -686,6 +670,12 @@ G.runElection = function (cabinet, opts) {
   var regionTilt = opts.regionTilt || null;
   if (!regionTilt && G.electorateRegionTilt && opts.blocSupport)
     regionTilt = G.electorateRegionTilt(opts.blocSupport);
+  /* cabinet → geography coupling: who you drafted shifts WHERE you win
+     (deterministic, mean-centred — no RNG, no total-seat inflation) */
+  if (G.SimCore && G.SimCore.cabinetRegionTilt) {
+    var _cabTilt = G.SimCore.cabinetRegionTilt(cabinet, { mode: mode, lineage: lineage, align: align });
+    regionTilt = G.SimCore.mergeTilt(regionTilt, _cabTilt);
+  }
 
   var params = { vote: vote, mode: mode, lineage: lineage, midShift: diff.midShift,
                  noiseMul: diff.noiseMul, custom: custom, align: align,
@@ -701,21 +691,17 @@ G.runElection = function (cabinet, opts) {
   var _landslide = Math.round(_totalSeats * (C.tierLandslide / (C.totalSeats || 650)));
   var _super = Math.round(_totalSeats * (C.tierSuper / (C.totalSeats || 650)));
 
-  /* odds distribution */
-  var counts = { majority: 0, landslide: 0, supermajority: 0, sweep: 0 };
-  var samples = [];
-  for (var i = 0; i < C.trials; i++) {
-    var s = G.estimateSeats(params);
-    samples.push(s);
-    if (s >= _majority)    counts.majority++;
-    if (s >= _landslide)   counts.landslide++;
-    if (s >= _super)       counts.supermajority++;
-    if (s >= _totalSeats)  counts.sweep++;
-  }
-  samples.sort(function (a, b) { return a - b; });
-  var pct = function (p) { return samples[Math.min(samples.length - 1, Math.floor(p * samples.length))]; };
+  /* Monte-Carlo forecast — runs on its OWN seeded RNG, decoupled from the
+     headline draw so the trial count can never change the actual result. */
+  var forecastRnd = G.makeRng((seed ^ 0x9e3779b9) >>> 0);
+  var forecastParams = {};
+  for (var _k in params) if (params.hasOwnProperty(_k)) forecastParams[_k] = params[_k];
+  forecastParams.rnd = forecastRnd;
+  var fc = G.SimCore.forecast(forecastParams, C.trials, forecastRnd,
+             { majority: _majority, landslide: _landslide, supermajority: _super, total: _totalSeats });
 
-  /* the headline campaign that actually gets watched / shown */
+  /* the headline campaign that actually gets watched / shown (uses the main rnd,
+     immediately after the opposition draft — independent of the forecast) */
   var campaign = G.simulateCampaign(params);
   /* use active system's tier function if available, else existing G.tierFor */
   var tier;
@@ -774,11 +760,14 @@ G.runElection = function (cabinet, opts) {
     govern: !!opts.govern,
     governVerdict: G.governVerdict(rating, campaign.seats),
     odds: {
-      majority:      counts.majority / C.trials,
-      landslide:     counts.landslide / C.trials,
-      supermajority: counts.supermajority / C.trials,
-      sweep:         counts.sweep / C.trials
+      majority:      fc.probs.majority,
+      landslide:     fc.probs.landslide,
+      supermajority: fc.probs.supermajority,
+      sweep:         fc.probs.sweep
     },
-    range: { low: pct(0.05), median: pct(0.5), high: pct(0.95) }
+    range: { low: fc.pct.p5, median: fc.pct.p50, high: fc.pct.p95 },
+    /* the full Monte-Carlo forecast (distribution, percentiles, tier + region
+       probabilities) for the richer forecast/odds UI */
+    forecast: fc
   };
 };
