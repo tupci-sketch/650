@@ -458,6 +458,7 @@ G.simulateCampaign = function (params) {
   function award(label) { totals[label] = (totals[label] || 0) + 1; }
 
   var seats = 0, byRegion = [], results = [];
+  var regionExpected = {};      // deterministic per-region win prob (nowcast prior)
   G.REGIONS.forEach(function (r) {
     var list = geo.byRegion[r.id] || [];
     var landscape = (G.activeLandscape ? G.activeLandscape(r.id) : null) || G.LANDSCAPE[r.id] || G.LANDSCAPE.EE;
@@ -469,11 +470,16 @@ G.simulateCampaign = function (params) {
         award(w);
         results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: false, winner: w });
       });
+      regionExpected[r.id] = 0;
       byRegion.push(rec); return;
     }
-    if (params.mode !== "dynasty") lean = G.gaussR(rnd) * C.unityLeanSpread; // mild local colour
-    lean += G.alignRegionTilt(params.mode, params.align || 0, r.id);         // the modest politics tilt
-    lean += (params.regionTilt && params.regionTilt[r.id]) || 0;             // electorate/campaign regional tilt
+    var lean0 = (params.mode === "dynasty") ? lean : 0;                       // deterministic base (unityLean is random)
+    if (params.mode !== "dynasty") lean = G.gaussR(rnd) * C.unityLeanSpread;  // mild local colour
+    var tilt = G.alignRegionTilt(params.mode, params.align || 0, r.id)        // the modest politics tilt
+             + ((params.regionTilt && params.regionTilt[r.id]) || 0);         // electorate/campaign regional tilt
+    lean += tilt;
+    /* this campaign's own deterministic per-region expectation (no swing / noise) */
+    regionExpected[r.id] = G.sigmoid(baseLogit + lean0 + tilt);
     var regSwing = G.gaussR(rnd) * rswing;
     list.forEach(function (c) {
       var incumbBonus = (params.heldSeats && params.heldSeats[c.gss]) ? (C.incumbencyLean || 0) : 0;
@@ -495,7 +501,7 @@ G.simulateCampaign = function (params) {
 
   return { seats: seats, byRegion: byRegion, results: results,
            breakdown: breakdown, blocLabel: bloc.label, blocColour: bloc.colour,
-           opposition: opposition };
+           opposition: opposition, regionExpected: regionExpected };
 };
 
 /* ---- fast seat-total estimate for one campaign (for the odds loop) ------- */

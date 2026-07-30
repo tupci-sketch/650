@@ -920,6 +920,9 @@
     var bounds = regionBounds(res, intl);
 
     var setup = intl ? G.UI.renderWatchIntl(res, sys) : G.UI.renderWatch(res);
+    /* seats per region — for the live nowcast projection */
+    var regionTotals = {};
+    results.forEach(function (r) { regionTotals[r.region] = (regionTotals[r.region] || 0) + 1; });
     watch = {
       res: res, intl: intl,
       byId: setup.byId, colour: setup.colour,
@@ -927,7 +930,8 @@
       i: 0, won: 0, regIdx: 0, regWon: 0,
       cancelled: false, done: false, raf: null,
       sps: revealRate(total), acc: 0, lastT: null,
-      tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour
+      tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour,
+      regionTotals: regionTotals, declaredByRegion: {}, wonByRegion: {}
     };
     if (watch.bounds[0]) G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
     frame();
@@ -959,12 +963,29 @@
          seats are synthetic, so there the feed reports at the region level */
       if (!quiet && !w.intl)
         G.UI.pushFeed(res.name + (res.won ? " — won" : " — lost (" + res.winner + ")"), res.won ? "win" : "");
-      if (res.won) { w.won++; w.regWon++; }
+      if (res.won) { w.won++; w.regWon++; w.wonByRegion[res.region] = (w.wonByRegion[res.region] || 0) + 1; }
+      w.declaredByRegion[res.region] = (w.declaredByRegion[res.region] || 0) + 1;
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
       w.i++;
     }
     G.UI.setWatchTally(w.won, w.i);
     G.UI.renderStandings("watchStandings", liveBreakdown(w));
+    updateNowcast(w);
+  }
+
+  /* live-night projection line under the tally */
+  function updateNowcast(w) {
+    var el = sel("watchNowcast"); if (!el || !G.Nowcast) return;
+    /* the confident nowcast needs this campaign's per-region expectations, which
+       today are produced only for the constituency (UK) model; skip otherwise so
+       we never show a misleading projection. */
+    if (!(w.res && w.res.campaign && w.res.campaign.regionExpected)) { el.style.display = "none"; return; }
+    /* wait until a small sample is in, and stop once everything's declared */
+    if (w.i < 8 || w.i >= w.total) { el.style.display = "none"; return; }
+    var p = G.Nowcast.project(w, w.res);
+    el.textContent = G.Nowcast.line(p);
+    el.className = "wt-proj" + (p.pMajority >= 0.5 ? " wt-proj-win" : "");
+    el.style.display = "";
   }
 
   function frame() {
