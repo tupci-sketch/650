@@ -853,6 +853,14 @@
     G.UI.renderResult(res);
     updatePersonalBest(res);
     autoSave("result");
+    /* record an anonymous run summary + show how you compare (fail-soft, optional) */
+    if (G.SIM650 && G.SIM650.report) G.SIM650.report(res, {
+      scenario: res.scenarioKey || (G.state && G.state.scenarioKey) || "freshstart",
+      country: choice.country || "uk",
+      mode: choice.mode || (G.state && G.state.mode) || "unity",
+      difficulty: choice.difficulty || res.difficulty || "normal",
+      cabSig: res.seed
+    });
     /* check objectives and achievements */
     if (G.checkObjectives && G.unlockAchievements) {
       var ctx = {

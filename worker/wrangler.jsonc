@@ -1,0 +1,17 @@
+{
+  // sim650 — 650's stats/sim Worker. Shares the Spectrum Sweeps Cloudflare
+  // account + D1 database, but only ever touches sim650_* tables and /sim650/*
+  // routes, so it can't collide with the tournament app. No secrets live here;
+  // CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID are supplied by CI at deploy.
+  "name": "sim650",
+  "main": "sim650.mjs",
+  "compatibility_date": "2024-11-06",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "spectrum-sweeps-db",
+      "database_id": "9d6041ba-63b0-460f-bb0f-6705ddefa9a7"
+    }
+  ]
+}
