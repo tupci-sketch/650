@@ -276,8 +276,10 @@ function polFromRow(r) {
   };
 }
 async function roster(env) {
-  const rows = await dAll(env, "SELECT * FROM b650_pols WHERE deleted=0 ORDER BY id");
-  return rows.map(polFromRow);
+  /* returns every server record — overrides/additions AND deletion tombstones
+     (deleted:true) — so the client can override, add, or HIDE base figures. */
+  const rows = await dAll(env, "SELECT * FROM b650_pols ORDER BY id");
+  return rows.map(r => { const p = polFromRow(r); p.deleted = !!r.deleted; return p; });
 }
 async function publicConfig(env) {
   const rows = await dAll(env, "SELECT key, value FROM b650_config");
@@ -358,12 +360,18 @@ async function backend(env, d) {
       const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" };
       const nameKey = String(d.name || "").trim().toLowerCase(); if (!nameKey) return { ok: false, error: "name required" };
       const scope = String(d.scope || "uk");
-      const hard = await dFirst(env, "SELECT id FROM b650_pols WHERE nameKey=? AND scope=?", nameKey, scope);
-      if (!hard) return { ok: false, error: "not found" };
-      /* soft-delete so base-roster figures can be hidden too (base rows re-seed on deploy) */
-      await dRun(env, "UPDATE b650_pols SET deleted=1 WHERE nameKey=? AND scope=?", nameKey, scope);
+      /* tombstone: works for BASE figures too (creates a deleted=1 row that the
+         client applies to hide the built-in figure). Re-adding clears it. */
+      await dRun(env, "INSERT INTO b650_pols (nameKey,scope,name,deleted) VALUES (?,?,?,1) ON CONFLICT(nameKey,scope) DO UPDATE SET deleted=1", nameKey, scope, str(d.name || nameKey, 60));
       await bumpRoster(env);
       return { ok: true, deleted: true };
+    }
+    case "admin_restorepol": {
+      const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" };
+      const nameKey = String(d.name || "").trim().toLowerCase(); if (!nameKey) return { ok: false, error: "name required" };
+      await dRun(env, "DELETE FROM b650_pols WHERE nameKey=? AND scope=? AND deleted=1", nameKey, String(d.scope || "uk"));
+      await bumpRoster(env);
+      return { ok: true, restored: true };
     }
     case "player_runs": {
       const a = await auth(env, d); if (!a) return { ok: false, error: "login" };

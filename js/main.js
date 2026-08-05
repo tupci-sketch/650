@@ -1706,12 +1706,14 @@
       if (!rows.length) { box.innerHTML = '<p class="chat-empty">No server records yet \u2014 everything in the game is built in.</p>'; return; }
       box.innerHTML = rows.map(function (p) {
         var nm = p.name.replace(/"/g, "&quot;");
+        var tag = p.deleted ? "removed" : (p.scope === "p24" ? "2024" : "historical");
+        var acts = p.deleted
+          ? '<button class="link-btn" data-pact="restore" data-nm="' + nm + '" data-sc="' + p.scope + '">restore</button>'
+          : '<button class="link-btn" data-pact="edit" data-nm="' + nm + '" data-sc="' + p.scope + '">edit</button>' +
+            '<button class="link-btn" data-pact="del" data-nm="' + nm + '" data-sc="' + p.scope + '">remove</button>';
         return '<div class="adm-pol"><span class="ap-nm">' + G.UI._esc(p.name) +
-               ' <span class="au-lvl">' + G.UI._esc(p.party || "\u2014") + ' \u00b7 ' + (p.scope === "p24" ? "2024" : "historical") + '</span></span>' +
-               '<span class="au-acts">' +
-                 '<button class="link-btn" data-pact="edit" data-nm="' + nm + '" data-sc="' + p.scope + '">edit</button>' +
-                 '<button class="link-btn" data-pact="del" data-nm="' + nm + '" data-sc="' + p.scope + '">delete</button>' +
-               '</span></div>';
+               ' <span class="au-lvl">' + G.UI._esc(p.party || "\u2014") + ' \u00b7 ' + tag + '</span></span>' +
+               '<span class="au-acts">' + acts + '</span></div>';
       }).join("");
     });
   }
@@ -1819,12 +1821,15 @@
       var m = sel("apMsg");
       var pol = textToPol(sel("apText").value) || { name: (sel("apName").value || "").trim(), scope: "uk" };
       if (!pol.name) { if (m) m.textContent = "Load or name a record first."; return; }
-      if (window.confirm && !window.confirm("Delete the server record for " + pol.name + "? (Built-in figures are untouched \u2014 an override reverts to the built-in version at next load.)")) return;
-      if (m) m.textContent = "Deleting\u2026";
+      if (window.confirm && !window.confirm("Remove " + pol.name + " from the game? This hides the figure for everyone \u2014 you can restore it from the list below.")) return;
+      if (m) m.textContent = "Removing\u2026";
+      if (G.mergeRoster) G.mergeRoster([{ name: pol.name, scope: pol.scope, deleted: true }]);   // hide instantly
+      sel("metaCount").textContent = G.POLITICIANS.length;
+      updateHint();
       G.NET.adminDelPol(pol.name, pol.scope).then(function (d) {
-        if (m) m.textContent = (d && d.ok) ? ("Deleted the server record for " + pol.name + ".")
-             : ((d && d.error === "not found") ? "No server record by that name \u2014 built-in, hard-coded figures can't be deleted."
-             : "Couldn't delete: " + ((d && d.error) || "offline") + ".");
+        if (m) m.textContent = (d && d.ok) ? ("Removed " + pol.name + " \u2014 hidden now, and for everyone at next load.")
+             : "Couldn't remove: " + ((d && d.error) || "offline") + ".";
+        if (typeof fillPolNames === "function") fillPolNames();
         refreshPolList();
       });
     };
@@ -1896,8 +1901,16 @@
           if (rec) { sel("apName").value = rec.name; sel("apText").value = polToText(rec); sel("apMsg").textContent = "Loaded the server record \u2014 edit and Save."; }
         });
       } else if (act === "del") {
-        if (window.confirm && !window.confirm("Delete the server record for " + nm + "?")) return;
+        if (window.confirm && !window.confirm("Remove " + nm + " from the game? You can restore it here afterwards.")) return;
+        if (G.mergeRoster) G.mergeRoster([{ name: nm, scope: sc, deleted: true }]);
+        sel("metaCount").textContent = G.POLITICIANS.length;
         G.NET.adminDelPol(nm, sc).then(function () { refreshPolList(); });
+      } else if (act === "restore" && G.NET.adminRestorePol) {
+        G.NET.adminRestorePol(nm, sc).then(function (d) {
+          var m = sel("apMsg");
+          if (m) m.textContent = (d && d.ok) ? ("Restored " + nm + " — back for everyone at next load. Reload to see it now.") : "Couldn't restore.";
+          refreshPolList();
+        });
       }
     });
     sel("admUsersRefresh").onclick = refreshUsers;

@@ -24,6 +24,17 @@ G.mergeRoster = function (list) {
     var name = String(r.name);
     var is2024 = (r.mode === "parl2024") || (r.scope === "p24");
     var scope = r.scope || (is2024 ? "p24" : "uk");
+
+    /* DELETION tombstone — hide a figure (built-in OR added). Scoped if the row
+       names a scope; otherwise every record of that name is removed. */
+    if (r.deleted) {
+      var before = G.POLITICIANS.length;
+      G.POLITICIANS = G.POLITICIANS.filter(function (x) {
+        return !(x.name === name && (!r.scope || x.scope === scope));
+      });
+      changed += before - G.POLITICIANS.length;
+      return;
+    }
     var s = r.stats || {};
     var hasStats = s && (s.appeal != null || s.experience != null || s.oratory != null ||
                          s.statecraft != null || s.partyMgmt != null);
