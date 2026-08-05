@@ -147,9 +147,19 @@ G.buildGeo = function () {
       cons.push(c); (byRegion[rid] = byRegion[rid] || []).push(c);
     });
   }
+  var mpByName = {};
+  function nrm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
   if (G.CURRENT_MPS) G.CURRENT_MPS.forEach(function (m) {
     var p = G.PARTIES[m.party];
-    seatMP[m.gss] = { name: m.name, party: m.party, colour: p ? p.colour : "#6b6b6b" };
+    var rec = { name: m.name, party: m.party, colour: p ? p.colour : "#6b6b6b" };
+    seatMP[m.gss] = rec;
+    if (m.cons) mpByName[nrm(m.cons)] = rec;
+  });
+  /* self-healing fallback: any hex whose gss has no MP (a GSS-code drift between
+     the cartogram and the MP dataset) is filled by matching the constituency
+     NAME instead — so the 2024 map never shows a blank seat. */
+  cons.forEach(function (c) {
+    if (!seatMP[c.gss]) { var m = mpByName[nrm(c.name)]; if (m) seatMP[c.gss] = m; }
   });
   G.GEO = { constituencies: cons, byRegion: byRegion, seatMP: seatMP };
   return G.GEO;
