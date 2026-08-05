@@ -27,13 +27,11 @@ G.LB._frags = [
     "woEZtdmUyVEVq5GSvZjM5J2Y5Z2SB9ycvM3byN",
     "WYt9SbvNmLlx2Zv92ZuQHcpJ3Yz9yL6MHc0RHa"
 ];
+/* Backend moved from Google Apps Script to a Cloudflare Worker (D1-backed). It
+   speaks the same { game:"650", kind } protocol, so nothing else changes. */
 G.LB._url = function () {
-  try {
-    var joined = G.LB._frags.join("");
-    var b64 = joined.split("").reverse().join("");
-    var u = (typeof atob === "function") ? atob(b64) : Buffer.from(b64, "base64").toString();
-    return /^https:\/\/script\.google\.com\/.*\/exec$/.test(u) ? u : "";
-  } catch (e) { return ""; }
+  var u = "https://sim650.relics62statues.workers.dev";
+  return /^https:\/\/[a-z0-9.\-]+\.workers\.dev$/.test(u) ? u : "";
 };
 G.LB.URL = G.LB._url();   // resolved once
 

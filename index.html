@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>650 — Build the Greatest Cabinet, Then Fight the Election</title>
-  <meta name="description" content="650 is a free political draft game. Assemble a cabinet from across history and the globe, then fight an election seat by seat. 13 electoral systems, 26 scenarios, 2,750+ figures." />
+  <meta name="description" content="650 is a free political draft game. Assemble a cabinet from across history and the globe, then fight an election seat by seat. 14 electoral systems, 43 scenarios, 5,000+ figures." />
 
   <!-- Open Graph -->
   <meta property="og:title" content="650 — A Global Political Draft Game" />
@@ -52,7 +52,7 @@
       <div class="continue-card" id="continueCard" style="display:none"></div>
       <!-- Save indicator (fixed bottom-right) -->
       <span class="save-badge" id="saveBadge" style="display:none">✓ Saved</span>
-      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, build your cabinet from across the sweep of history, then fight an election — seat by seat, under any of 13 electoral systems. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the house.</p>
+      <p class="lede"><span class="drop">Y</span>ou are handed the keys to government and a cast of thousands to staff it with. Take whoever fortune deals you, build your cabinet from across the sweep of history, then fight an election — seat by seat, under any of 14 electoral systems. Win a majority and you govern; fall short and you lead the opposition. The dream is the impossible one: every seat in the house.</p>
 
       <!-- Wizard navigation header -->
       <div class="wizard-nav">
@@ -301,6 +301,7 @@
           <span class="wt-label" id="watchTicketName">Your seats</span>
           <span class="wt-num" id="watchSeats">0</span>
           <span class="wt-sub"><b id="watchDeclared">0</b> of <b id="watchTotal">650</b> declared · <b id="watchMaj">326</b> for a majority</span>
+          <span class="wt-proj" id="watchNowcast" style="display:none"></span>
         </div>
         <div class="watch-feed" id="watchFeed"></div>
       </div>
@@ -378,12 +379,20 @@
       <div class="panel" style="margin-top:24px">
         <p class="section-label">The odds you were facing</p>
         <div class="odds-grid">
-          <div class="odd"><div class="pc" id="oddMaj">—</div><div class="lb">Majority</div></div>
-          <div class="odd"><div class="pc" id="oddLand">—</div><div class="lb">Landslide 400+</div></div>
-          <div class="odd"><div class="pc" id="oddSuper">—</div><div class="lb">Supermajority</div></div>
-          <div class="odd"><div class="pc" id="oddSweep">—</div><div class="lb">Clean sweep</div></div>
+          <div class="odd"><div class="pc" id="oddMaj">—</div><div class="lb" id="oddMajLb">Majority</div></div>
+          <div class="odd"><div class="pc" id="oddLand">—</div><div class="lb" id="oddLandLb">Landslide 400+</div></div>
+          <div class="odd"><div class="pc" id="oddSuper">—</div><div class="lb" id="oddSuperLb">Supermajority</div></div>
+          <div class="odd"><div class="pc" id="oddSweep">—</div><div class="lb" id="oddSweepLb">Clean sweep</div></div>
         </div>
         <p class="range-note" id="rangeNote"></p>
+        <div class="forecast-chart" id="forecastChart" style="display:none;margin-top:12px"></div>
+        <p class="range-note" id="sim650Compare" style="display:none;margin-top:8px"></p>
+      </div>
+
+      <div class="panel" id="leveragePanel" style="margin-top:18px;display:none">
+        <p class="section-label">Cabinet leverage</p>
+        <p class="range-note">How many seats each appointment was worth over a run-of-the-mill minister — and, where your bench had someone stronger, the swap that would have gained the most.</p>
+        <div class="lev-list" id="leverageList"></div>
       </div>
 
       <div class="panel" style="margin-top:18px">
@@ -688,22 +697,70 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <p class="acct-note">Pick a figure and press <b>Load</b> — the whole record appears below as <b>plain text</b>, one field per line. Edit anything (or write a new record from scratch) and <b>Save</b>. Saved records override the built-in figure for everyone at the next load.</p>
-        <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Name (start typing to find an existing figure)" />
-        <datalist id="apNames"></datalist>
-        <div class="btn-row"><button class="btn btn-ghost" id="apLoad">Load for editing</button></div>
-        <textarea id="apText" class="lb-input adm-area adm-area-pol" spellcheck="false" placeholder="name: Full Name
-party: Labour
-era: postwar
-scope: uk            (uk = historical · p24 = 2024 Parliament)
-stats: 60, 70, 60, 80, 60    (appeal, experience, oratory, statecraft, party)
-fits: pm, chancellor
-despot: no
-note: One line on them (optional)"></textarea>
-        <div class="btn-row">
-          <button class="btn btn-ghost" id="apSave">Save politician</button>
-          <button class="btn btn-ghost danger" id="apDelete">Delete this record</button>
+        <p class="acct-note">Start typing a name to find an existing figure and press <b>Load</b> — or just fill the form in fresh to add someone new. <b>Save</b> stores the record on the server; it overrides the built-in figure for everyone at the next load. Every figure in the game can be edited or removed this way.</p>
+        <div class="ap-load-row">
+          <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Full name (start typing to find a figure)" />
+          <button class="btn btn-ghost" id="apLoad">Load</button>
         </div>
+        <datalist id="apNames"></datalist>
+
+        <div class="ap-form">
+          <label class="ap-field"><span>Party</span>
+            <input id="apParty" class="lb-input" type="text" maxlength="40" placeholder="e.g. Labour" /></label>
+          <label class="ap-field"><span>Era</span>
+            <select id="apEra" class="lb-input"></select></label>
+          <label class="ap-field"><span>Roster</span>
+            <select id="apScope" class="lb-input">
+              <option value="uk">Historical figure</option>
+              <option value="p24">2024 Parliament (sitting MP)</option>
+            </select></label>
+          <label class="ap-field"><span>Cast</span>
+            <select id="apCast" class="lb-input">
+              <option value="statesman">Statesman (default)</option>
+              <option value="insider">Insider</option>
+              <option value="novelty">Novelty / wildcard</option>
+            </select></label>
+        </div>
+
+        <div class="ap-stats" id="apStats">
+          <div class="ap-stat"><label for="apAppeal">Appeal</label><input id="apAppeal" type="range" min="0" max="100" value="50" /><output id="apAppealV">50</output></div>
+          <div class="ap-stat"><label for="apExperience">Experience</label><input id="apExperience" type="range" min="0" max="100" value="50" /><output id="apExperienceV">50</output></div>
+          <div class="ap-stat"><label for="apOratory">Oratory</label><input id="apOratory" type="range" min="0" max="100" value="50" /><output id="apOratoryV">50</output></div>
+          <div class="ap-stat"><label for="apStatecraft">Statecraft</label><input id="apStatecraft" type="range" min="0" max="100" value="50" /><output id="apStatecraftV">50</output></div>
+          <div class="ap-stat"><label for="apPartyMgmt">Party mgmt</label><input id="apPartyMgmt" type="range" min="0" max="100" value="50" /><output id="apPartyMgmtV">50</output></div>
+        </div>
+
+        <div class="ap-fits-wrap">
+          <span class="ap-fits-label">Portfolios they suit <span class="board-note">(the cabinet seats they can be drafted into)</span></span>
+          <div class="ap-fits" id="apFits"></div>
+        </div>
+
+        <div class="ap-form">
+          <label class="ap-field ap-field-wide"><span>One-line note <span class="board-note">(optional)</span></span>
+            <input id="apNote" class="lb-input" type="text" maxlength="200" placeholder="A sentence on who they are" /></label>
+          <label class="ap-field"><span>Wikipedia title <span class="board-note">(if it differs)</span></span>
+            <input id="apWiki" class="lb-input" type="text" placeholder="e.g. Clement Attlee" /></label>
+          <label class="ap-field"><span>Image URL <span class="board-note">(overrides Wikipedia)</span></span>
+            <input id="apImg" class="lb-input" type="text" placeholder="https://…" /></label>
+          <label class="ap-field"><span>Special flag <span class="board-note">(usually blank)</span></span>
+            <input id="apFlag" class="lb-input" type="text" maxlength="40" placeholder="e.g. conspiracist" /></label>
+          <label class="adm-check ap-field"><input type="checkbox" id="apDespot" /> Despot / strongman (wildcard flavour)</label>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="apNew">Clear form</button>
+          <button class="btn btn-ghost" id="apSave">Save politician</button>
+          <button class="btn btn-ghost danger" id="apDelete">Remove from game</button>
+        </div>
+        <details class="ap-adv"><summary>Advanced: edit as raw text</summary>
+          <textarea id="apText" class="lb-input adm-area adm-area-pol" spellcheck="false" placeholder="name: Full Name
+party: Labour
+era: e5
+scope: uk
+stats: 60, 70, 60, 80, 60    (appeal, experience, oratory, statecraft, party)
+fits: pm, chancellor"></textarea>
+          <div class="btn-row"><button class="btn btn-ghost" id="apFromText">Load text into form</button><button class="btn btn-ghost" id="apToText">Copy form to text</button></div>
+        </details>
         <p class="acct-note" id="apMsg"></p>
       </div>
       <div class="panel admin-block">
@@ -776,6 +833,8 @@ note: One line on them (optional)"></textarea>
   <script src="js/data.mps.js"></script>
   <script src="js/electorate.js"></script>
   <script src="js/electoral_systems.js"></script>
+  <script src="js/simcore.js"></script>
+  <script src="js/nowcast.js"></script>
   <script src="js/election.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/data.expansion2.js"></script>
@@ -802,6 +861,7 @@ note: One line on them (optional)"></textarea>
   <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/platform.js"></script>
+  <script src="js/sim650.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <script src="js/emoji.js"></script>
   <script src="js/main.js"></script>

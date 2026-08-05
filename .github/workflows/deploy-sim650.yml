@@ -1,0 +1,32 @@
+name: Deploy sim650 Worker
+
+# Redeploys the sim650 Cloudflare Worker whenever its source changes on main.
+# Secrets (set in repo Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   — scoped: Workers Scripts: Edit + D1: Edit/Read
+#   CLOUDFLARE_ACCOUNT_ID  — 19af458c5c0a6fb9cefeba6b9785f0b1
+# The token is NEVER committed; it only exists as an encrypted Actions secret.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - ".github/workflows/deploy-sim650.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Deploy with Wrangler
+        run: npx --yes wrangler@3 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

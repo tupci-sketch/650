@@ -853,6 +853,14 @@
     G.UI.renderResult(res);
     updatePersonalBest(res);
     autoSave("result");
+    /* record an anonymous run summary + show how you compare (fail-soft, optional) */
+    if (G.SIM650 && G.SIM650.report) G.SIM650.report(res, {
+      scenario: res.scenarioKey || (G.state && G.state.scenarioKey) || "freshstart",
+      country: choice.country || "uk",
+      mode: choice.mode || (G.state && G.state.mode) || "unity",
+      difficulty: choice.difficulty || res.difficulty || "normal",
+      cabSig: res.seed
+    });
     /* check objectives and achievements */
     if (G.checkObjectives && G.unlockAchievements) {
       var ctx = {
@@ -920,6 +928,9 @@
     var bounds = regionBounds(res, intl);
 
     var setup = intl ? G.UI.renderWatchIntl(res, sys) : G.UI.renderWatch(res);
+    /* seats per region — for the live nowcast projection */
+    var regionTotals = {};
+    results.forEach(function (r) { regionTotals[r.region] = (regionTotals[r.region] || 0) + 1; });
     watch = {
       res: res, intl: intl,
       byId: setup.byId, colour: setup.colour,
@@ -927,7 +938,8 @@
       i: 0, won: 0, regIdx: 0, regWon: 0,
       cancelled: false, done: false, raf: null,
       sps: revealRate(total), acc: 0, lastT: null,
-      tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour
+      tally: {}, blocLabel: res.campaign.blocLabel, blocColour: res.campaign.blocColour,
+      regionTotals: regionTotals, declaredByRegion: {}, wonByRegion: {}
     };
     if (watch.bounds[0]) G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
     frame();
@@ -959,12 +971,33 @@
          seats are synthetic, so there the feed reports at the region level */
       if (!quiet && !w.intl)
         G.UI.pushFeed(res.name + (res.won ? " — won" : " — lost (" + res.winner + ")"), res.won ? "win" : "");
-      if (res.won) { w.won++; w.regWon++; }
+      if (res.won) { w.won++; w.regWon++; w.wonByRegion[res.region] = (w.wonByRegion[res.region] || 0) + 1; }
+      w.declaredByRegion[res.region] = (w.declaredByRegion[res.region] || 0) + 1;
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
       w.i++;
     }
     G.UI.setWatchTally(w.won, w.i);
     G.UI.renderStandings("watchStandings", liveBreakdown(w));
+    updateNowcast(w);
+  }
+
+  /* live-night projection line under the tally */
+  function updateNowcast(w) {
+    var el = sel("watchNowcast"); if (!el || !G.Nowcast) return;
+    /* the nowcast needs this campaign's per-region expectations — produced for
+       the UK constituency model AND every international system now. */
+    if (!(w.res && w.res.campaign && w.res.campaign.regionExpected)) { el.style.display = "none"; return; }
+    /* single-party / guided systems have no meaningful "majority" race — a live
+       projection line there is nonsense, so keep it hidden. */
+    var _sysKey = G.state && G.state._electoralSystemKey;
+    var _sysObj = _sysKey && G.ELECTORAL_SYSTEMS ? G.ELECTORAL_SYSTEMS[_sysKey] : null;
+    if (_sysObj && (_sysObj.despotMode || _sysObj.coalitionStyle === "guided")) { el.style.display = "none"; return; }
+    /* wait until a small sample is in, and stop once everything's declared */
+    if (w.i < 8 || w.i >= w.total) { el.style.display = "none"; return; }
+    var p = G.Nowcast.project(w, w.res);
+    el.textContent = G.Nowcast.line(p);
+    el.className = "wt-proj" + (p.pMajority >= 0.5 ? " wt-proj-win" : "");
+    el.style.display = "";
   }
 
   function frame() {
@@ -1608,6 +1641,7 @@
   function openAdmin() {
     stopChatPoll(); G.UI.show("screen-admin");
     if (G.NET) G.NET.loadConfig().then(function () { G.UI.renderAdmin(); });
+    apBuildControls();
     fillPolNames();
     refreshUsers();
     refreshPolList();
@@ -1667,6 +1701,100 @@
       mode: scope === "p24" ? "parl2024" : ""
     };
   }
+  /* ---- friendly form editor -------------------------------------------------
+     The form is the primary way to add/edit a figure; the raw-text box (in the
+     Advanced <details>) stays as an escape hatch and syncs both ways. These
+     helpers convert between the form fields and a pol object. */
+  var AP_STATS = ["appeal", "experience", "oratory", "statecraft", "partyMgmt"];
+  function apBuildControls() {
+    // era options (once)
+    var eraSel = sel("apEra");
+    if (eraSel && !eraSel.options.length && G.ERAS) {
+      eraSel.innerHTML = G.ERAS.map(function (e) {
+        return '<option value="' + e.id + '">' + G.UI._esc(e.label + " · " + (e.years || "")) + '</option>';
+      }).join("");
+    }
+    // portfolio "fits" chips (once)
+    var fitBox = sel("apFits");
+    if (fitBox && !fitBox.children.length) {
+      var ports = (G.PORTFOLIOS_BASE || []).concat(G.PORTFOLIOS_EXTRA || []);
+      fitBox.innerHTML = ports.map(function (p) {
+        return '<label class="ap-fit" data-fit="' + p.key + '"><input type="checkbox" value="' + p.key + '" />' + G.UI._esc(p.name) + '</label>';
+      }).join("");
+      fitBox.addEventListener("change", function (e) {
+        var lab = e.target && e.target.closest ? e.target.closest(".ap-fit") : null;
+        if (lab) lab.classList.toggle("on", e.target.checked);
+      });
+    }
+    // era is fixed for 2024-Parliament figures — grey it out to signal that
+    var scopeSel = sel("apScope");
+    if (scopeSel && !scopeSel._wired) {
+      scopeSel._wired = true;
+      var syncEra = function () { if (sel("apEra")) sel("apEra").disabled = (scopeSel.value === "p24"); };
+      scopeSel.addEventListener("change", syncEra); syncEra();
+    }
+    // stat sliders mirror their number output
+    AP_STATS.forEach(function (k) {
+      var id = "ap" + k.charAt(0).toUpperCase() + k.slice(1);
+      var r = sel(id), o = sel(id + "V");
+      if (r && o && !r._wired) { r._wired = true; r.addEventListener("input", function () { o.textContent = r.value; }); }
+    });
+  }
+  function polToForm(p) {
+    p = p || {}; var s = p.stats || {};
+    sel("apName").value = p.name || "";
+    sel("apParty").value = p.party || "";
+    sel("apEra").value = p.era || (p.scope === "p24" ? "e24" : "e7");
+    if (!sel("apEra").value && sel("apEra").options.length) sel("apEra").selectedIndex = sel("apEra").options.length - 1;
+    sel("apScope").value = (p.scope === "p24") ? "p24" : "uk";
+    if (sel("apEra")) sel("apEra").disabled = (sel("apScope").value === "p24");
+    sel("apCast").value = p.cast || "statesman";
+    sel("apDespot").checked = !!p.despot;
+    sel("apFlag").value = p.flag || "";
+    sel("apNote").value = p.note || "";
+    var photo = G.PHOTO && G.PHOTO[p.name] || {};
+    sel("apWiki").value = p.wiki || photo.wiki || "";
+    sel("apImg").value = p.img || photo.img || "";
+    AP_STATS.forEach(function (k) {
+      var id = "ap" + k.charAt(0).toUpperCase() + k.slice(1);
+      var v = (s[k] == null) ? 50 : s[k];
+      if (sel(id)) sel(id).value = v;
+      if (sel(id + "V")) sel(id + "V").textContent = v;
+    });
+    var fits = p.fits || [];
+    each(document.querySelectorAll("#apFits .ap-fit"), function (lab) {
+      var on = fits.indexOf(lab.getAttribute("data-fit")) !== -1;
+      lab.classList.toggle("on", on);
+      var cb = lab.querySelector("input"); if (cb) cb.checked = on;
+    });
+  }
+  function formToPol() {
+    var name = (sel("apName").value || "").trim();
+    if (!name) return null;
+    var scope = (sel("apScope").value === "p24") ? "p24" : "uk";
+    var cast = sel("apCast").value || "statesman";
+    var fits = [];
+    each(document.querySelectorAll("#apFits .ap-fit input:checked"), function (cb) { fits.push(cb.value); });
+    var stats = {};
+    AP_STATS.forEach(function (k) {
+      var id = "ap" + k.charAt(0).toUpperCase() + k.slice(1);
+      stats[k] = Math.max(0, Math.min(100, parseInt(sel(id) && sel(id).value, 10) || 0));
+    });
+    return {
+      name: name, party: (sel("apParty").value || "").trim(),
+      // 2024-Parliament figures always carry era e24 (not offered in the dropdown)
+      era: scope === "p24" ? "e24" : (sel("apEra").value || "e7"), scope: scope,
+      fits: fits, stats: stats,
+      despot: !!sel("apDespot").checked,
+      cast: (cast && cast !== "statesman") ? cast : "",
+      flag: (sel("apFlag").value || "").trim(),
+      wiki: (sel("apWiki").value || "").trim(),
+      img: (sel("apImg").value || "").trim(),
+      note: (sel("apNote").value || "").slice(0, 200),
+      mode: scope === "p24" ? "parl2024" : ""
+    };
+  }
+  function apClearForm() { polToForm({ name: "", scope: "uk", stats: {}, fits: [] }); var m = sel("apMsg"); if (m) m.textContent = ""; }
   /* the deletable list: ONLY records that live in the sheet (added figures and
      overrides). Built-in figures never appear here, so they can't be deleted. */
   function refreshPolList() {
@@ -1677,12 +1805,14 @@
       if (!rows.length) { box.innerHTML = '<p class="chat-empty">No server records yet \u2014 everything in the game is built in.</p>'; return; }
       box.innerHTML = rows.map(function (p) {
         var nm = p.name.replace(/"/g, "&quot;");
+        var tag = p.deleted ? "removed" : (p.scope === "p24" ? "2024" : "historical");
+        var acts = p.deleted
+          ? '<button class="link-btn" data-pact="restore" data-nm="' + nm + '" data-sc="' + p.scope + '">restore</button>'
+          : '<button class="link-btn" data-pact="edit" data-nm="' + nm + '" data-sc="' + p.scope + '">edit</button>' +
+            '<button class="link-btn" data-pact="del" data-nm="' + nm + '" data-sc="' + p.scope + '">remove</button>';
         return '<div class="adm-pol"><span class="ap-nm">' + G.UI._esc(p.name) +
-               ' <span class="au-lvl">' + G.UI._esc(p.party || "\u2014") + ' \u00b7 ' + (p.scope === "p24" ? "2024" : "historical") + '</span></span>' +
-               '<span class="au-acts">' +
-                 '<button class="link-btn" data-pact="edit" data-nm="' + nm + '" data-sc="' + p.scope + '">edit</button>' +
-                 '<button class="link-btn" data-pact="del" data-nm="' + nm + '" data-sc="' + p.scope + '">delete</button>' +
-               '</span></div>';
+               ' <span class="au-lvl">' + G.UI._esc(p.party || "\u2014") + ' \u00b7 ' + tag + '</span></span>' +
+               '<span class="au-acts">' + acts + '</span></div>';
       }).join("");
     });
   }
@@ -1752,21 +1882,30 @@
       if (!name) { if (m) m.textContent = "Type a name first."; return; }
       var matches = (G.POLITICIANS || []).filter(function (p) { return p.name.toLowerCase() === name.toLowerCase(); });
       if (!matches.length) {
-        if (m) m.textContent = "No figure called \u201c" + name + "\u201d \u2014 write the record below as plain text to add them as new.";
-        sel("apText").value = polToText({ name: name, scope: "uk", stats: {} });
+        polToForm({ name: name, scope: "uk", stats: {}, fits: [] });
+        if (m) m.textContent = "No figure called \u201c" + name + "\u201d yet \u2014 fill the form in and Save to add them as new.";
         return;
       }
       var fig = matches.filter(function (p) { return p.scope !== "p24"; })[0] || matches[0];
-      sel("apName").value = fig.name;
-      sel("apText").value = polToText(fig);                       // the WHOLE record, plain text
-      if (m) m.textContent = "Loaded " + fig.name + " (" + (fig.scope === "p24" ? "2024 record" : "historical record") + ") as plain text. Edit any line and Save to override." +
-                             (matches.length > 1 ? " (They also have a " + (fig.scope === "p24" ? "historical" : "2024") + " record \u2014 change the scope line to load by saving the other.)" : "");
+      polToForm(fig);
+      if (m) m.textContent = "Loaded " + fig.name + " (" + (fig.scope === "p24" ? "2024 record" : "historical record") + "). Edit and Save to override." +
+                             (matches.length > 1 ? " (They also have a " + (fig.scope === "p24" ? "historical" : "2024") + " record \u2014 switch the Roster dropdown to edit that one.)" : "");
+    };
+    sel("apNew").onclick = function () { apClearForm(); var m = sel("apMsg"); if (m) m.textContent = "Cleared \u2014 fill the form in to add a new figure."; };
+    if (sel("apFromText")) sel("apFromText").onclick = function () {
+      var p = textToPol(sel("apText").value); var m = sel("apMsg");
+      if (!p) { if (m) m.textContent = "The text needs at least a \u201cname:\u201d line."; return; }
+      polToForm(p); if (m) m.textContent = "Pulled the text into the form.";
+    };
+    if (sel("apToText")) sel("apToText").onclick = function () {
+      var p = formToPol(); if (!p) { var m = sel("apMsg"); if (m) m.textContent = "Give them a name first."; return; }
+      sel("apText").value = polToText(p);
     };
     sel("apSave").onclick = function () {
       if (!G.NET) return;
       var m = sel("apMsg");
-      var pol = textToPol(sel("apText").value);
-      if (!pol) { if (m) m.textContent = "The record needs at least a \u201cname:\u201d line."; return; }
+      var pol = formToPol();
+      if (!pol) { if (m) m.textContent = "Give them a name first."; return; }
       if (!pol.era) {
         // reuse the era of the record being overridden, if any
         var existing = (G.POLITICIANS || []).filter(function (p) { return p.name.toLowerCase() === pol.name.toLowerCase() && p.scope === pol.scope; })[0];
@@ -1788,14 +1927,17 @@
     sel("apDelete").onclick = function () {
       if (!G.NET) return;
       var m = sel("apMsg");
-      var pol = textToPol(sel("apText").value) || { name: (sel("apName").value || "").trim(), scope: "uk" };
+      var pol = formToPol() || { name: (sel("apName").value || "").trim(), scope: (sel("apScope").value === "p24" ? "p24" : "uk") };
       if (!pol.name) { if (m) m.textContent = "Load or name a record first."; return; }
-      if (window.confirm && !window.confirm("Delete the server record for " + pol.name + "? (Built-in figures are untouched \u2014 an override reverts to the built-in version at next load.)")) return;
-      if (m) m.textContent = "Deleting\u2026";
+      if (window.confirm && !window.confirm("Remove " + pol.name + " from the game? This hides the figure for everyone \u2014 you can restore it from the list below.")) return;
+      if (m) m.textContent = "Removing\u2026";
+      if (G.mergeRoster) G.mergeRoster([{ name: pol.name, scope: pol.scope, deleted: true }]);   // hide instantly
+      sel("metaCount").textContent = G.POLITICIANS.length;
+      updateHint();
       G.NET.adminDelPol(pol.name, pol.scope).then(function (d) {
-        if (m) m.textContent = (d && d.ok) ? ("Deleted the server record for " + pol.name + ".")
-             : ((d && d.error === "not found") ? "No server record by that name \u2014 built-in, hard-coded figures can't be deleted."
-             : "Couldn't delete: " + ((d && d.error) || "offline") + ".");
+        if (m) m.textContent = (d && d.ok) ? ("Removed " + pol.name + " \u2014 hidden now, and for everyone at next load.")
+             : "Couldn't remove: " + ((d && d.error) || "offline") + ".";
+        if (typeof fillPolNames === "function") fillPolNames();
         refreshPolList();
       });
     };
@@ -1854,9 +1996,9 @@
       var b = e.target && e.target.closest ? e.target.closest("[data-fixpic]") : null; if (!b) return;
       var nm = b.getAttribute("data-fixpic");
       var fig = (G.POLITICIANS || []).filter(function (pp) { return pp.name === nm; })[0];
-      if (fig) { sel("apName").value = fig.name; sel("apText").value = polToText(fig);
-        sel("apMsg").textContent = "Add a wiki: title (or img: URL) line, then Save \u2014 the override ships to everyone at next load.";
-        sel("apText").scrollIntoView && sel("apText").scrollIntoView({ behavior: "smooth" }); }
+      if (fig) { polToForm(fig);
+        sel("apMsg").textContent = "Fill the Wikipedia title (or Image URL) field, then Save \u2014 the override ships to everyone at next load.";
+        var wf = sel("apWiki"); if (wf) { wf.scrollIntoView && wf.scrollIntoView({ behavior: "smooth" }); wf.focus(); } }
     });
     sel("apList").addEventListener("click", function (e) {
       var b = e.target && e.target.closest ? e.target.closest("[data-pact]") : null; if (!b || !G.NET) return;
@@ -1864,11 +2006,19 @@
       if (act === "edit") {
         G.NET.rosterList().then(function (d) {
           var rec = ((d && d.politicians) || []).filter(function (p) { return p.name === nm && p.scope === sc; })[0];
-          if (rec) { sel("apName").value = rec.name; sel("apText").value = polToText(rec); sel("apMsg").textContent = "Loaded the server record \u2014 edit and Save."; }
+          if (rec) { polToForm(rec); sel("apMsg").textContent = "Loaded the server record \u2014 edit and Save."; sel("apName").scrollIntoView && sel("apName").scrollIntoView({ behavior: "smooth" }); }
         });
       } else if (act === "del") {
-        if (window.confirm && !window.confirm("Delete the server record for " + nm + "?")) return;
+        if (window.confirm && !window.confirm("Remove " + nm + " from the game? You can restore it here afterwards.")) return;
+        if (G.mergeRoster) G.mergeRoster([{ name: nm, scope: sc, deleted: true }]);
+        sel("metaCount").textContent = G.POLITICIANS.length;
         G.NET.adminDelPol(nm, sc).then(function () { refreshPolList(); });
+      } else if (act === "restore" && G.NET.adminRestorePol) {
+        G.NET.adminRestorePol(nm, sc).then(function (d) {
+          var m = sel("apMsg");
+          if (m) m.textContent = (d && d.ok) ? ("Restored " + nm + " — back for everyone at next load. Reload to see it now.") : "Couldn't restore.";
+          refreshPolList();
+        });
       }
     });
     sel("admUsersRefresh").onclick = refreshUsers;

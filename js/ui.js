@@ -889,6 +889,9 @@ G.UI.renderResultIntl = function (res) {
     " on <b>" + (res.voteShare * 100).toFixed(1) + "%</b> of the vote. Across " + C.trials.toLocaleString() +
     " simulated campaigns the result ranged from <b>" + res.range.low + "</b> to <b>" + res.range.high +
     "</b> (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats + "</b>). Run it again to fight another.";
+  G.UI.renderForecastChart(res, "forecastChart");
+  G.UI.renderLeverage(res);
+  G.UI.setOddsLabels(res);
 
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
@@ -1028,6 +1031,97 @@ G.UI.renderPostElectionIntl = function (res, sys) {
 /* Replace the UK hexmap with a system-appropriate visual: a geographic hex
    cartogram of the country (when a layout exists) plus a system-specific
    breakdown (EC tally / coalition list / region bars) below it. */
+/* ---- odds labels: reflect THIS system's real thresholds ----------------- */
+/* "Landslide 400+" only makes sense for the 650-seat Commons; every system has
+   its own majority/landslide/supermajority/total, so label the odds tiles with
+   the active thresholds (e.g. Australia's landslide is 100+, not 400+). */
+G.UI.setOddsLabels = function (res) {
+  var th = (res && res.forecast && res.forecast.thresholds) || {};
+  var total = th.total || (res && res.totalSeats) || (G.CONFIG && G.CONFIG.totalSeats) || 650;
+  function set(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
+  set("oddMajLb", "Majority");
+  if (th.landslide) set("oddLandLb", "Landslide " + th.landslide + "+");
+  set("oddSuperLb", "Supermajority");
+  set("oddSweepLb", total <= 700 ? "Clean sweep" : "Every seat");
+};
+
+/* ---- cabinet leverage table -------------------------------------------- */
+/* Per-slot expected-seats value of each appointee vs. a replacement-level
+   minister, sorted most load-bearing first, plus the best available bench swap
+   where one would have helped. Reads res.leverage from the election. */
+G.UI.renderLeverage = function (res) {
+  var panel = document.getElementById("leveragePanel");
+  var box = document.getElementById("leverageList");
+  if (!panel || !box) return;
+  var lev = res && res.leverage;
+  if (!lev || !lev.slots || !lev.slots.length) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+  var maxMv = 1;
+  lev.slots.forEach(function (s) { maxMv = Math.max(maxMv, Math.abs(s.marginal)); });
+  box.innerHTML = lev.slots.slice(0, 8).map(function (s) {
+    var port = (G.PORTFOLIO_BY_KEY && G.PORTFOLIO_BY_KEY[s.slot]) ? G.PORTFOLIO_BY_KEY[s.slot].name : s.slot;
+    var mv = Math.round(s.marginal);
+    var mvTxt = (mv > 0 ? "+" : "") + mv;
+    var mvCls = mv > 0 ? "lev-pos" : (mv < 0 ? "lev-neg" : "lev-zero");
+    var barW = Math.round(Math.min(100, Math.abs(s.marginal) / maxMv * 100));
+    var swap = "";
+    if (s.best) { var bd = Math.round(s.best.delta); if (bd >= 1) swap = '<span class="lev-swap">swap in <b>' + G.UI._esc(s.best.name) + '</b> for <b class="lev-pos">+' + bd + '</b></span>'; }
+    return '<div class="lev-row">' +
+      '<span class="lev-port">' + G.UI._esc(port) + '<span class="lev-nm">' + G.UI._esc(s.name) + '</span></span>' +
+      '<span class="lev-bar-wrap"><span class="lev-bar ' + mvCls + '" style="width:' + barW + '%"></span></span>' +
+      '<span class="lev-mv ' + mvCls + '">' + mvTxt + '</span>' +
+      swap +
+      '</div>';
+  }).join("");
+};
+
+/* ---- Monte-Carlo forecast distribution (inline SVG) --------------------- */
+/* Draws the seat-total distribution across the simulated campaigns: bars tinted
+   for the win zone (≥ majority), a dashed majority line, and a marker for where
+   THIS campaign actually landed. Theme-aware via currentColor; scales to width. */
+G.UI.renderForecastChart = function (res, containerId) {
+  var box = document.getElementById(containerId || "forecastChart");
+  if (!box) return;
+  var fc = res && res.forecast;
+  if (!fc || !fc.histogram || !fc.histogram.length) { box.style.display = "none"; return; }
+  box.style.display = "";
+  var hist = fc.histogram, th = fc.thresholds || {};
+  var maj = th.majority || (G.CONFIG && G.CONFIG.majority) || 326;
+  var lo = hist[0].x0, hi = hist[hist.length - 1].x1, span = Math.max(1, hi - lo);
+  var W = 600, H = 150, padB = 22, padT = 10, maxN = 1;
+  hist.forEach(function (h) { if (h.n > maxN) maxN = h.n; });
+  function X(v) { return ((v - lo) / span) * W; }
+  var parts = [];
+  hist.forEach(function (h) {
+    var x = X(h.x0), w = Math.max(0.6, X(h.x1) - X(h.x0)) - 0.4;
+    var bh = (h.n / maxN) * (H - padB - padT), y = H - padB - bh;
+    var mid = (h.x0 + h.x1) / 2;
+    var fill = mid >= maj ? "rgba(74,170,120,0.80)" : "rgba(150,160,175,0.50)";
+    parts.push('<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) +
+               '" height="' + bh.toFixed(1) + '" fill="' + fill + '"/>');
+  });
+  if (maj >= lo && maj <= hi) {
+    var mx = X(maj);
+    parts.push('<line x1="' + mx.toFixed(1) + '" y1="' + padT + '" x2="' + mx.toFixed(1) + '" y2="' + (H - padB) +
+               '" stroke="#e0a020" stroke-width="1.4" stroke-dasharray="4 3"/>' +
+               '<text x="' + (mx + 4).toFixed(1) + '" y="' + (padT + 9) + '" font-size="10" fill="#e0a020">majority ' + maj + '</text>');
+  }
+  var ax = X(Math.max(lo, Math.min(hi, res.seats)));
+  parts.push('<line x1="' + ax.toFixed(1) + '" y1="' + padT + '" x2="' + ax.toFixed(1) + '" y2="' + (H - padB) +
+             '" stroke="currentColor" stroke-width="2"/>' +
+             '<text x="' + (ax + 4).toFixed(1) + '" y="' + (H - padB - 5) + '" font-size="10" fill="currentColor">you · ' + res.seats + '</text>');
+  parts.push('<text x="2" y="' + (H - 6) + '" font-size="10" fill="#8890a0">' + lo + '</text>' +
+             '<text x="' + (W - 22) + '" y="' + (H - 6) + '" font-size="10" fill="#8890a0">' + hi + '</text>');
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;max-height:180px" role="img" ' +
+            'aria-label="Seat distribution across ' + fc.trials + ' simulated campaigns">' + parts.join("") + '</svg>';
+  var pcH = Math.round((fc.probs.hung || 0) * 100);
+  var cap = '<p class="range-note" style="margin-top:6px">Across <b>' + fc.trials.toLocaleString() +
+            '</b> simulated campaigns: mean <b>' + Math.round(fc.mean) + '</b> ± ' + Math.round(fc.sd) +
+            ', 90% range <b>' + fc.pct.p5 + '–' + fc.pct.p95 + '</b>' +
+            (pcH > 0 && pcH < 100 ? ', <b>' + pcH + '%</b> chance of no majority' : '') + '.</p>';
+  box.innerHTML = svg + cap;
+};
+
 G.UI.renderResultMap = function (res, sys) {
   var mapPanel = $("mapResult");
   if (!mapPanel) return;
@@ -1203,6 +1297,9 @@ G.UI.renderResult = function (res) {
     " simulated campaigns the result ranged from <b>" + res.range.low + "</b> to <b>" + res.range.high +
     "</b> seats (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats +
     "</b>). Run it again to fight another.";
+  G.UI.renderForecastChart(res, "forecastChart");
+  G.UI.renderLeverage(res);
+  G.UI.setOddsLabels(res);
 
   /* commons bar */
   $("majMark").style.left = (C.majority / C.totalSeats * 100) + "%";

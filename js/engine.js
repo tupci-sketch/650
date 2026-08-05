@@ -24,6 +24,17 @@ G.mergeRoster = function (list) {
     var name = String(r.name);
     var is2024 = (r.mode === "parl2024") || (r.scope === "p24");
     var scope = r.scope || (is2024 ? "p24" : "uk");
+
+    /* DELETION tombstone — hide a figure (built-in OR added). Scoped if the row
+       names a scope; otherwise every record of that name is removed. */
+    if (r.deleted) {
+      var before = G.POLITICIANS.length;
+      G.POLITICIANS = G.POLITICIANS.filter(function (x) {
+        return !(x.name === name && (!r.scope || x.scope === scope));
+      });
+      changed += before - G.POLITICIANS.length;
+      return;
+    }
     var s = r.stats || {};
     var hasStats = s && (s.appeal != null || s.experience != null || s.oratory != null ||
                          s.statecraft != null || s.partyMgmt != null);
@@ -503,13 +514,15 @@ G.hold = function () {
   var campaignSig = campOut ? campOut.sig : "nocampaign";
   var seed = G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
                       "|" + st.mode + "|" + st.difficulty + "|" + st.cabinetSize +
-                      "|" + blocSig + "|" + campaignSig);
+                      "|" + blocSig + "|" + campaignSig +
+                      "|" + (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"));
 
   var res = G.runElection(st.cabinet, {
     mode: st.mode, lineage: st.lineage,
     difficulty: st.difficulty, govern: st.govern,
     policy: st.policy, custom: st.custom,
     draftedNames: st.draftedNames,
+    pool: (G.undrafted ? G.undrafted() : null),   // the bench, for leverage swaps
     runId: runId, seed: seed,
     blocSupport: blocSupport,
     regionTilt: regionTilt,
