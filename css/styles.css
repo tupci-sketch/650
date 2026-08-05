@@ -786,6 +786,30 @@ body::before {
 .btn.danger { border-color:rgba(134,34,49,.5); color:var(--oxblood,#862231); }
 .btn.danger:hover { background:rgba(134,34,49,.08); }
 .adm-check { font-size:13px; display:flex; align-items:center; gap:8px; }
+/* --- friendly politician editor (form) --- */
+.ap-load-row { display:flex; gap:8px; align-items:stretch; }
+.ap-load-row .lb-input { flex:1 1 auto; min-width:0; }
+.ap-load-row .btn { flex:0 0 auto; }
+.ap-form { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; margin-top:10px; }
+.ap-field { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--ink-soft,#6b6b6b); min-width:0; }
+.ap-field > span { font-weight:600; }
+.ap-field .lb-input, .ap-field select { width:100%; }
+.ap-field-wide { grid-column:1 / -1; }
+.ap-field.adm-check { flex-direction:row; align-items:center; color:inherit; }
+.ap-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px 16px; margin-top:12px; }
+.ap-stat { display:grid; grid-template-columns:78px 1fr 30px; align-items:center; gap:8px; font-size:12px; }
+.ap-stat label { color:var(--ink-soft,#6b6b6b); font-weight:600; }
+.ap-stat input[type=range] { width:100%; accent-color:var(--accent,#7a1f2b); }
+.ap-stat output { font-family:var(--mono,monospace); font-size:12px; text-align:right; }
+.ap-fits-wrap { margin-top:12px; }
+.ap-fits-label { font-size:12px; font-weight:600; color:var(--ink-soft,#6b6b6b); display:block; margin-bottom:6px; }
+.ap-fits { display:flex; flex-wrap:wrap; gap:6px; }
+.ap-fit { font-size:12px; padding:4px 9px; border:1px solid var(--line,#e3dac6); border-radius:999px; cursor:pointer; user-select:none; white-space:nowrap; }
+.ap-fit input { position:absolute; opacity:0; width:0; height:0; }
+.ap-fit.on { background:var(--accent,#7a1f2b); color:#fff; border-color:var(--accent,#7a1f2b); }
+.ap-adv { margin-top:12px; font-size:12px; }
+.ap-adv summary { cursor:pointer; color:var(--ink-soft,#6b6b6b); }
+@media (max-width:520px){ .ap-form, .ap-stats { grid-template-columns:1fr; } }
 .adm-users { display:flex; flex-direction:column; gap:6px; }
 .adm-user { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border:1px solid var(--line,#e3dac6); border-radius:8px; font-size:13px; }
 .adm-user.banned { opacity:.6; }
