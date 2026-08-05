@@ -338,13 +338,21 @@ G.expandSeatResults = function (campaign, sys) {
       for (var k = 0; assigned < lost; k++, assigned++) oppSeats[rem[k % rem.length].p]++;
     }
 
-    /* deal records: winners first, then each opposition party's block */
+    /* Deal the region's seats with every party's seats spread EVENLY through the
+       declaration order (deterministic — each seat gets a fractional position
+       within its party's block, then the region is sorted by that). This keeps
+       any partial count representative — vital for the live nowcast — and makes
+       the reveal realistic (wins and losses interleave, not all-wins-then-all-
+       losses). Pure reorder of the same seats, so the result is unchanged.     */
+    var groups = [];
+    if (won > 0) groups.push({ won: true, winner: blocLabel, n: won });
+    Object.keys(oppSeats).forEach(function (party) { if (oppSeats[party] > 0) groups.push({ won: false, winner: party, n: oppSeats[party] }); });
+    var recs = [];
+    groups.forEach(function (g) { for (var i = 0; i < g.n; i++) recs.push({ won: g.won, winner: g.winner, key: (i + 0.5) / g.n }); });
+    recs.sort(function (a, b) { return a.key - b.key; });
     var idx = 0;
-    for (var i = 0; i < won; i++)
-      results.push({ id: r.id + "#" + (idx++), name: r.name, region: r.id, won: true, winner: blocLabel });
-    Object.keys(oppSeats).forEach(function (party) {
-      for (var j = 0; j < oppSeats[party]; j++)
-        results.push({ id: r.id + "#" + (idx++), name: r.name, region: r.id, won: false, winner: party });
+    recs.forEach(function (rec) {
+      results.push({ id: r.id + "#" + (idx++), name: r.name, region: r.id, won: rec.won, winner: rec.winner });
     });
   });
   return results;
@@ -439,6 +447,14 @@ G.simulateCampaign = function (params) {
        Pure function of byRegion + landscape — no rng, so replays are identical. */
     if (_r && _r.byRegion && !_r.results && G.expandSeatResults)
       _r.results = G.expandSeatResults(_r, _sys);
+    /* per-region prior for the live-night nowcast: each region's player win rate.
+       Deterministic (a read of this campaign's own regional outcome), so it lets
+       the projection track THIS result as seats declare — parity with the UK
+       constituency path's regionExpected. */
+    if (_r && _r.byRegion && !_r.regionExpected) {
+      _r.regionExpected = {};
+      _r.byRegion.forEach(function (r) { _r.regionExpected[r.id] = r.total > 0 ? Math.max(0, Math.min(1, (r.won || 0) / r.total)) : 0; });
+    }
     return _r;
   }
 

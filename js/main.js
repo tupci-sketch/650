@@ -984,10 +984,14 @@
   /* live-night projection line under the tally */
   function updateNowcast(w) {
     var el = sel("watchNowcast"); if (!el || !G.Nowcast) return;
-    /* the confident nowcast needs this campaign's per-region expectations, which
-       today are produced only for the constituency (UK) model; skip otherwise so
-       we never show a misleading projection. */
+    /* the nowcast needs this campaign's per-region expectations — produced for
+       the UK constituency model AND every international system now. */
     if (!(w.res && w.res.campaign && w.res.campaign.regionExpected)) { el.style.display = "none"; return; }
+    /* single-party / guided systems have no meaningful "majority" race — a live
+       projection line there is nonsense, so keep it hidden. */
+    var _sysKey = G.state && G.state._electoralSystemKey;
+    var _sysObj = _sysKey && G.ELECTORAL_SYSTEMS ? G.ELECTORAL_SYSTEMS[_sysKey] : null;
+    if (_sysObj && (_sysObj.despotMode || _sysObj.coalitionStyle === "guided")) { el.style.display = "none"; return; }
     /* wait until a small sample is in, and stop once everything's declared */
     if (w.i < 8 || w.i >= w.total) { el.style.display = "none"; return; }
     var p = G.Nowcast.project(w, w.res);
