@@ -891,6 +891,7 @@ G.UI.renderResultIntl = function (res) {
     "</b> (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats + "</b>). Run it again to fight another.";
   G.UI.renderForecastChart(res, "forecastChart");
   G.UI.renderLeverage(res);
+  G.UI.setOddsLabels(res);
 
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
@@ -1030,6 +1031,20 @@ G.UI.renderPostElectionIntl = function (res, sys) {
 /* Replace the UK hexmap with a system-appropriate visual: a geographic hex
    cartogram of the country (when a layout exists) plus a system-specific
    breakdown (EC tally / coalition list / region bars) below it. */
+/* ---- odds labels: reflect THIS system's real thresholds ----------------- */
+/* "Landslide 400+" only makes sense for the 650-seat Commons; every system has
+   its own majority/landslide/supermajority/total, so label the odds tiles with
+   the active thresholds (e.g. Australia's landslide is 100+, not 400+). */
+G.UI.setOddsLabels = function (res) {
+  var th = (res && res.forecast && res.forecast.thresholds) || {};
+  var total = th.total || (res && res.totalSeats) || (G.CONFIG && G.CONFIG.totalSeats) || 650;
+  function set(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
+  set("oddMajLb", "Majority");
+  if (th.landslide) set("oddLandLb", "Landslide " + th.landslide + "+");
+  set("oddSuperLb", "Supermajority");
+  set("oddSweepLb", total <= 700 ? "Clean sweep" : "Every seat");
+};
+
 /* ---- cabinet leverage table -------------------------------------------- */
 /* Per-slot expected-seats value of each appointee vs. a replacement-level
    minister, sorted most load-bearing first, plus the best available bench swap
@@ -1284,6 +1299,7 @@ G.UI.renderResult = function (res) {
     "</b>). Run it again to fight another.";
   G.UI.renderForecastChart(res, "forecastChart");
   G.UI.renderLeverage(res);
+  G.UI.setOddsLabels(res);
 
   /* commons bar */
   $("majMark").style.left = (C.majority / C.totalSeats * 100) + "%";
