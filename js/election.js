@@ -676,6 +676,7 @@ G.runElection = function (cabinet, opts) {
   var regionTilt = opts.regionTilt || null;
   if (!regionTilt && G.electorateRegionTilt && opts.blocSupport)
     regionTilt = G.electorateRegionTilt(opts.blocSupport);
+  var _electorateTilt = regionTilt;          // tilt BEFORE cabinet coupling (for leverage)
   /* cabinet → geography coupling: who you drafted shifts WHERE you win
      (deterministic, mean-centred — no RNG, no total-seat inflation) */
   if (G.SimCore && G.SimCore.cabinetRegionTilt) {
@@ -705,6 +706,12 @@ G.runElection = function (cabinet, opts) {
   forecastParams.rnd = forecastRnd;
   var fc = G.SimCore.forecast(forecastParams, C.trials, forecastRnd,
              { majority: _majority, landslide: _landslide, supermajority: _super, total: _totalSeats });
+
+  /* cabinet leverage — deterministic sensitivity of each slot + best bench swap */
+  var leverage = null;
+  if (G.SimCore.leverage)
+    leverage = G.SimCore.leverage(cabinet, opts.pool, params,
+                 { diff: diff, baseTilt: _electorateTilt, seed: seed });
 
   /* the headline campaign that actually gets watched / shown (uses the main rnd,
      immediately after the opposition draft — independent of the forecast) */
@@ -774,6 +781,8 @@ G.runElection = function (cabinet, opts) {
     range: { low: fc.pct.p5, median: fc.pct.p50, high: fc.pct.p95 },
     /* the full Monte-Carlo forecast (distribution, percentiles, tier + region
        probabilities) for the richer forecast/odds UI */
-    forecast: fc
+    forecast: fc,
+    /* per-slot expected-seats leverage + best available bench swap */
+    leverage: leverage
   };
 };

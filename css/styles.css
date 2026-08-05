@@ -368,6 +368,26 @@ body::before {
 .odd .lb { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-top: 3px; }
 .range-note { text-align: center; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-soft); margin-top: 12px; }
 
+/* --- cabinet leverage --- */
+.lev-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.lev-row { display: grid; grid-template-columns: minmax(0,1.4fr) 84px 34px minmax(0,1.3fr); align-items: center; gap: 10px; font-size: 13px; }
+.lev-port { font-family: var(--display); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.lev-nm { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); font-weight: 400; margin-top: 1px; }
+.lev-bar-wrap { height: 8px; background: rgba(120,120,120,.14); border-radius: 4px; overflow: hidden; }
+.lev-bar { display: block; height: 100%; border-radius: 4px; }
+.lev-bar.lev-pos { background: var(--green, #2e7d4f); }
+.lev-bar.lev-neg { background: var(--oxblood, #862231); }
+.lev-bar.lev-zero { background: var(--ink-soft, #9a9a9a); }
+.lev-mv { font-family: var(--mono); font-weight: 700; text-align: right; }
+.lev-mv.lev-pos, .lev-pos { color: var(--green, #2e7d4f); }
+.lev-mv.lev-neg { color: var(--oxblood, #862231); }
+.lev-mv.lev-zero { color: var(--ink-soft); }
+.lev-swap { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 620px){
+  .lev-row { grid-template-columns: 1fr 30px; grid-template-areas: "port mv" "bar bar" "swap swap"; gap: 4px 8px; }
+  .lev-port { grid-area: port; } .lev-mv { grid-area: mv; } .lev-bar-wrap { grid-area: bar; } .lev-swap { grid-area: swap; }
+}
+
 .cabinet-roll { columns: 2; column-gap: 24px; margin-top: 6px; }
 @media (max-width: 620px){ .cabinet-roll { columns: 1; } }
 .roll-line { break-inside: avoid; padding: 7px 0; border-bottom: 1px dotted var(--line);

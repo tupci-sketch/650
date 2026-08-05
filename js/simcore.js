@@ -222,4 +222,70 @@ window.G = window.G || {};
       thresholds: { majority: maj, landslide: land, supermajority: sup, total: totSeats }
     };
   };
+
+  /* ---- cabinet sensitivity / leverage (deterministic) ---------------------
+     For each cabinet slot, how many EXPECTED SEATS is the current appointee
+     worth over a replacement-level (neutral) minister, and — from the players
+     still on your bench — who is the single best swap you could make into that
+     seat and what would it be worth? Pure deterministic function of the cabinet
+     and bench (common-random-numbers for any international system), so it never
+     touches the reproducible headline draw.
+       cabinet : { slotKey: pol }
+       pool    : [pol] still available to draft (the bench); may be null/empty
+       params  : the run's params (vote, mode, align, midShift, opposition, …)
+       opts    : { diff, baseTilt, seed }  baseTilt = electorate/campaign tilt
+                 BEFORE the cabinet coupling was merged in.                     */
+  SC.leverage = function (cabinet, pool, params, opts) {
+    opts = opts || {};
+    if (!cabinet || !G.rateCabinet || !G.voteShare || !G.expectedSeats) return null;
+    var diff = opts.diff || {};
+    var baseTilt = opts.baseTilt || null;
+    var sys = G.activeElectoralSystem && G.activeElectoralSystem();
+    var intl = !!(sys && sys.estimateFn);
+    var seedBase = ((opts.seed != null ? opts.seed : 0x650d) ^ 0x51ed270b) >>> 0;
+    var K = intl ? (opts.k || 24) : 1;               // CRN trials for intl systems
+
+    /* keep every non-cabinet vote nudge (policy/career/electorate/campaign +
+       clamps) as a constant offset, so swaps move only the cabinet's share */
+    var baseVoteRaw = G.voteShare(G.rateCabinet(cabinet), diff);
+    var offset = (params.vote != null ? params.vote : baseVoteRaw) - baseVoteRaw;
+
+    function paramsFor(cab) {
+      var vote = Math.max(0.05, Math.min(0.62, G.voteShare(G.rateCabinet(cab), diff) + offset));
+      var tilt = baseTilt;
+      if (SC.cabinetRegionTilt) tilt = SC.mergeTilt(baseTilt, SC.cabinetRegionTilt(cab, { mode: params.mode, lineage: params.lineage, align: params.align }));
+      var q = {}; for (var k in params) if (params.hasOwnProperty(k)) q[k] = params[k];
+      q.vote = vote; q.regionTilt = tilt;
+      return q;
+    }
+    function seatsOf(cab) {
+      var q = paramsFor(cab);
+      if (!intl) return G.expectedSeats(q);
+      var tot = 0;
+      for (var i = 0; i < K; i++) { q.rnd = G.makeRng((seedBase + i * 2654435761) >>> 0); tot += sys.estimateFn(q, q.rnd); }
+      return tot / K;
+    }
+    function swap(cab, slot, pol) { var o = {}; for (var k in cab) if (cab.hasOwnProperty(k)) o[k] = cab[k]; o[slot] = pol; return o; }
+    /* replacement level = a middling appointee (≈ average backbencher), so the
+       marginal reads as "worth over a run-of-the-mill minister" */
+    function repl(slot) { return { name: "(replacement)", party: "", stats: { appeal: 60, experience: 60, oratory: 60, statecraft: 60, partyMgmt: 60 }, fits: [slot] }; }
+    function fitsSlot(pol, slot) { return !pol.fits || !pol.fits.length || pol.fits.indexOf(slot) !== -1; }
+
+    var base = seatsOf(cabinet);
+    var slots = [], drafted = {};
+    Object.keys(cabinet).forEach(function (s) { if (cabinet[s]) drafted[cabinet[s].name] = 1; });
+    Object.keys(cabinet).forEach(function (slot) {
+      var cur = cabinet[slot]; if (!cur) return;
+      var marginal = base - seatsOf(swap(cabinet, slot, repl(slot)));
+      var best = null;
+      (pool || []).forEach(function (cand) {
+        if (!cand || drafted[cand.name] || !fitsSlot(cand, slot)) return;
+        var delta = seatsOf(swap(cabinet, slot, cand)) - base;
+        if (!best || delta > best.delta) best = { name: cand.name, delta: delta };
+      });
+      slots.push({ slot: slot, name: cur.name, marginal: marginal, best: (best && best.delta > 0.6) ? best : null });
+    });
+    slots.sort(function (a, b) { return b.marginal - a.marginal; });
+    return { base: base, slots: slots };
+  };
 })();

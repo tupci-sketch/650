@@ -522,6 +522,7 @@ G.hold = function () {
     difficulty: st.difficulty, govern: st.govern,
     policy: st.policy, custom: st.custom,
     draftedNames: st.draftedNames,
+    pool: (G.undrafted ? G.undrafted() : null),   // the bench, for leverage swaps
     runId: runId, seed: seed,
     blocSupport: blocSupport,
     regionTilt: regionTilt,

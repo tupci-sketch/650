@@ -890,6 +890,7 @@ G.UI.renderResultIntl = function (res) {
     " simulated campaigns the result ranged from <b>" + res.range.low + "</b> to <b>" + res.range.high +
     "</b> (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats + "</b>). Run it again to fight another.";
   G.UI.renderForecastChart(res, "forecastChart");
+  G.UI.renderLeverage(res);
 
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
@@ -1029,6 +1030,36 @@ G.UI.renderPostElectionIntl = function (res, sys) {
 /* Replace the UK hexmap with a system-appropriate visual: a geographic hex
    cartogram of the country (when a layout exists) plus a system-specific
    breakdown (EC tally / coalition list / region bars) below it. */
+/* ---- cabinet leverage table -------------------------------------------- */
+/* Per-slot expected-seats value of each appointee vs. a replacement-level
+   minister, sorted most load-bearing first, plus the best available bench swap
+   where one would have helped. Reads res.leverage from the election. */
+G.UI.renderLeverage = function (res) {
+  var panel = document.getElementById("leveragePanel");
+  var box = document.getElementById("leverageList");
+  if (!panel || !box) return;
+  var lev = res && res.leverage;
+  if (!lev || !lev.slots || !lev.slots.length) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+  var maxMv = 1;
+  lev.slots.forEach(function (s) { maxMv = Math.max(maxMv, Math.abs(s.marginal)); });
+  box.innerHTML = lev.slots.slice(0, 8).map(function (s) {
+    var port = (G.PORTFOLIO_BY_KEY && G.PORTFOLIO_BY_KEY[s.slot]) ? G.PORTFOLIO_BY_KEY[s.slot].name : s.slot;
+    var mv = Math.round(s.marginal);
+    var mvTxt = (mv > 0 ? "+" : "") + mv;
+    var mvCls = mv > 0 ? "lev-pos" : (mv < 0 ? "lev-neg" : "lev-zero");
+    var barW = Math.round(Math.min(100, Math.abs(s.marginal) / maxMv * 100));
+    var swap = "";
+    if (s.best) { var bd = Math.round(s.best.delta); if (bd >= 1) swap = '<span class="lev-swap">swap in <b>' + G.UI._esc(s.best.name) + '</b> for <b class="lev-pos">+' + bd + '</b></span>'; }
+    return '<div class="lev-row">' +
+      '<span class="lev-port">' + G.UI._esc(port) + '<span class="lev-nm">' + G.UI._esc(s.name) + '</span></span>' +
+      '<span class="lev-bar-wrap"><span class="lev-bar ' + mvCls + '" style="width:' + barW + '%"></span></span>' +
+      '<span class="lev-mv ' + mvCls + '">' + mvTxt + '</span>' +
+      swap +
+      '</div>';
+  }).join("");
+};
+
 /* ---- Monte-Carlo forecast distribution (inline SVG) --------------------- */
 /* Draws the seat-total distribution across the simulated campaigns: bars tinted
    for the win zone (≥ majority), a dashed majority line, and a marker for where
@@ -1252,6 +1283,7 @@ G.UI.renderResult = function (res) {
     "</b> seats (median <b>" + res.range.median + "</b>; central projection <b>" + res.expectedSeats +
     "</b>). Run it again to fight another.";
   G.UI.renderForecastChart(res, "forecastChart");
+  G.UI.renderLeverage(res);
 
   /* commons bar */
   $("majMark").style.left = (C.majority / C.totalSeats * 100) + "%";
