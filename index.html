@@ -243,6 +243,11 @@
         <button class="btn btn-ghost" id="liveBtn">📺 Live</button>
         <button class="btn btn-ghost" id="adminBtn" style="display:none">🛠 Housekeeping</button>
       </div>
+      <div class="loadcode-row">
+        <input id="loadCodeInput" class="lb-input" autocomplete="off" placeholder="Paste a run code to replay someone's exact run…" />
+        <button class="btn btn-ghost" id="loadCodeBtn">Load run</button>
+      </div>
+      <p class="acct-note" id="loadCodeMsg" style="display:none"></p>
     </section>
 
     <!-- ======================================================= DRAFT ==== -->
@@ -407,6 +412,7 @@
         <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
         <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
+        <button class="btn btn-ghost" id="runCodeBtn" title="Copy a code others can load to replay this exact run">🔗 Copy run code</button>
         <button class="btn btn-ghost" id="againBtn">Run it again</button>
         <button class="btn btn-ghost" id="wikiBtn">📜 View election record</button>
         <button class="btn btn-ghost" id="resultLbBtn">★ Post to leaderboard</button>

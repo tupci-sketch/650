@@ -849,10 +849,31 @@
     if (G.state.watch) startWatch(lastResult);
     else showResult(lastResult);
   }
+  /* the shareable run payload: settings + cabinet (by position) + exact seed */
+  function runPayloadFrom(res) {
+    var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
+    var cab = [];
+    (G.PORTFOLIOS || []).forEach(function (port) { var p = cabinet[port.key]; if (p) cab.push({ k: port.key, n: p.name }); });
+    return {
+      v: 1, s: (res.seed >>> 0),
+      m: G.state.mode, l: G.state.lineage || null, d: G.state.difficulty, z: G.state.cabinetSize,
+      e: (G.state.eras || []).slice(), sc: G.state.scenarioKey || null, sy: G.state._electoralSystemKey || null,
+      cty: choice.country || "uk",
+      cu: G.state.custom ? { name: G.state.custom.name, align: G.state.custom.align, colour: G.state.custom.colour } : null,
+      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1")
+    };
+  }
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
     autoSave("result");
+    /* build the shareable code + fingerprint for this run */
+    try {
+      var payload = runPayloadFrom(res);
+      res._runPayload = payload;
+      res._runCode = G.LB ? G.LB.encodeRun(payload) : "";
+      res._runFp = G.LB ? G.LB.runFingerprint(payload) : "";
+    } catch (e) {}
     /* record an anonymous run summary + show how you compare (fail-soft, optional) */
     if (G.SIM650 && G.SIM650.report) G.SIM650.report(res, {
       scenario: res.scenarioKey || (G.state && G.state.scenarioKey) || "freshstart",
@@ -879,8 +900,33 @@
       if (unlocked.length && G.UI.showAchievements) G.UI.showAchievements(unlocked);
     }
     try {
-      if (G.LB && G.LB.recordLocalRun) G.LB.recordLocalRun(entryFrom(res));
+      if (G.LB && G.LB.recordLocalRun && !res._replay) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
+  }
+
+  /* load a shared run code from the menu and replay it exactly. A loaded replay
+     is flagged non-scoring (it isn't YOUR parliament). */
+  function loadRunCode() {
+    var inp = sel("loadCodeInput"), msg = sel("loadCodeMsg");
+    if (!inp) return;
+    var raw = (inp.value || "").trim();
+    function say(t) { if (msg) { msg.style.display = ""; msg.textContent = t; } }
+    if (!raw) { say("Paste a run code first."); return; }
+    var decoded = G.LB && G.LB.decodeRun(raw);
+    if (!decoded || !decoded.cab) { say("That doesn't look like a valid run code."); return; }
+    say("Loading the run…");
+    var out = G.runFromCode(decoded);
+    if (out.error === "missing") { say("Can't replay: this run uses figures your game doesn't have — " + out.missing.slice(0, 3).join(", ") + (out.missing.length > 3 ? "…" : "") + "."); return; }
+    if (out.error === "model") { say("This run was recorded on model " + out.want + "; the current model is " + out.have + ", so it can't be reproduced exactly."); return; }
+    if (out.error || !out.res) { say("Couldn't load that run code."); return; }
+    say("");
+    cancelWatch();
+    currentVerdict = null; submitting = false;
+    setLbBtns(false, "★ Post to leaderboard");
+    var res = out.res;
+    res._replay = true;                 // a loaded replay never counts as your own parliament
+    lastResult = res;
+    showResult(res);
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
@@ -1078,6 +1124,15 @@
       postToX(G.UI.resultText(lastResult) + " #650game", function () { return G.UI.shareCardBlob(lastResult); });
     };
 
+    if (sel("runCodeBtn")) sel("runCodeBtn").onclick = function () {
+      if (!lastResult || !lastResult._runCode) { flashButton(sel("runCodeBtn"), "No code"); return; }
+      var code = lastResult._runCode;
+      var done = function () { flashButton(sel("runCodeBtn"), "Copied ✓"); };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(code).then(done).catch(function () { legacyCopy(code, done); });
+      else legacyCopy(code, done);
+    };
+
     sel("againBtn").onclick = function () {
       cancelWatch();
       currentVerdict = null; submitting = false;             // a new election is a new, unique turn
@@ -1170,6 +1225,7 @@
              scenarioKey: (G.state && G.state.scenarioKey) || "",
              electoralSystem: (G.state && G.state._electoralSystemKey) || "",
              totalSeats: _totalSeats,
+             runFp: res._runFp || "", runCode: res._runCode || "",
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }
@@ -1181,6 +1237,9 @@
       G.UI.show("screen-account");
       var msg = sel("acctMsg"); if (msg) msg.textContent = "Sign in (or register) to post your run to the leaderboard.";
       return;
+    }
+    if (lastResult && lastResult._replay) {                  // a loaded replay is not your parliament
+      setLbBtns(true, "Replays don't score"); openLeaderboard(); return;
     }
     var e = currentEntry(); if (!e || !e.name) return;
     if (submitting) return;                                  // already posting
@@ -1899,6 +1958,8 @@
     sel("chatBtn").onclick = openChat;
     sel("liveBtn").onclick = openLive;
     sel("adminBtn").onclick = openAdmin;
+    if (sel("loadCodeBtn")) sel("loadCodeBtn").onclick = loadRunCode;
+    if (sel("loadCodeInput")) sel("loadCodeInput").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadRunCode(); } });
     sel("chatBackBtn").onclick = goMenu;
     sel("liveBackBtn").onclick = goMenu;
     sel("adminBackBtn").onclick = goMenu;

@@ -805,6 +805,11 @@ body::before {
 .adm-pol .ap-nm { font-family:var(--display); font-weight:600; min-width:0; overflow-wrap:anywhere; }
 .btn.danger { border-color:rgba(134,34,49,.5); color:var(--oxblood,#862231); }
 .btn.danger:hover { background:rgba(134,34,49,.08); }
+/* --- load run code row (menu) --- */
+.loadcode-row { display:flex; gap:8px; margin-top:10px; }
+.loadcode-row .lb-input { flex:1 1 auto; min-width:0; font-family:var(--mono,monospace); font-size:12px; }
+.loadcode-row .btn { flex:0 0 auto; }
+
 /* --- cabinet strip (govern screen) --- */
 .cabinet-strip { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 8px; scrollbar-width:thin; }
 .cab-min { position:relative; flex:0 0 auto; width:74px; background:none; border:none; padding:4px 2px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; border-radius:8px; }

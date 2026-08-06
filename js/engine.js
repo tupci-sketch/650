@@ -512,7 +512,10 @@ G.hold = function () {
     ? _sigBlocs.map(function (b) { return Math.round(blocSupport[b.key] || 50); }).join(".")
     : "baseline";
   var campaignSig = campOut ? campOut.sig : "nocampaign";
-  var seed = G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
+  /* a loaded run code forces the exact seed so the result reproduces byte-for-
+     byte; otherwise the seed is derived from the run's inputs as usual. */
+  var seed = (st._forcedSeed != null) ? (st._forcedSeed >>> 0)
+           : G.hash32(runId + "|" + manifest.map(function (s) { return s.name; }).join(",") +
                       "|" + st.mode + "|" + st.difficulty + "|" + st.cabinetSize +
                       "|" + blocSig + "|" + campaignSig +
                       "|" + (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"));
@@ -539,6 +542,42 @@ G.hold = function () {
   res.electoralSystem = st._electoralSystemKey || "fptp_uk";
   res.totalSeats = (G.activeTotalSeats ? G.activeTotalSeats() : 650);
   return res;
+};
+
+/* ---- load a shared run code and reproduce it exactly ----------------------
+   decoded: { v, s(seed), m(mode), l(lineage), d(difficulty), z(cabinetSize),
+              e(eras[]), sc(scenarioKey), sy(electoralSystem), cty(country),
+              cu(custom), cab([{k,n}]), mv(model) }
+   Rebuilds the run's state, drops in the exact cabinet, forces the seed, and
+   runs. Returns { res } or { error, missing } if a figure can't be resolved. */
+G.runFromCode = function (decoded) {
+  if (!decoded || !decoded.cab || !decoded.cab.length) return { error: "empty" };
+  if (decoded.mv && G.SimCore && G.SimCore.MODEL_VERSION && decoded.mv !== G.SimCore.MODEL_VERSION)
+    return { error: "model", have: G.SimCore.MODEL_VERSION, want: decoded.mv };
+  G.newGame({
+    mode: decoded.m, lineage: decoded.l || null, difficulty: decoded.d,
+    cabinetSize: decoded.z, eras: (decoded.e || []).slice(),
+    country: decoded.cty || "uk", scenarioKey: decoded.sc || null,
+    govern: false, watch: false, custom: decoded.cu || null
+  });
+  if (decoded.sc && G.applyScenario) G.applyScenario(decoded.sc);
+  else if (decoded.sy && decoded.sy !== "fptp_uk") G.state._electoralSystemKey = decoded.sy;
+  /* resolve every seat's figure by name (roster overrides already merged) */
+  var byName = {};
+  (G.POLITICIANS || []).forEach(function (p) { if (!byName[p.name]) byName[p.name] = p; });
+  var cabinet = {}, drafted = {}, missing = [];
+  decoded.cab.forEach(function (c) {
+    var p = byName[c.n];
+    if (p) { cabinet[c.k] = p; drafted[p.name] = c.k; } else missing.push(c.n);
+  });
+  if (missing.length) return { error: "missing", missing: missing };
+  G.state.cabinet = cabinet;
+  G.state.draftedNames = drafted;
+  G.state._forcedSeed = (decoded.s >>> 0);
+  var res;
+  try { res = G.hold(); } finally { G.state._forcedSeed = null; }
+  res._fromCode = true;
+  return { res: res };
 };
 
 /* ---- weighted draw: the chance of getting someone sits on a scale -------- */
