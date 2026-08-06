@@ -599,6 +599,54 @@ G.UI.renderGovern = function () {
   G.UI.renderCabinetStrip();
   G.UI.show("screen-govern");
 };
+/* ---- coalition negotiation modal ---------------------------------------- */
+G.UI.renderNegotiation = function (st) {
+  var overlay = document.getElementById("negotiationOverlay");
+  var card = document.getElementById("negotiationCard");
+  if (!overlay || !card || !st) return;
+  var pct = Math.round(st.odds * 100);
+  var oddsClass = pct >= 66 ? "neg-good" : pct >= 40 ? "neg-mid" : "neg-bad";
+  var html = "";
+  if (st.done) {
+    html = '<div class="neg-result ' + (st.success ? "neg-win" : "neg-lose") + '">' +
+      '<div class="neg-result-h">' + (st.success ? "Deal struck" : "Talks collapsed") + '</div>' +
+      '<p>' + (st.success
+        ? "The " + G.UI._esc(st.leadParty) + " partnership is agreed. They take their seats at the cabinet table."
+        : "The " + G.UI._esc(st.leadParty) + " walked away. You’ll have to find another way to a majority.") + '</p>' +
+      '<button class="btn btn-primary neg-continue" data-neg="continue">' + (st.success ? "Form the government →" : "Back to the numbers →") + '</button>' +
+      '</div>';
+  } else {
+    var rows = st.demands.map(function (d, i) {
+      if (d.conceded != null) {
+        return '<div class="neg-demand settled ' + (d.conceded ? "conceded" : "refused") + '">' +
+          '<span class="neg-ask">“' + G.UI._esc(d.def.ask) + '”</span>' +
+          '<span class="neg-verdict">' + (d.conceded ? "conceded — " + G.UI._esc(d.def.label) : "refused") + '</span></div>';
+      }
+      return '<div class="neg-demand">' +
+        '<span class="neg-ask">“' + G.UI._esc(d.def.ask) + '”</span>' +
+        '<span class="neg-choices">' +
+          '<button class="btn btn-ghost neg-btn" data-neg="concede" data-i="' + i + '">Concede</button>' +
+          '<button class="btn btn-ghost neg-btn" data-neg="refuse" data-i="' + i + '">Hold firm</button>' +
+        '</span></div>';
+    }).join("");
+    var answered = G.Negotiation.answered(st);
+    html =
+      '<button class="mc-close" data-neg="cancel" aria-label="Close">×</button>' +
+      '<div class="neg-head"><div class="mc-name">Coalition talks · ' + G.UI._esc(st.leadParty) + '</div>' +
+        '<div class="mc-role">Chemistry: <b class="coal-tag ' + st.tag + '">' + st.tag + '</b> · your negotiators rate ' + st.skill + '</div></div>' +
+      '<div class="neg-odds"><span>Chance of a deal</span>' +
+        '<span class="neg-oddsbar"><span class="' + oddsClass + '" style="width:' + pct + '%"></span></span>' +
+        '<b class="' + oddsClass + '">' + pct + '%</b></div>' +
+      '<p class="neg-hint">Concede to raise the odds — but you’ll pay for it in office. Hold firm to keep what’s yours, and gamble the talks.</p>' +
+      '<div class="neg-demands">' + rows + '</div>' +
+      '<button class="btn btn-primary neg-final" data-neg="resolve"' + (answered ? "" : " disabled") + '>' +
+        (answered ? "Put it to them" : "Answer their demands first") + '</button>';
+  }
+  card.innerHTML = html;
+  overlay.style.display = "flex";
+};
+G.UI.hideNegotiation = function () { var o = document.getElementById("negotiationOverlay"); if (o) o.style.display = "none"; };
+
 /* the cabinet, left to right: a portrait + post per minister, tap for detail.
    Coalition partners carry their party colour as a ring + flag. */
 G.UI.renderCabinetStrip = function () {

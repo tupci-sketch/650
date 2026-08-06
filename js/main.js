@@ -1237,8 +1237,16 @@
     if (G.state.policyOn) G.UI.renderPolicy("programme");
     else { G.UI.renderGovern(); if (G.UI.renderCareerBanner) G.UI.renderCareerBanner(G.career); }
   }
-  function startCoalitionGovern(res, deal, minority) {
-    enterGovernment(res, { coalition: deal || null, minority: !!minority });
+  function startCoalitionGovern(res, deal, minority, concessions) {
+    enterGovernment(res, { coalition: deal || null, minority: !!minority, concessions: concessions || null });
+  }
+  /* the negotiation mini-game: picking a partner opens talks that may or may
+     not succeed. On success we govern with the (possibly conceded) deal. */
+  var negState = null;
+  function beginNegotiation(res, deal) {
+    if (!G.Negotiation) { startCoalitionGovern(res, deal, false); return; }
+    negState = G.Negotiation.start(deal, res);
+    G.UI.renderNegotiation(negState);
   }
   function startOpposition(res) {
     G.startOpposition(res);
@@ -1255,7 +1263,7 @@
       var act = n.getAttribute("data-act");
       if (act === "deal") {
         var i = parseInt(n.getAttribute("data-i"), 10);
-        startCoalitionGovern(lastResult, lastResult.coalition.deals[i], false);
+        beginNegotiation(lastResult, lastResult.coalition.deals[i]);
       } else if (act === "minority") {
         startCoalitionGovern(lastResult, null, true);
       } else if (act === "opposition") {
@@ -1263,6 +1271,28 @@
       }
     });
     sel("oppositionBtn").onclick = function () { if (lastResult) startOpposition(lastResult); };
+    /* negotiation modal interactions */
+    var negOv = sel("negotiationOverlay");
+    if (negOv) negOv.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest("[data-neg]") : null;
+      if (e.target === negOv) return;                 // backdrop stays (talks are committal)
+      if (!a || !negState) return;
+      var act = a.getAttribute("data-neg");
+      if (act === "concede" || act === "refuse") {
+        G.Negotiation.choose(negState, parseInt(a.getAttribute("data-i"), 10), act === "concede");
+        G.UI.renderNegotiation(negState);
+      } else if (act === "resolve") {
+        if (!G.Negotiation.answered(negState)) return;
+        G.Negotiation.resolve(negState);
+        G.UI.renderNegotiation(negState);
+      } else if (act === "cancel") {
+        negState = null; G.UI.hideNegotiation();
+      } else if (act === "continue") {
+        var st = negState; negState = null; G.UI.hideNegotiation();
+        if (st && st.success) startCoalitionGovern(lastResult, st.deal, false, st.concessions);
+        /* on failure we simply return to the coalition screen, already shown */
+      }
+    });
   }
 
   function wirePolicy() {
