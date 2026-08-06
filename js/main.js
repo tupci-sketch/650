@@ -1919,11 +1919,14 @@
      helpers convert between the form fields and a pol object. */
   var AP_STATS = ["appeal", "experience", "oratory", "statecraft", "partyMgmt"];
   function apBuildControls() {
-    // era options (once)
+    // era options (once) — labelled by TIME PERIOD, not a UK-specific political
+    // name, because the roster spans every nation (Walpole means nothing in Cuba)
+    var ERA_NEUTRAL = { e0: "Pre-industrial", e1: "19th century", e2: "Early 20th c.", e3: "World Wars", e4: "Post-war", e5: "Late 20th c.", e6: "2000s", e7: "Contemporary" };
     var eraSel = sel("apEra");
     if (eraSel && !eraSel.options.length && G.ERAS) {
       eraSel.innerHTML = G.ERAS.map(function (e) {
-        return '<option value="' + e.id + '">' + G.UI._esc(e.label + " · " + (e.years || "")) + '</option>';
+        var neutral = ERA_NEUTRAL[e.id] || e.label;
+        return '<option value="' + e.id + '">' + G.UI._esc((e.years || "") + " · " + neutral) + '</option>';
       }).join("");
     }
     // portfolio "fits" chips (once)
@@ -2009,15 +2012,20 @@
   function apClearForm() { polToForm({ name: "", scope: "uk", stats: {}, fits: [] }); var m = sel("apMsg"); if (m) m.textContent = ""; }
   /* the deletable list: ONLY records that live in the sheet (added figures and
      overrides). Built-in figures never appear here, so they can't be deleted. */
-  function refreshPolList() {
+  var apPage = 0, apPageSize = 60;
+  function refreshPolList(resetPage) {
+    if (resetPage !== false) apPage = 0;
     var box = sel("apList"); if (!box || !G.NET || !G.NET.rosterList) return;
+    var q = (sel("apSearch") && sel("apSearch").value || "").trim();
     box.innerHTML = '<p class="chat-empty">Loading\u2026</p>';
-    G.NET.rosterList().then(function (d) {
+    G.NET.rosterList(q, apPage * apPageSize, apPageSize).then(function (d) {
       var rows = (d && d.ok && d.politicians) || [];
-      if (!rows.length) { box.innerHTML = '<p class="chat-empty">No server records yet \u2014 everything in the game is built in.</p>'; return; }
-      box.innerHTML = rows.map(function (p) {
+      var total = (d && d.total) || rows.length;
+      if (sel("apCount")) sel("apCount").textContent = total.toLocaleString() + " on the database";
+      if (!rows.length) { box.innerHTML = '<p class="chat-empty">' + (q ? "No figures match \u201c" + G.UI._esc(q) + "\u201d." : "No figures found.") + '</p>'; }
+      else box.innerHTML = rows.map(function (p) {
         var nm = p.name.replace(/"/g, "&quot;");
-        var tag = p.deleted ? "removed" : (p.scope === "p24" ? "2024" : "historical");
+        var tag = p.deleted ? "removed" : (p.scope === "p24" ? "2024" : p.scope === "wild" ? "wildcard" : "historical");
         var acts = p.deleted
           ? '<button class="link-btn" data-pact="restore" data-nm="' + nm + '" data-sc="' + p.scope + '">restore</button>'
           : '<button class="link-btn" data-pact="edit" data-nm="' + nm + '" data-sc="' + p.scope + '">edit</button>' +
@@ -2026,6 +2034,13 @@
                ' <span class="au-lvl">' + G.UI._esc(p.party || "\u2014") + ' \u00b7 ' + tag + '</span></span>' +
                '<span class="au-acts">' + acts + '</span></div>';
       }).join("");
+      /* pager */
+      var pager = sel("apPager"), info = sel("apPageInfo");
+      var pages = Math.max(1, Math.ceil(total / apPageSize));
+      if (pager) pager.style.display = total > apPageSize ? "" : "none";
+      if (info) info.textContent = "Page " + (apPage + 1) + " of " + pages + " \u00b7 " + total.toLocaleString() + " figures";
+      if (sel("apPrev")) sel("apPrev").disabled = apPage <= 0;
+      if (sel("apNext")) sel("apNext").disabled = apPage >= pages - 1;
     });
   }
   function refreshUsers() { if (!G.NET) return; G.NET.adminUsers().then(function (d) { G.UI.renderAdminUsers((d && d.ok && d.users) || []); }); }
@@ -2127,30 +2142,40 @@
     sel("apNew").onclick = function () { apClearForm(); var m = sel("apMsg"); if (m) m.textContent = "Cleared \u2014 fill the form in to add a new figure."; };
     /* pull anyone with a Wikipedia page straight into the form (name, bio,
        portrait). Runs in the browser \u2014 only the browser can reach Wikipedia. */
+    /* pull the Wikipedia article title out of a pasted link (any language
+       wikipedia), or accept a bare name. */
+    function wikiTitleFrom(raw) {
+      raw = String(raw || "").trim();
+      if (!raw) return "";
+      var m = raw.match(/wikipedia\.org\/wiki\/([^?#]+)/i);
+      if (m) { try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; } }
+      return raw;                      // a bare name/title
+    }
     if (sel("apWikiLookup")) sel("apWikiLookup").onclick = function () {
-      var name = (sel("apName").value || "").trim();
+      var raw = (sel("apWikiUrl") && sel("apWikiUrl").value || "").trim() || (sel("apName").value || "").trim();
       var m = sel("apMsg");
-      if (!name) { if (m) m.textContent = "Type a name first, then press Wikipedia."; return; }
-      if (m) m.textContent = "Looking " + name + " up on Wikipedia\u2026";
-      var title = name.replace(/\s+/g, "_");
-      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title), { headers: { accept: "application/json" } })
+      var title = wikiTitleFrom(raw);
+      if (!title) { if (m) m.textContent = "Paste a Wikipedia link (or a name) to import."; return; }
+      if (m) m.textContent = "Importing " + title.replace(/_/g, " ") + " from Wikipedia\u2026";
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title.replace(/\s+/g, "_")), { headers: { accept: "application/json" } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) {
-          if (!d || d.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") { if (m) m.textContent = "No Wikipedia page for \u201c" + name + "\u201d \u2014 check the spelling or add them by hand."; return; }
-          if (d.type === "disambiguation") { if (m) m.textContent = "\u201c" + name + "\u201d is ambiguous on Wikipedia \u2014 use a fuller, more specific name."; return; }
+          if (!d || (d.type && /not_found/.test(d.type))) { if (m) m.textContent = "No Wikipedia page found \u2014 check the link, or add them by hand."; return; }
+          if (d.type === "disambiguation") { if (m) m.textContent = "That page is a disambiguation \u2014 link the specific person's article."; return; }
           if (!d.extract) { if (m) m.textContent = "That page has too little information \u2014 add them by hand."; return; }
-          sel("apName").value = d.title || name;
+          sel("apName").value = d.title || title.replace(/_/g, " ");
           var ex = String(d.extract), dot = ex.indexOf(". ");
           var sentence = dot > 20 ? ex.slice(0, dot + 1) : ex;
-          if (!sel("apNote").value) sel("apNote").value = sentence.slice(0, 200);
-          sel("apWiki").value = d.title || name;
+          sel("apNote").value = sentence.slice(0, 200);
+          sel("apWiki").value = d.title || title.replace(/_/g, " ");
           var img = (d.thumbnail && d.thumbnail.source) || (d.originalimage && d.originalimage.source) || "";
           if (img) sel("apImg").value = img;
-          if (m) m.textContent = "Pulled " + (d.title || name) + (d.description ? " \u2014 " + d.description : "") +
-            ". Set their party, era and ratings, then Save." + (img ? "" : " (No portrait on Wikipedia \u2014 add an image URL if you have one.)");
+          if (m) m.textContent = "Imported " + (d.title || "") + (d.description ? " \u2014 " + d.description : "") +
+            ". Now set their party, era, ratings and portfolios, then Save." + (img ? "" : " (No portrait on Wikipedia \u2014 add an image URL if you have one.)");
         })
         .catch(function () { if (m) m.textContent = "Couldn't reach Wikipedia just now \u2014 try again."; });
     };
+    if (sel("apWikiUrl")) sel("apWikiUrl").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); sel("apWikiLookup").click(); } });
     if (sel("apFromText")) sel("apFromText").onclick = function () {
       var p = textToPol(sel("apText").value); var m = sel("apMsg");
       if (!p) { if (m) m.textContent = "The text needs at least a \u201cname:\u201d line."; return; }
@@ -2200,7 +2225,10 @@
         refreshPolList();
       });
     };
-    sel("apListRefresh").onclick = refreshPolList;
+    sel("apListRefresh").onclick = function () { refreshPolList(true); };
+    if (sel("apSearch")) sel("apSearch").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); refreshPolList(true); } });
+    if (sel("apPrev")) sel("apPrev").onclick = function () { if (apPage > 0) { apPage--; refreshPolList(false); } };
+    if (sel("apNext")) sel("apNext").onclick = function () { apPage++; refreshPolList(false); };
     /* PHOTO AUDIT: walk every figure in-browser through the same portrait
        chain the game uses (img override → wiki title → name) and list every
        miss, with a one-tap route into the editor to set a wiki/img override.
@@ -2263,10 +2291,10 @@
       var b = e.target && e.target.closest ? e.target.closest("[data-pact]") : null; if (!b || !G.NET) return;
       var act = b.getAttribute("data-pact"), nm = b.getAttribute("data-nm"), sc = b.getAttribute("data-sc");
       if (act === "edit") {
-        G.NET.rosterList().then(function (d) {
-          var rec = ((d && d.politicians) || []).filter(function (p) { return p.name === nm && p.scope === sc; })[0];
-          if (rec) { polToForm(rec); sel("apMsg").textContent = "Loaded the server record \u2014 edit and Save."; sel("apName").scrollIntoView && sel("apName").scrollIntoView({ behavior: "smooth" }); }
-        });
+        var rec = (G.POLITICIANS || []).filter(function (p) { return p.name === nm && (p.scope === sc || (!sc && p.scope === "uk")); })[0]
+               || (G.POLITICIANS || []).filter(function (p) { return p.name === nm; })[0];
+        if (rec) { polToForm(rec); sel("apMsg").textContent = "Loaded " + nm + " \u2014 edit and Save."; sel("apName").scrollIntoView && sel("apName").scrollIntoView({ behavior: "smooth" }); }
+        else { sel("apName").value = nm; sel("apMsg").textContent = "Loaded the name \u2014 press Load or fill the form."; }
       } else if (act === "del") {
         if (window.confirm && !window.confirm("Remove " + nm + " from the game? You can restore it here afterwards.")) return;
         if (G.mergeRoster) G.mergeRoster([{ name: nm, scope: sc, deleted: true }]);
