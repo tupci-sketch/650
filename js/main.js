@@ -1255,6 +1255,7 @@
       G.UI.renderLeaderboard(top, communal, err);
       if (err === "offline") setLbBtns(false, "\u2605 Try posting again");          // allow retry
       else if (err === "duplicate") setLbBtns(true, "Already posted \u2713");
+      else if (err === "replay") setLbBtns(true, "Replay \u2014 doesn't score");
       else if (err === "not hardest mode") setLbBtns(true, "Not in ranked mode");
       else if (err === "login") setLbBtns(true, "Sign in to post");
       else setLbBtns(true, "Posted \u2713");

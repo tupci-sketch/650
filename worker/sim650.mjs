@@ -95,7 +95,17 @@ async function ensureSchema(env) {
   await DB.prepare("CREATE TABLE IF NOT EXISTS b650_config (key TEXT PRIMARY KEY, value TEXT)").run();
   await DB.prepare("CREATE TABLE IF NOT EXISTS b650_pols (id INTEGER PRIMARY KEY AUTOINCREMENT, nameKey TEXT, scope TEXT, name TEXT, party TEXT, era TEXT, appeal INTEGER, experience INTEGER, oratory INTEGER, statecraft INTEGER, partyMgmt INTEGER, fits TEXT, note TEXT, despot INTEGER, mode TEXT, cast TEXT, flag TEXT, wiki TEXT, img TEXT, deleted INTEGER DEFAULT 0)").run();
   await DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS b650_pols_uk ON b650_pols(nameKey, scope)").run();
+  /* anti-replay: the first player to score a given run fingerprint owns it; a
+     byte-identical run (a loaded replay) can never score again. Stores the run
+     code too, so any leaderboard run can be loaded and reproduced. */
+  await DB.prepare("CREATE TABLE IF NOT EXISTS b650_claims (runFp TEXT PRIMARY KEY, userKey TEXT, ts INTEGER, runCode TEXT, boardKey TEXT, seats INTEGER)").run();
+  /* additive columns for run codes on the board (guarded — ignore if present) */
+  await addCol(env, "b650_board", "runFp", "TEXT");
+  await addCol(env, "b650_board", "runCode", "TEXT");
   schemaReady = true;
+}
+async function addCol(env, table, col, type) {
+  try { await env.DB.prepare("ALTER TABLE " + table + " ADD COLUMN " + col + " " + type).run(); } catch (e) { /* already exists */ }
 }
 
 /* ---------------- accounts / auth ---------------- */
@@ -128,6 +138,7 @@ function entryFromBoard(r, lv) {
     runId: str(r.runId, 32), partyName: str(r.party, 28), partyAlign: str(r.align, 14),
     scenarioKey: str(r.scenarioKey, 40), electoralSystem: str(r.electoralSystem, 40),
     totalSeats, pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
+    runCode: str(r.runCode, 2000),
     level: (lv && lv[keyOf(r.name)]) || 1
   };
 }
@@ -214,14 +225,29 @@ async function doScore(env, d, kind) {
   const bk = boardKeyFrom(d.mode, d.difficulty, d.cabinetSize, d.scenarioKey, d.electoralSystem);
   const seats = clampInt(d.seats, 0, MAX_SEATS);
   const legacy = (d.legacy === null || d.legacy === undefined || d.legacy === "") ? null : clampInt(d.legacy, 0, 100);
+
+  /* ANTI-REPLAY: a run's fingerprint is claimed by the first player to score it.
+     A byte-identical run submitted by anyone else is a replay and cannot count. */
+  const fp = str(d.runFp, 24), runCode = str(d.runCode, 2000);
+  if (fp) {
+    const claim = await dFirst(env, "SELECT userKey FROM b650_claims WHERE runFp=?", fp);
+    if (claim && keyOf(claim.userKey) !== userKey) {
+      return { ok: false, error: "replay", top: await topBoard(env, bk) };
+    }
+    if (!claim) {
+      await dRun(env, "INSERT OR IGNORE INTO b650_claims (runFp,userKey,ts,runCode,boardKey,seats) VALUES (?,?,?,?,?,?)",
+        fp, userKey, Date.now(), runCode, bk, seats);
+    }
+  }
+
   await dRun(env,
-    "INSERT INTO b650_board (boardKey,name,userKey,seats,legacy,govt,mode,difficulty,cabinetSize,cabinet,breakdown,ts,runId,party,align,scenarioKey,electoralSystem,totalSeats) " +
-    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
-    "ON CONFLICT(userKey,boardKey) DO UPDATE SET name=excluded.name,seats=excluded.seats,legacy=excluded.legacy,govt=excluded.govt,mode=excluded.mode,difficulty=excluded.difficulty,cabinetSize=excluded.cabinetSize,cabinet=excluded.cabinet,breakdown=excluded.breakdown,ts=excluded.ts,runId=excluded.runId,party=excluded.party,align=excluded.align,scenarioKey=excluded.scenarioKey,electoralSystem=excluded.electoralSystem,totalSeats=excluded.totalSeats " +
+    "INSERT INTO b650_board (boardKey,name,userKey,seats,legacy,govt,mode,difficulty,cabinetSize,cabinet,breakdown,ts,runId,party,align,scenarioKey,electoralSystem,totalSeats,runFp,runCode) " +
+    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+    "ON CONFLICT(userKey,boardKey) DO UPDATE SET name=excluded.name,seats=excluded.seats,legacy=excluded.legacy,govt=excluded.govt,mode=excluded.mode,difficulty=excluded.difficulty,cabinetSize=excluded.cabinetSize,cabinet=excluded.cabinet,breakdown=excluded.breakdown,ts=excluded.ts,runId=excluded.runId,party=excluded.party,align=excluded.align,scenarioKey=excluded.scenarioKey,electoralSystem=excluded.electoralSystem,totalSeats=excluded.totalSeats,runFp=excluded.runFp,runCode=excluded.runCode " +
     "WHERE excluded.seats > b650_board.seats OR (excluded.seats = b650_board.seats AND COALESCE(excluded.legacy,-1) > COALESCE(b650_board.legacy,-1))",
     bk, name, userKey, seats, legacy, d.govt ? 1 : 0, str(d.mode, 12), str(d.difficulty, 8), str(d.cabinetSize, 10),
     JSON.stringify(d.cabinet || []), JSON.stringify(d.breakdown || []), Date.now(), str(d.runId, 32), partyName, str(d.partyAlign, 14),
-    str(d.scenarioKey, 40), str(d.electoralSystem, 40), Number(d.totalSeats) > 0 ? Number(d.totalSeats) : 650);
+    str(d.scenarioKey, 40), str(d.electoralSystem, 40), Number(d.totalSeats) > 0 ? Number(d.totalSeats) : 650, fp, runCode);
   await upsertRun(env, name, d, "submit", partyName);
   return { ok: true, top: await topBoard(env, bk), overallPct: await overallPct(env) };
 }
