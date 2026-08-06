@@ -577,8 +577,21 @@ G.UI.renderGovern = function () {
   G.UI.setMeter("meterUnity", t.meters.unity);
   G.UI.updateGovSeats();
   G.UI.refreshGovActions();
-  $("govLog").innerHTML = '<div class="feed-line muted">' +
+  var intro = '<div class="feed-line muted">' +
     (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
+  if (!opp && t.handovers && t.handovers.length) {
+    var fl = t.coalitionFlavor || {};
+    var rows = t.handovers.map(function (h) {
+      return '<div class="coal-give"><span class="coal-give-post">' + G.UI._esc(h.title) + '</span>' +
+             '<span class="coal-give-min"><span class="coal-sw" style="background:' + (h.colour || '#6b6b6b') + '"></span>' +
+             G.UI._esc(h.minister.name) + ' <span class="coal-give-party">' + G.UI._esc(h.party) + '</span></span></div>';
+    }).join("");
+    intro = '<div class="coal-handover"><div class="coal-handover-h">' + G.UI._esc(fl.title || "Coalition") +
+            '</div><p class="coal-handover-note">' + G.UI._esc(fl.note || "") +
+            ' You cede <b>' + t.handovers.length + '</b> cabinet ' + (t.handovers.length === 1 ? 'post' : 'posts') +
+            ' to your partners:</p>' + rows + '</div>' + intro;
+  }
+  $("govLog").innerHTML = intro;
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderTurnEvents();
@@ -1002,7 +1015,7 @@ G.UI.renderPostElectionIntl = function (res, sys) {
       var b = document.createElement("button");
       b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
       var tag = d.tag || (d.natural ? "natural" : "unlikely");
-      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + G.UI._cedeTag(d, res) + '</span>' +
                     '<span class="coal-meta"><span class="coal-sub">' + d.combined + ' seats</span>' +
                     '<span class="coal-tag ' + tag + '">' + tag + '</span></span>';
       box.appendChild(b);
@@ -1031,6 +1044,18 @@ G.UI.renderPostElectionIntl = function (res, sys) {
 /* Replace the UK hexmap with a system-appropriate visual: a geographic hex
    cartogram of the country (when a layout exists) plus a system-specific
    breakdown (EC tally / coalition list / region bars) below it. */
+/* how many cabinet posts a deal would cost you — previewed on the coalition
+   buttons so the trade-off is visible before you sign. */
+G.UI._cedeTag = function (deal, res) {
+  try {
+    if (!G.buildCoalitionCabinet || !res || !res.opposition || !G.state || !G.state.cabinet) return "";
+    var sysKey = (res.electoralSystem && res.electoralSystem !== "fptp_uk") ? res.electoralSystem : (G.state._electoralSystemKey || null);
+    var built = G.buildCoalitionCabinet(deal, res.opposition, G.state.cabinet, { sysKey: sysKey, playerSeats: res.seats });
+    var n = built && built.handovers ? built.handovers.length : 0;
+    return n ? '<span class="coal-cede">cede ' + n + ' post' + (n === 1 ? '' : 's') + '</span>' : "";
+  } catch (e) { return ""; }
+};
+
 /* ---- odds labels: reflect THIS system's real thresholds ----------------- */
 /* "Landslide 400+" only makes sense for the 650-seat Commons; every system has
    its own majority/landslide/supermajority/total, so label the odds tiles with
@@ -1399,7 +1424,7 @@ G.UI.renderPostElection = function (res) {
       var b = document.createElement("button");
       b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
       var tag = d.tag || (d.natural ? "natural" : "unlikely");
-      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + G.UI._cedeTag(d, res) + '</span>' +
                     '<span class="coal-meta"><span class="coal-sub">' + d.combined + ' seats</span>' +
                     '<span class="coal-tag ' + tag + '">' + tag + '</span></span>';
       box.appendChild(b);

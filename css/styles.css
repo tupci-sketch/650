@@ -805,6 +805,17 @@ body::before {
 .adm-pol .ap-nm { font-family:var(--display); font-weight:600; min-width:0; overflow-wrap:anywhere; }
 .btn.danger { border-color:rgba(134,34,49,.5); color:var(--oxblood,#862231); }
 .btn.danger:hover { background:rgba(134,34,49,.08); }
+/* --- coalition handover (govern log intro) --- */
+.coal-handover { border:1px solid var(--line,#e3dac6); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:rgba(120,120,120,.06); }
+.coal-handover-h { font-family:var(--display); font-weight:700; font-size:14px; margin-bottom:2px; }
+.coal-handover-note { font-size:12px; color:var(--ink-soft,#6b6b6b); margin:0 0 8px; line-height:1.5; }
+.coal-give { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0; font-size:13px; border-top:1px solid var(--line,#e3dac6); }
+.coal-give:first-of-type { border-top:none; }
+.coal-give-post { font-family:var(--display); font-weight:600; }
+.coal-give-min { display:flex; align-items:center; gap:6px; }
+.coal-give-party { color:var(--ink-soft,#6b6b6b); font-size:11px; }
+.coal-sw { display:inline-block; width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+.coal-cede { font-family:var(--mono); font-size:10px; color:var(--ink-soft,#6b6b6b); margin-left:6px; }
 .adm-check { font-size:13px; display:flex; align-items:center; gap:8px; }
 /* --- friendly politician editor (form) --- */
 .ap-load-row { display:flex; gap:8px; align-items:stretch; }

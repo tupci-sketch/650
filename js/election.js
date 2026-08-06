@@ -429,7 +429,11 @@ G.buildOppositionField = function (opts, rnd) {
       field[label] = {
         strength: Math.max(lo, Math.min(hi, strength * boost)),
         rating: Math.round(rating),
-        bench: bench.slice(0, need).map(function (p) { return { name: p.name, party: p.party }; })
+        /* full pol refs (stats/fits/era) so coalition partners can actually
+           staff cabinet posts from this simulated bench */
+        bench: bench.slice(0, need).map(function (p) {
+          return { name: p.name, party: p.party, stats: p.stats, fits: p.fits, era: p.era, scope: p.scope, note: p.note };
+        })
       };
     } else {
       field[label] = { strength: lo + rnd() * (hi - lo), rating: null, bench: [] };
@@ -607,7 +611,10 @@ G.coalitionOptions = function (seats, campaign, playerAlign) {
   /* use the active system's majority threshold, not the hardcoded UK value */
   var majority = (G.activeMajority ? G.activeMajority() : C.majority);
   if (playerAlign == null) playerAlign = 0;
-  var largest = bd.length > 0 && bd[0].party === blocLabel;
+  /* "largest" from the seat order itself (isYou), not a party-name match — a
+     custom party name that differs from its breakdown label must never demote
+     the top-of-the-poll player to the opposition fallback. */
+  var largest = bd.length > 0 && (bd[0].isYou || bd[0].party === blocLabel);
   var opp = bd.filter(function (p) { return !p.isYou && p.party !== "Sinn Féin"; });
 
   function pairTag(parties) {
@@ -632,7 +639,7 @@ G.coalitionOptions = function (seats, campaign, playerAlign) {
   });
   /* two-party deals (only if single options are thin) — search the top opponents */
   if (deals.length < 3) {
-    var top = opp.slice(0, 6);
+    var top = opp.slice(0, 8);
     for (var i = 0; i < top.length; i++) {
       for (var j = i + 1; j < top.length; j++) {
         var a = top[i], b = top[j];

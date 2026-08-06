@@ -553,17 +553,32 @@ G.startTerm = function (res, opts) {
                           + (G.ministerStat("leader", "partyMgmt") - 50) * 0.10);
   /* coalitions and minorities are harder to hold together — and the further
      apart the partners' politics (the deal's alignment tag), the harder. */
+  var handovers = null, coalitionFlavor = null;
   if (opts.coalition) {
     var co = opts.coalition;
     var pen = { natural: 8, workable: 12, strained: 16, unlikely: 20 };
     var tag = co.tag || (co.natural ? "natural" : "unlikely");
     unity = G._clampM(unity - (pen[tag] != null ? pen[tag] : 16));
+    /* ACTIVE coalition: partners claim cabinet posts, staffed from their own
+       simulated benches — the ministers actually take their seats for the term,
+       so governing runs on the coalition's mixed quality. */
+    if (G.buildCoalitionCabinet && res.opposition && G.state && G.state.cabinet) {
+      var built = G.buildCoalitionCabinet(co, res.opposition, G.state.cabinet,
+                    { sysKey: sysKey, playerSeats: res.seats });
+      if (built && built.handovers && built.handovers.length) {
+        G.state._playerCabinet = G.state._playerCabinet || G.state.cabinet;  // remember the all-yours line-up
+        G.state.cabinet = built.cabinet;                                     // partners now sit in it
+        handovers = built.handovers;
+        coalitionFlavor = built.flavor;
+      }
+    }
   }
   if (opts.minority)  unity = G._clampM(unity - 10);
 
   G.term = {
     kind: "govt",
     coalition: opts.coalition || null, minority: !!opts.minority,
+    handovers: handovers, coalitionFlavor: coalitionFlavor,
     meters: { approval: approval, economy: economy, unity: unity },
     seats: seats, startSeats: seats,
     majority: termMajority, totalSeats: termTotalSeats,

@@ -1522,16 +1522,18 @@
     btn.onclick = function () {
       if (!G.career || !G.career.active) { goMenu(); return; }
       /* compute retirements based on serve counts set in careerRecordTerm */
-      var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+      var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
       /* add retiring names to retiredMinisters so pool excludes them */
       retiring.forEach(function (r) {
         if (G.career.retiredMinsters) G.career.retiredMinsters[r.politician.name] = true;
       });
       /* build carry-over: ministers NOT retiring keep their portfolio */
       var carryOver = {};
-      var cabinet = (G.state && G.state.cabinet) || {};
+      /* coalition partners' ministers don't carry over as your own — the term's
+         all-yours line-up (kept aside when the coalition formed) is the base. */
+      var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
       Object.keys(cabinet).forEach(function (key) {
-        var pol = cabinet[key]; if (!pol) return;
+        var pol = cabinet[key]; if (!pol || pol.coalitionParty) return;
         var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
         if (!isRetiring) carryOver[key] = pol;
       });
@@ -1583,7 +1585,7 @@
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */
-        var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+        var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
         G.UI.renderRetirements(retiring, G.career);
       } else {
         if (origOnclick) origOnclick.call(this);
