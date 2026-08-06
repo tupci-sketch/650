@@ -596,8 +596,93 @@ G.UI.renderGovern = function () {
   G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderTurnEvents();
   G.UI.renderObjectiveBanner();
+  G.UI.renderCabinetStrip();
   G.UI.show("screen-govern");
 };
+/* the cabinet, left to right: a portrait + post per minister, tap for detail.
+   Coalition partners carry their party colour as a ring + flag. */
+G.UI.renderCabinetStrip = function () {
+  var strip = document.getElementById("cabinetStrip");
+  var panel = document.getElementById("cabinetStripPanel");
+  if (!strip || !panel) return;
+  var t = G.term, cab = (G.state && G.state.cabinet) || {};
+  if (t && t.kind === "opp") { panel.style.display = "none"; return; }
+  var html = (G.PORTFOLIOS || []).map(function (port) {
+    var pol = cab[port.key]; if (!pol) return "";
+    var coal = pol.coalitionParty;
+    var ring = coal ? (pol.coalitionColour || "#888") : "";
+    return '<button class="cab-min' + (coal ? ' coal' : '') + '" data-port="' + port.key + '"' +
+      (coal ? ' style="--ring:' + ring + '"' : '') + ' title="' + G.UI._esc(port.name + ' — ' + pol.name) + '">' +
+      '<span class="cab-face" data-pol="' + G.UI._esc(pol.name) + '">' + G.UI._initials(pol.name) + '</span>' +
+      '<span class="cab-post">' + G.UI._esc(port.name) + '</span>' +
+      (coal ? '<span class="cab-flag" style="background:' + ring + '"></span>' : '') +
+      '</button>';
+  }).join("");
+  strip.innerHTML = html;
+  panel.style.display = html ? "" : "none";
+  G.UI._hydratePortraits(strip);
+};
+
+/* minister detail card — stats, morale, and one light interaction ("have a
+   word" nudges loyalty, once a session). Coalition partners are read-only. */
+G.UI.showMinisterCard = function (portKey) {
+  var overlay = document.getElementById("ministerCardOverlay");
+  var card = document.getElementById("ministerCard");
+  if (!overlay || !card) return;
+  var pol = G.state && G.state.cabinet && G.state.cabinet[portKey];
+  var port = G.PORTFOLIO_BY_KEY && G.PORTFOLIO_BY_KEY[portKey];
+  if (!pol || !port) return;
+  var coal = pol.coalitionParty;
+  var ms = G.minState ? G.minState(pol.name) : { loyalty: 55, ambition: 45, traits: [] };
+  var s = pol.stats || {};
+  function bar(lbl, v) {
+    v = Math.max(0, Math.min(100, v || 0));
+    return '<div class="mc-stat"><span class="mc-stat-l">' + lbl + '</span>' +
+           '<span class="mc-stat-bar"><span style="width:' + v + '%"></span></span>' +
+           '<span class="mc-stat-v">' + Math.round(v) + '</span></div>';
+  }
+  var traits = (ms.traits && ms.traits.length) ? ms.traits.join(", ") : "no notable traits yet";
+  var wordable = !coal && G.term && !G.term.over && !(ms._wordedSession === G.term.session);
+  card.innerHTML =
+    '<button class="mc-close" data-mc="close" aria-label="Close">×</button>' +
+    '<div class="mc-head">' +
+      '<span class="mc-face" data-pol="' + G.UI._esc(pol.name) + '">' + G.UI._initials(pol.name) + '</span>' +
+      '<div class="mc-id"><div class="mc-name">' + G.UI._esc(pol.name) + '</div>' +
+        '<div class="mc-role">' + G.UI._esc(port.name) + (coal ? ' · <span class="mc-coal" style="color:' + (pol.coalitionColour || '#888') + '">' + G.UI._esc(coal) + '</span>' : '') + '</div></div>' +
+    '</div>' +
+    (pol.note ? '<p class="mc-note">' + G.UI._esc(pol.note) + '</p>' : '') +
+    '<div class="mc-stats">' +
+      bar("Appeal", s.appeal) + bar("Experience", s.experience) + bar("Oratory", s.oratory) +
+      bar("Statecraft", s.statecraft) + bar("Party mgmt", s.partyMgmt) +
+    '</div>' +
+    '<div class="mc-morale">' +
+      '<span>Loyalty <b>' + Math.round(ms.loyalty) + '</b></span>' +
+      '<span>Ambition <b>' + Math.round(ms.ambition) + '</b></span>' +
+      (ms.rivalry ? '<span class="mc-rival">plotting</span>' : '') +
+    '</div>' +
+    '<p class="mc-traits">' + G.UI._esc(traits) + '</p>' +
+    (coal
+      ? '<p class="mc-coalnote">A coalition partner — they answer to their own party, not to you.</p>'
+      : (wordable
+          ? '<button class="btn btn-ghost mc-word" data-mc="word" data-port="' + portKey + '">Have a quiet word</button>'
+          : (G.term && !G.term.over ? '<p class="mc-done">You’ve already spoken with them this session.</p>' : '')));
+  overlay.style.display = "flex";
+  G.UI._hydratePortraits(card);
+};
+G.UI.hideMinisterCard = function () {
+  var o = document.getElementById("ministerCardOverlay"); if (o) o.style.display = "none";
+};
+G.UI._haveWord = function (portKey) {
+  var pol = G.state && G.state.cabinet && G.state.cabinet[portKey];
+  if (!pol || !G.minState || !G.term) return;
+  var ms = G.minState(pol.name);
+  if (ms._wordedSession === G.term.session) return;
+  ms.loyalty = Math.max(20, Math.min(95, (ms.loyalty || 55) + 4));
+  ms._wordedSession = G.term.session;
+  if (G.UI.pushGovLog) G.UI.pushGovLog({ text: "You had a quiet word with " + pol.name + " — loyalty steadies.", cls: "good" });
+  G.UI.showMinisterCard(portKey);   // re-render (button now spent)
+};
+
 G.UI.pushGovLog = function (lines) {
   var feed = $("govLog");
   (Array.isArray(lines) ? lines : [lines]).slice().reverse().forEach(function (ln) {
@@ -618,6 +703,7 @@ G.UI.afterConfirm = function () {
   $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
+  G.UI.renderCabinetStrip();
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {

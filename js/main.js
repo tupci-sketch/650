@@ -1361,6 +1361,22 @@
       G.UI.afterConfirm();
       if (r.over) endTerm();
     };
+    /* cabinet strip: tap a minister to open their card */
+    var strip = sel("cabinetStrip");
+    if (strip) strip.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".cab-min") : null;
+      if (b) G.UI.showMinisterCard(b.getAttribute("data-port"));
+    });
+    /* minister card overlay: close (backdrop or ×) + "have a word" */
+    var ov = sel("ministerCardOverlay");
+    if (ov) ov.addEventListener("click", function (e) {
+      if (e.target === ov) { G.UI.hideMinisterCard(); return; }
+      var a = e.target && e.target.closest ? e.target.closest("[data-mc]") : null;
+      if (!a) return;
+      var act = a.getAttribute("data-mc");
+      if (act === "close") G.UI.hideMinisterCard();
+      else if (act === "word") G.UI._haveWord(a.getAttribute("data-port"));
+    });
     /* once-a-term reshuffle: pick two seats to swap */
     var resel = [];
     sel("reshuffleBtn").onclick = function () {
