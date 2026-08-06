@@ -1807,11 +1807,30 @@
   }
   function openAdmin() {
     stopChatPoll(); G.UI.show("screen-admin");
-    if (G.NET) G.NET.loadConfig().then(function () { G.UI.renderAdmin(); });
+    if (G.NET) G.NET.loadConfig().then(function () { G.UI.renderAdmin(); fillRankedAdmin(); });
     apBuildControls();
+    fillRankedAdmin();
     fillPolNames();
     refreshUsers();
     refreshPolList();
+  }
+  function fillRankedAdmin() {
+    var r = (G.NET && G.NET.config && G.NET.config.ranked) || (G.LB && G.LB.RANKED_DEFAULT) || {};
+    var sysSel = sel("rkSystem");
+    if (sysSel && !sysSel.options.length) {
+      var opts = '<option value="">🇬🇧 UK · Commons (FPTP)</option>';
+      var sys = G.ELECTORAL_SYSTEMS || {};
+      ["fptp_usa_house", "ec_usa_president", "pr_dhondt_bundestag", "pr_dhondt_weimar", "trs_france", "av_australia", "fptp_canada", "fptp_india", "fptp_japan", "guided_china", "guided_north_korea", "guided_soviet", "guided_cuba"].forEach(function (k) {
+        var s = sys[k]; if (!s) return; opts += '<option value="' + k + '">' + (s.flag ? s.flag + " " : "") + G.UI._esc(s.name || k) + '</option>';
+      });
+      sysSel.innerHTML = opts;
+    }
+    var set = function (id, v) { var el = sel(id); if (el) el.value = v; };
+    var chk = function (id, v) { var el = sel(id); if (el) el.checked = !!v; };
+    set("rkMode", r.mode || "wildcard"); set("rkDiff", r.difficulty || "brutal");
+    set("rkSize", r.cabinetSize || "expanded"); set("rkSystem", r.system || "");
+    set("rkRedos", String(r.redos | 0));
+    chk("rkGovern", r.govern); chk("rkPolicy", r.policy); chk("rkCampaign", r.campaign);
   }
   function fillPolNames() {
     var dl = sel("apNames"); if (!dl || !G.POLITICIANS) return;
@@ -2044,6 +2063,20 @@
         var url = ln.slice(i + 1).trim(); if (url) streams.push({ label: ln.slice(0, i).trim() || "Live", url: url });
       });
       G.NET.adminStreams(streams).then(function (d) { flash(sel("admStreamsSave"), (d && d.ok) ? "Saved \u2713" : "Failed"); });
+    };
+    if (sel("rkSave")) sel("rkSave").onclick = function () {
+      if (!G.NET || !G.NET.adminRanked) return;
+      var sysKey = sel("rkSystem").value;
+      var country = sysKey && G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[sysKey] ? (G.ELECTORAL_SYSTEMS[sysKey].regionKey || "uk") : "uk";
+      var spec = {
+        country: country, mode: sel("rkMode").value, difficulty: sel("rkDiff").value, cabinetSize: sel("rkSize").value,
+        system: sysKey, scenario: "", redos: parseInt(sel("rkRedos").value, 10) || 0,
+        govern: sel("rkGovern").checked, policy: sel("rkPolicy").checked, campaign: sel("rkCampaign").checked
+      };
+      var m = sel("rkMsg"); if (m) m.textContent = "Saving\u2026";
+      G.NET.adminRanked(spec).then(function (d) {
+        if (m) m.textContent = (d && d.ok) ? "Ranked spec saved \u2014 live for everyone." : "Couldn't save: " + ((d && d.error) || "offline") + ".";
+      });
     };
     sel("apLoad").onclick = function () {
       var name = (sel("apName").value || "").trim();
