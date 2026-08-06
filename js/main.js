@@ -932,10 +932,9 @@
 
   /* load a shared run code from the menu and replay it exactly. A loaded replay
      is flagged non-scoring (it isn't YOUR parliament). */
-  function loadRunCode() {
+  function loadRunCode(codeArg) {
     var inp = sel("loadCodeInput"), msg = sel("loadCodeMsg");
-    if (!inp) return;
-    var raw = (inp.value || "").trim();
+    var raw = (codeArg != null) ? String(codeArg) : ((inp && inp.value) || "").trim();
     function say(t) { if (msg) { msg.style.display = ""; msg.textContent = t; } }
     if (!raw) { say("Paste a run code first."); return; }
     var decoded = G.LB && G.LB.decodeRun(raw);
@@ -1218,17 +1217,50 @@
     if (G.NET && G.NET.me) el.textContent = "Posting as " + G.NET.me.name + ".";
     else el.textContent = "The public board is for registered players \u2014 sign in (free) to post your runs.";
   }
+  var lbCat = "ranked";                       // current leaderboard category id
+  function lbCategories() {
+    var cats = [
+      { id: "ranked",  label: "\ud83c\udfc6 Ranked",   kind: "ranked" },
+      { id: "overall", label: "\u2605 All-time",  kind: "overall" }
+    ];
+    var sys = G.ELECTORAL_SYSTEMS || {};
+    var LABELS = {
+      fptp_uk: "UK", fptp_usa_house: "US House", ec_usa_president: "US College",
+      pr_dhondt_bundestag: "Germany", pr_dhondt_weimar: "Weimar", trs_france: "France",
+      av_australia: "Australia", fptp_canada: "Canada", fptp_india: "India", fptp_japan: "Japan",
+      guided_china: "China", guided_north_korea: "North Korea", guided_soviet: "Soviet", guided_cuba: "Cuba"
+    };
+    var order = ["fptp_uk", "fptp_usa_house", "ec_usa_president", "pr_dhondt_bundestag", "pr_dhondt_weimar",
+                 "trs_france", "av_australia", "fptp_canada", "fptp_india", "fptp_japan",
+                 "guided_china", "guided_north_korea", "guided_soviet", "guided_cuba"];
+    order.forEach(function (k) {
+      var s = sys[k]; if (!s) return;
+      cats.push({ id: k, label: (s.flag ? s.flag + " " : "") + (LABELS[k] || s.country || k),
+                  kind: "board", key: (k === "fptp_uk") ? "unity|normal|standard" : ("system:" + k) });
+    });
+    return cats;
+  }
+  function renderLbCats() {
+    var box = sel("lbCats"); if (!box) return;
+    box.innerHTML = lbCategories().map(function (c) {
+      return '<button class="lb-cat' + (c.id === lbCat ? " sel" : "") + '" data-cat="' + c.id + '">' + G.UI._esc(c.label) + '</button>';
+    }).join("");
+  }
   function openLeaderboard() {
     updateLbWho();
+    if (G.UI) G.UI.onReplay = function (code) { loadRunCode(code); };
+    renderLbCats();
     G.UI.show("screen-leaderboard"); loadLeaderboard();
   }
   function loadLeaderboard() {
     var s = sel("lbStatus"); if (s) s.textContent = "Loading\u2026";
-    var bm = sel("lbBoardMode"), v = bm ? bm.value : "ranked";
-    var done = function (d) { G.UI.renderLeaderboard((d && d.top) || [], true, (d && d.ok) ? null : "offline"); };
-    if (v === "overall" && G.NET) { G.NET.overall().then(done); return; }
-    if (v && v !== "ranked" && G.NET) { var p = v.split("|"); G.NET.board({ mode: p[0], difficulty: p[1], cabinetSize: p[2] }).then(done); return; }
-    G.LB.fetchTop(function (top, communal, err) { G.UI.renderLeaderboard(top, communal, err); });
+    var cats = lbCategories();
+    var c = cats.filter(function (x) { return x.id === lbCat; })[0] || cats[0];
+    var render = function (top, communal, err) { G.UI.renderLeaderboard(top || [], communal !== false, err); };
+    if (c.kind === "ranked") { G.LB.fetchRanked(function (top, com, err) { render(top, com, err); }); return; }
+    if (c.kind === "overall" && G.NET) { G.NET.overall().then(function (d) { render((d && d.top) || [], true, (d && d.ok) ? null : "offline"); }); return; }
+    if (c.kind === "board") { G.LB.fetchBoardByKey(c.key, function (top, com, err) { render(top, com, err); }); return; }
+    G.LB.fetchTop(function (top, communal, err) { render(top, communal, err); });
   }
   /* one finished ELECTION = one entry. The cabinet comes from the manifest
      snapshotted at hold() (A3) and the runId minted there keys the record on
@@ -2197,6 +2229,13 @@
         G.NET.adminSetLevel(who, lvl).then(done);
       }
     });
-    var bm = sel("lbBoardMode"); if (bm) bm.addEventListener("change", function () { loadLeaderboard(); });
+    var cats = sel("lbCats");
+    if (cats) cats.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".lb-cat") : null;
+      if (!b) return;
+      lbCat = b.getAttribute("data-cat");
+      renderLbCats();
+      loadLeaderboard();
+    });
   }
 })();

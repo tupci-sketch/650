@@ -1792,8 +1792,13 @@ G.UI._lbRowEl = function (e, rank) {
   var detail = null;
   row.onclick = function () {
     if (detail) { detail.parentNode.removeChild(detail); detail = null; return; }
-    detail = document.createElement("div"); detail.className = "lb-detail"; detail.innerHTML = G.UI._cabinetInner(e);
+    detail = document.createElement("div"); detail.className = "lb-detail";
+    var inner = G.UI._cabinetInner(e);
+    if (e.runCode && G.UI.onReplay) inner += '<button class="btn btn-ghost lb-replay">▶ Load &amp; replay this exact run</button>';
+    detail.innerHTML = inner;
     row.parentNode.insertBefore(detail, row.nextSibling);
+    var rb = detail.querySelector(".lb-replay");
+    if (rb) rb.onclick = function (ev) { ev.stopPropagation(); G.UI.onReplay(e.runCode); };
   };
   return row;
 };
@@ -1802,7 +1807,7 @@ G.UI._drawLb = function () {
   var box = $("lbTable"); if (!box) return;
   box.innerHTML = "";
   var tabs = document.createElement("div"); tabs.className = "lb-tabs";
-  [["communal", "Hardest (UK)"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
+  [["communal", "This board"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
     var b = document.createElement("button");
     b.className = "lb-tab" + (G.UI._lbView === t[0] ? " sel" : "");
     b.textContent = t[1];
