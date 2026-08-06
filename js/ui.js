@@ -1885,6 +1885,53 @@ G.UI.renderLeaderboard = function (top, communal, error) {
     if (cs) cs.disabled = !me;
   };
 
+  /* the signed-in player's profile: identity + stats aggregated from their runs
+     (best seats, governed terms, ranked best, per-nation bests). */
+  G.UI.renderProfile = function (me, runs) {
+    if (!me) return;
+    var nameEl = $("profileName"), rankEl = $("profileRank"), avEl = $("profileAvatar");
+    if (nameEl) nameEl.textContent = me.name;
+    if (avEl) avEl.textContent = (me.name || "?").slice(0, 2).toUpperCase();
+    if (rankEl) rankEl.textContent = me.level >= 9 ? "Administrator" : me.level >= 5 ? "Moderator" : "Player";
+    runs = runs || [];
+    var NAT = { "": "🇬🇧 UK", fptp_uk: "🇬🇧 UK" };
+    var sys = G.ELECTORAL_SYSTEMS || {};
+    function natLabel(k) { if (!k || k === "fptp_uk") return "🇬🇧 UK"; var s = sys[k]; return s ? (s.flag ? s.flag + " " : "") + (s.country || s.name || k) : k; }
+    var games = runs.length, governed = 0, best = null, bestPct = null, rankedBest = null, byNat = {};
+    var rk = (G.LB && G.LB.ranked) ? G.LB.ranked() : { mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded" };
+    runs.forEach(function (r) {
+      if (r.govt || r.legacy != null) governed++;
+      if (!best || r.seats > best.seats) best = r;
+      var pct = r.pct != null ? r.pct : (r.totalSeats > 0 ? r.seats / r.totalSeats * 100 : 0);
+      if (!bestPct || pct > bestPct.pct) bestPct = { pct: pct, r: r };
+      if (r.mode === rk.mode && r.difficulty === rk.difficulty && r.cabinetSize === rk.cabinetSize && (!r.electoralSystem || r.electoralSystem === "fptp_uk")) {
+        if (!rankedBest || r.seats > rankedBest.seats) rankedBest = r;
+      }
+      var key = r.electoralSystem || "fptp_uk";
+      if (!byNat[key] || r.seats > byNat[key].seats) byNat[key] = r;
+    });
+    var statsEl = $("profileStats");
+    if (statsEl) {
+      function tile(v, l) { return '<div class="pf-stat"><div class="pf-stat-v">' + v + '</div><div class="pf-stat-l">' + l + '</div></div>'; }
+      statsEl.innerHTML =
+        tile(games, "Games played") +
+        tile(best ? best.seats : "—", "Best seats") +
+        tile(bestPct ? bestPct.pct.toFixed(1) + "%" : "—", "Best share") +
+        tile(governed, "Governed terms") +
+        tile(rankedBest ? rankedBest.seats : "—", "Ranked best");
+    }
+    var natEl = $("profileNations");
+    if (natEl) {
+      var keys = Object.keys(byNat).sort(function (a, b) { return byNat[b].seats - byNat[a].seats; });
+      natEl.innerHTML = keys.length
+        ? '<div class="pf-nat-h">Best by nation</div>' + keys.map(function (k) {
+            var r = byNat[k];
+            return '<div class="pf-nat"><span>' + esc(natLabel(k)) + '</span><span class="pf-nat-s">' + r.seats + ' / ' + (r.totalSeats || 650) + '</span></div>';
+          }).join("")
+        : "";
+    }
+  };
+
   G.UI.renderPlayerRuns = function (runs) {
     var el = $("runsList"); if (!el) return;
     if (!runs || !runs.length) { el.innerHTML = '<p class="mini-help">No runs recorded yet.</p>'; return; }

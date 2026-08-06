@@ -472,14 +472,16 @@
         /* surface a saved game (cloud when signed in, else the local slot) —
            unless a live in-memory game is already offering an in-place resume */
         showSessionCard();
+        toggleProfilePanels(me);
         if (me) {
-          /* load run history for the account screen */
+          if (G.UI.renderProfile) G.UI.renderProfile(me, []);   // header immediately; stats fill on fetch
+          /* load run history for the profile + recent-games list */
           if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+            var runs = (d && d.ok && d.runs) ? d.runs : [];
+            if (G.UI.renderProfile) G.UI.renderProfile(me, runs);
             var rp = sel("runsPanel"); if (!rp) return;
-            if (d && d.ok && d.runs && d.runs.length) {
-              if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(d.runs);
-              rp.style.display = "";
-            } else rp.style.display = "none";
+            if (runs.length) { if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(runs); rp.style.display = ""; }
+            else rp.style.display = "none";
           });
         } else {
           var rp2 = sel("runsPanel"); if (rp2) rp2.style.display = "none";
@@ -1216,6 +1218,30 @@
     var el = sel("lbWhoNote"); if (!el) return;
     if (G.NET && G.NET.me) el.textContent = "Posting as " + G.NET.me.name + ".";
     else el.textContent = "The public board is for registered players \u2014 sign in (free) to post your runs.";
+  }
+  function toggleProfilePanels(me) {
+    var login = sel("acctLoginPanel"), prof = sel("profilePanel"), title = sel("acctTitle"), msg = sel("acctMsg");
+    if (login) login.style.display = me ? "none" : "";
+    if (prof) prof.style.display = me ? "" : "none";
+    if (title) title.textContent = me ? "Your profile" : "Account";
+    if (msg) msg.style.display = me ? "none" : "";
+  }
+  function openAccount() {
+    if (G.NET && G.NET.me) {
+      toggleProfilePanels(G.NET.me);
+      if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, []);
+      if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+        var runs = (d && d.ok && d.runs) ? d.runs : [];
+        if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, runs);
+        var rp = sel("runsPanel");
+        if (runs.length) { if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(runs); if (rp) rp.style.display = ""; }
+        else if (rp) rp.style.display = "none";
+      });
+    } else {
+      toggleProfilePanels(null);
+      setAcctTab("login");
+    }
+    G.UI.show("screen-account");
   }
   var lbCat = "ranked";                       // current leaderboard category id
   function lbCategories() {
@@ -2020,8 +2046,13 @@
   function wirePlatform() {
     sel("acctOpenBtn").onclick = function () {
       stopChatPoll();
-      if (G.NET && G.NET.me) { if (!window.confirm || window.confirm("Sign out of " + G.NET.me.name + "?")) G.NET.logout(); return; }
-      setAcctTab("login"); G.UI.show("screen-account");
+      openAccount();
+    };
+    if (sel("profileSignOut")) sel("profileSignOut").onclick = function () {
+      if (!G.NET) return;
+      if (!window.confirm || window.confirm("Sign out of " + (G.NET.me ? G.NET.me.name : "your account") + "?")) {
+        G.NET.logout().then(function () { toggleProfilePanels(null); goMenu(); });
+      }
     };
     sel("acctBackBtn").onclick = goMenu;
     each(document.querySelectorAll("#screen-account .acct-tab"), function (b) { b.onclick = function () { setAcctTab(b.getAttribute("data-at")); }; });

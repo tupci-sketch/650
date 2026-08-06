@@ -675,14 +675,25 @@
     <!-- ====================================================== FOOTER ==== -->
     <!-- ================================================== LEADERBOARD == -->
     <section id="screen-account" class="screen">
-      <p class="section-label">Account</p>
+      <p class="section-label" id="acctTitle">Account</p>
       <p class="mini-help" id="acctMsg">Sign in to save your runs across devices, lock your leaderboard name to you, and join the chat.</p>
-      <div class="panel acct-panel">
+      <!-- sign-in / register (hidden when signed in) -->
+      <div class="panel acct-panel" id="acctLoginPanel">
         <div class="acct-tabs"><button class="acct-tab sel" data-at="login">Sign in</button><button class="acct-tab" data-at="register">Register</button></div>
         <input id="acctUser" class="lb-input" type="text" maxlength="24" placeholder="Username" />
         <input id="acctPass" class="lb-input" type="password" maxlength="64" placeholder="Password (min 6 characters)" />
         <button class="btn btn-primary" id="acctSubmit">Sign in</button>
         <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear.</p>
+      </div>
+      <!-- profile (shown when signed in) -->
+      <div class="panel profile-panel" id="profilePanel" style="display:none">
+        <div class="profile-head">
+          <span class="profile-avatar" id="profileAvatar">—</span>
+          <div class="profile-id"><div class="profile-name" id="profileName">—</div><div class="profile-rank" id="profileRank"></div></div>
+          <button class="btn btn-ghost" id="profileSignOut">Sign out</button>
+        </div>
+        <div class="profile-stats" id="profileStats"></div>
+        <div class="profile-nations" id="profileNations"></div>
       </div>
       <!-- Player's run history (shown when signed in) -->
       <div class="panel" id="runsPanel" style="display:none">
