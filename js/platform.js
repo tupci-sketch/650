@@ -89,6 +89,7 @@
   NET.adminUnban    = function (t) { return NET._auth("admin_unban", { target: t }); };
   NET.adminBanner   = function (text, active) { return NET._auth("admin_banner", { text: text, active: active }).then(function (d) { if (d && d.config) NET.config = d.config; return d; }); };
   NET.adminStreams  = function (streams) { return NET._auth("admin_streams", { streams: streams }).then(function (d) { if (d && d.config) NET.config = d.config; return d; }); };
+  NET.adminRanked   = function (ranked) { return NET._auth("admin_ranked", { ranked: ranked }).then(function (d) { if (d && d.config) NET.config = d.config; return d; }); };
   NET.adminAddPol   = function (pol) { return NET._auth("admin_addpol", { pol: pol }); };
   NET.adminDelPol   = function (name, scope) { return NET._auth("admin_delpol", { name: name, scope: scope }); };
   NET.adminRestorePol = function (name, scope) { return NET._auth("admin_restorepol", { name: name, scope: scope }); };

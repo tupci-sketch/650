@@ -10,11 +10,27 @@
   var sel = function (id) { return document.getElementById(id); };
   var each = function (list, fn) { Array.prototype.forEach.call(list, fn); };
   function setSel(rowId, attr, val) { var row = sel(rowId); if (!row) return; each(row.querySelectorAll("[" + attr + "]"), function (b) { b.classList.toggle("sel", b.getAttribute(attr) === val); }); }
-  function isRankedSetup() { return choice.mode === "wildcard" && choice.difficulty === "hard" && choice.cabinetSize === "expanded"; }
+  function rankedSpec() { return (G.LB && G.LB.ranked) ? G.LB.ranked() : { country: "uk", mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded", redos: 0, govern: 1, policy: 1, campaign: 1 }; }
+  function allErasOn() {
+    var all = (G.ERAS || []).map(function (e) { return e.id; });
+    return all.length > 0 && all.every(function (id) { return (choice.eras || []).indexOf(id) !== -1; });
+  }
+  function isRankedSetup() {
+    var r = rankedSpec();
+    return choice.mode === r.mode && choice.difficulty === r.difficulty && choice.cabinetSize === r.cabinetSize &&
+           (choice.country || "uk") === (r.country || "uk") &&
+           (choice.redos | 0) === (r.redos | 0) &&
+           (!!choice.govern) === (!!r.govern) && (!!choice.policy) === (!!r.policy) && (!!choice.campaignOn) === (!!r.campaign) &&
+           allErasOn();
+  }
+  function rankedSummary() {
+    var r = rankedSpec();
+    return "Wildcard · Brutal · Expanded (16) · all eras · full term with manifesto & campaign · no do-overs";
+  }
   function updateEligibility() {
     var b = sel("lbEligBadge"); if (!b) return;
-    if (isRankedSetup()) { b.textContent = "\uD83C\uDFC6 Leaderboard-eligible \u2014 this is the ranked mode (Wildcard \u00b7 Hard \u00b7 Expanded)."; b.className = "elig-badge ok"; }
-    else { b.textContent = "Not ranked \u2014 only Wildcard \u00b7 Hard \u00b7 Expanded counts on the global board. You'll still get a personal board, and can post for fun."; b.className = "elig-badge"; }
+    if (isRankedSetup()) { b.textContent = "\uD83C\uDFC6 Ranked \u2014 this run counts on the ranked board (" + rankedSummary() + ")."; b.className = "elig-badge ok"; }
+    else { b.textContent = "Not ranked \u2014 the ranked board is " + rankedSummary() + ". Any run still posts to its nation board and your personal board; press \u201CSet ranked mode\u201D to compete for the top."; b.className = "elig-badge"; }
   }
   function setLbBtns(disabled, label) { ["resultLbBtn", "legacyLbBtn"].forEach(function (id) { var b = sel(id); if (!b) return; b.disabled = !!disabled; if (label) b.textContent = label; }); }
 
@@ -726,10 +742,20 @@
     };
     var rp = sel("rankedPresetBtn");
     if (rp) rp.onclick = function () {
-      choice.mode = "wildcard"; choice.difficulty = "hard"; choice.cabinetSize = "expanded";
-      setSel("modeRow", "data-mode", "wildcard"); setSel("diffRow", "data-diff", "hard"); setSel("sizeRow", "data-size", "expanded");
-      sel("dynastyPick").classList.remove("show"); sel("wildNote").classList.add("show");
-      buildEraToggles(true); buildCastToggles(); buildDynastyChips(); updateHint(); updateEligibility(); updateEraVisibility();
+      var r = rankedSpec();
+      choice.country = r.country || "uk";
+      choice.mode = r.mode; choice.difficulty = r.difficulty; choice.cabinetSize = r.cabinetSize;
+      choice.redos = r.redos | 0; choice.govern = !!r.govern; choice.policy = !!r.policy; choice.campaignOn = !!r.campaign;
+      choice.eras = (G.ERAS || []).map(function (e) { return e.id; });          // all eras on
+      applyCountryChoice && applyCountryChoice(choice.country);
+      setSel("modeRow", "data-mode", choice.mode); setSel("diffRow", "data-diff", choice.difficulty); setSel("sizeRow", "data-size", choice.cabinetSize);
+      setSel("governRow", "data-govern", choice.govern ? "true" : "false");
+      setSel("redoRow", "data-redos", String(choice.redos));
+      setSel("policyRow", "data-policy", choice.policy ? "true" : "false");
+      setSel("campaignRow", "data-campaign", choice.campaignOn ? "true" : "false");
+      if (sel("dynastyPick")) sel("dynastyPick").classList.remove("show");
+      if (sel("wildNote")) sel("wildNote").classList.add("show");
+      buildEraToggles(false); buildCastToggles(); buildDynastyChips(); updateHint(); updateEligibility(); updateEraVisibility();
       var hint = sel("setupHint"); if (hint) { hint.scrollIntoView && hint.scrollIntoView({ behavior: "smooth", block: "center" }); }
     };
     sel("aboutBtn").onclick = function () { G.UI.renderAbout(); };
@@ -1225,6 +1251,7 @@
              scenarioKey: (G.state && G.state.scenarioKey) || "",
              electoralSystem: (G.state && G.state._electoralSystemKey) || "",
              totalSeats: _totalSeats,
+             ranked: isRankedSetup(),
              runFp: res._runFp || "", runCode: res._runCode || "",
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };

@@ -13,7 +13,31 @@
    ============================================================================= */
 
 /* ---------------- config ---------------- */
-const HARDEST = { mode: "wildcard", difficulty: "hard", cabinetSize: "expanded" };
+/* the hardest PLAYABLE configuration — the single ranked competition. Wildcard
+   (the widest, most chaotic pool) on Brutal (elite opposition), an expanded
+   16-seat cabinet, no draft do-overs, a full governed term with the manifesto
+   and campaign phases on, in the UK's 650-seat Commons. Admin-overridable via
+   the "ranked" config key. */
+const RANKED_DEFAULT = { country: "uk", mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded", system: "", scenario: "", redos: 0, govern: 1, policy: 1, campaign: 1 };
+const RANKED_BOARD = "ranked";
+async function getRanked(env) {
+  const row = await dFirst(env, "SELECT value FROM b650_config WHERE key='ranked'");
+  const saved = row && parse(row.value);
+  return saved ? Object.assign({}, RANKED_DEFAULT, saved) : RANKED_DEFAULT;
+}
+/* does a submitted run match the ranked spec on its seat-affecting settings? */
+function rankedMatch(d, spec) {
+  if (str(d.mode, 12) !== spec.mode) return false;
+  if (str(d.difficulty, 8) !== spec.difficulty) return false;
+  if (str(d.cabinetSize, 10) !== spec.cabinetSize) return false;
+  const es = str(d.electoralSystem, 40);
+  if (spec.system) { if (es !== spec.system) return false; }
+  else if (es && es !== "fptp_uk") return false;
+  const sc = str(d.scenarioKey, 40);
+  if (spec.scenario) { if (sc !== spec.scenario) return false; }
+  else if (sc && sc !== "freshstart") return false;
+  return true;
+}
 const SESSION_DAYS = 45, MAX_SEATS = 3000, MAX_RETURN = 50;
 const CHAT_FETCH = 80, CHAT_MIN_GAP_MS = 2500, CHAT_MAX = 400, MAX_BOARD = 4000, MAX_RUNS = 8000;
 
@@ -143,7 +167,7 @@ function entryFromBoard(r, lv) {
   };
 }
 async function topBoard(env, key) {
-  if (!key) key = HARDEST.mode + "|" + HARDEST.difficulty + "|" + HARDEST.cabinetSize;
+  if (!key) key = RANKED_BOARD;
   const lv = await levelMap(env);
   const rows = await dAll(env, "SELECT * FROM b650_board WHERE boardKey=? ORDER BY seats DESC, COALESCE(legacy,-1) DESC LIMIT ?", key, MAX_RETURN);
   return rows.map(r => entryFromBoard(r, lv));
@@ -222,7 +246,11 @@ async function doScore(env, d, kind) {
   if (!account) return { ok: false, error: "login", top: await topBoard(env, null) };
 
   const name = nm(account.display), userKey = keyOf(account.userKey);
-  const bk = boardKeyFrom(d.mode, d.difficulty, d.cabinetSize, d.scenarioKey, d.electoralSystem);
+  /* a run that meets the ranked spec competes on the single ranked board;
+     everything else lands on its natural per-nation / per-mode board. */
+  const rankedSpec = await getRanked(env);
+  const isRanked = !!d.ranked && rankedMatch(d, rankedSpec);
+  const bk = isRanked ? RANKED_BOARD : boardKeyFrom(d.mode, d.difficulty, d.cabinetSize, d.scenarioKey, d.electoralSystem);
   const seats = clampInt(d.seats, 0, MAX_SEATS);
   const legacy = (d.legacy === null || d.legacy === undefined || d.legacy === "") ? null : clampInt(d.legacy, 0, 100);
 
@@ -309,11 +337,12 @@ async function roster(env) {
 }
 async function publicConfig(env) {
   const rows = await dAll(env, "SELECT key, value FROM b650_config");
-  const cfg = { banner: { text: "", active: false }, streams: [], rosterVersion: "0" };
+  const cfg = { banner: { text: "", active: false }, streams: [], rosterVersion: "0", ranked: RANKED_DEFAULT };
   rows.forEach(r => {
     if (r.key === "banner") cfg.banner = parse(r.value) || cfg.banner;
     else if (r.key === "streams") cfg.streams = parse(r.value) || [];
     else if (r.key === "rosterVersion") cfg.rosterVersion = String(r.value || "0").replace(/^"+|"+$/g, "");
+    else if (r.key === "ranked") cfg.ranked = Object.assign({}, RANKED_DEFAULT, parse(r.value) || {});
   });
   return cfg;
 }
@@ -343,6 +372,8 @@ async function backend(env, d) {
     case "submit": return await doScore(env, d, "submit");
     case "log": return await doScore(env, d, "log");
     case "board": return { ok: true, top: await topBoard(env, boardKeyFrom(d.mode, d.difficulty, d.cabinetSize, d.scenarioKey, d.electoralSystem)) };
+    case "board_key": return { ok: true, top: await topBoard(env, str(d.key, 60)) };
+    case "ranked": return { ok: true, top: await topBoard(env, RANKED_BOARD), ranked: await getRanked(env) };
     case "overall": return { ok: true, top: await overall(env) };
     case "overall_pct": return { ok: true, top: await overallPct(env) };
     case "register": return await register(env, d);
@@ -372,6 +403,18 @@ async function backend(env, d) {
     case "admin_unban": { const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 9) return { ok: false, error: "forbidden" }; await dRun(env, "UPDATE b650_accounts SET banned=? WHERE userKey=?", d.kind === "admin_ban" ? 1 : 0, keyOf(d.target)); return { ok: true }; }
     case "admin_banner": { const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 9) return { ok: false, error: "forbidden" }; await setConfig(env, "banner", { text: String(d.text || "").slice(0, 240), active: !!d.active }); return { ok: true, config: await publicConfig(env) }; }
     case "admin_streams": { const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 9) return { ok: false, error: "forbidden" }; const list = (d.streams || []).slice(0, 12).map(s => ({ label: String(s.label || "Live").slice(0, 40), url: String(s.url || "").slice(0, 400) })).filter(s => s.url); await setConfig(env, "streams", list); return { ok: true, config: await publicConfig(env) }; }
+    case "admin_ranked": {
+      const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 9) return { ok: false, error: "forbidden" };
+      const r = d.ranked || {};
+      const spec = {
+        country: str(r.country, 12) || "uk", mode: str(r.mode, 12) || "wildcard",
+        difficulty: str(r.difficulty, 8) || "brutal", cabinetSize: str(r.cabinetSize, 10) || "expanded",
+        system: str(r.system, 40), scenario: str(r.scenario, 40),
+        redos: clampInt(r.redos, 0, 3), govern: r.govern ? 1 : 0, policy: r.policy ? 1 : 0, campaign: r.campaign ? 1 : 0
+      };
+      await setConfig(env, "ranked", spec);
+      return { ok: true, config: await publicConfig(env) };
+    }
     case "admin_addpol": {
       const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" };
       const p = d.pol || {}; if (!p.name) return { ok: false, error: "name required" };
@@ -448,7 +491,7 @@ export default {
       }
       /* backend: GET root = doGet snapshot; POST root = { kind } protocol */
       if (request.method === "GET") {
-        return json({ ok: true, hardest: HARDEST, top: await topBoard(env, null), overall: await overall(env), overallPct: await overallPct(env), config: await publicConfig(env) }, origin);
+        return json({ ok: true, ranked: await getRanked(env), top: await topBoard(env, null), overall: await overall(env), overallPct: await overallPct(env), config: await publicConfig(env) }, origin);
       }
       if (request.method === "POST") {
         const bodyText = await request.text();
