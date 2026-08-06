@@ -93,6 +93,7 @@
   NET.adminAddPol   = function (pol) { return NET._auth("admin_addpol", { pol: pol }); };
   NET.adminDelPol   = function (name, scope) { return NET._auth("admin_delpol", { name: name, scope: scope }); };
   NET.adminRestorePol = function (name, scope) { return NET._auth("admin_restorepol", { name: name, scope: scope }); };
-  /* the raw server-side roster rows (added figures + overrides) — no merging */
-  NET.rosterList    = function () { return NET._call("roster"); };
+  /* the FULL D1 roster for housekeeping — every figure lives in the database
+     (searchable + paginated). Admin/mod only. */
+  NET.rosterList    = function (q, offset, limit) { return NET._auth("roster_all", { q: q || "", offset: offset || 0, limit: limit || 60 }); };
 })();

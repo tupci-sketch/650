@@ -126,6 +126,10 @@ async function ensureSchema(env) {
   /* additive columns for run codes on the board (guarded — ignore if present) */
   await addCol(env, "b650_board", "runFp", "TEXT");
   await addCol(env, "b650_board", "runCode", "TEXT");
+  /* base=1 marks a migrated built-in figure (the full roster lives in D1 and is
+     editable from housekeeping); base=0 marks an admin delta (edit / add /
+     tombstone) that the gameplay overlay applies over the bundled base. */
+  await addCol(env, "b650_pols", "base", "INTEGER DEFAULT 0");
   schemaReady = true;
 }
 async function addCol(env, table, col, type) {
@@ -330,10 +334,27 @@ function polFromRow(r) {
   };
 }
 async function roster(env) {
-  /* returns every server record — overrides/additions AND deletion tombstones
-     (deleted:true) — so the client can override, add, or HIDE base figures. */
-  const rows = await dAll(env, "SELECT * FROM b650_pols ORDER BY id");
+  /* GAMEPLAY overlay: only the deltas (admin edits / adds / tombstones, base=0)
+     — the built-in figures ship bundled, so this stays small and fast even
+     though the full roster also lives in D1. */
+  const rows = await dAll(env, "SELECT * FROM b650_pols WHERE base=0 ORDER BY id");
   return rows.map(r => { const p = polFromRow(r); p.deleted = !!r.deleted; return p; });
+}
+/* EDITOR view: the whole roster in D1 (base + deltas), optionally filtered by a
+   search term, paginated — for housekeeping. */
+async function rosterAll(env, q, limit, offset) {
+  limit = Math.max(1, Math.min(500, Number(limit) || 200));
+  offset = Math.max(0, Number(offset) || 0);
+  const like = "%" + String(q || "").toLowerCase().replace(/[%_]/g, "") + "%";
+  const where = q ? "WHERE nameKey LIKE ? OR LOWER(party) LIKE ?" : "";
+  const totalRow = q
+    ? await dFirst(env, "SELECT COUNT(*) n FROM b650_pols " + where, like, like)
+    : await dFirst(env, "SELECT COUNT(*) n FROM b650_pols");
+  const rows = q
+    ? await dAll(env, "SELECT * FROM b650_pols " + where + " ORDER BY name LIMIT ? OFFSET ?", like, like, limit, offset)
+    : await dAll(env, "SELECT * FROM b650_pols ORDER BY name LIMIT ? OFFSET ?", limit, offset);
+  return { total: Number(totalRow && totalRow.n) || 0, limit, offset,
+           politicians: rows.map(r => { const p = polFromRow(r); p.deleted = !!r.deleted; p.base = !!r.base; return p; }) };
 }
 async function publicConfig(env) {
   const rows = await dAll(env, "SELECT key, value FROM b650_config");
@@ -383,6 +404,7 @@ async function backend(env, d) {
     case "save": { const a = await auth(env, d); if (!a) return { ok: false, error: "login" }; await dRun(env, "UPDATE b650_accounts SET prefs=? WHERE userKey=?", JSON.stringify(d.prefs || {}), keyOf(a.userKey)); return { ok: true }; }
     case "config": return { ok: true, config: await publicConfig(env) };
     case "roster": return { ok: true, politicians: await roster(env) };
+    case "roster_all": { const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" }; return Object.assign({ ok: true }, await rosterAll(env, d.q, d.limit, d.offset)); }
     case "chat_fetch": {
       const rows = await dAll(env, "SELECT * FROM b650_chat WHERE deleted=0 ORDER BY ts_iso DESC LIMIT ?", CHAT_FETCH);
       return { ok: true, messages: rows.reverse().map(r => ({ id: String(r.id), display: nm(r.display), level: Number(r.level) || 1, text: String(r.text), ts: Date.parse(r.ts_iso) || 0 })) };
@@ -419,8 +441,8 @@ async function backend(env, d) {
       const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" };
       const p = d.pol || {}; if (!p.name) return { ok: false, error: "name required" };
       const c = polColsFrom(p);
-      await dRun(env, "INSERT INTO b650_pols (nameKey,scope,name,party,era,appeal,experience,oratory,statecraft,partyMgmt,fits,note,despot,mode,cast,flag,wiki,img,deleted) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0) " +
-        "ON CONFLICT(nameKey,scope) DO UPDATE SET name=excluded.name,party=excluded.party,era=excluded.era,appeal=excluded.appeal,experience=excluded.experience,oratory=excluded.oratory,statecraft=excluded.statecraft,partyMgmt=excluded.partyMgmt,fits=excluded.fits,note=excluded.note,despot=excluded.despot,mode=excluded.mode,cast=excluded.cast,flag=excluded.flag,wiki=excluded.wiki,img=excluded.img,deleted=0",
+      await dRun(env, "INSERT INTO b650_pols (nameKey,scope,name,party,era,appeal,experience,oratory,statecraft,partyMgmt,fits,note,despot,mode,cast,flag,wiki,img,deleted,base) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0) " +
+        "ON CONFLICT(nameKey,scope) DO UPDATE SET name=excluded.name,party=excluded.party,era=excluded.era,appeal=excluded.appeal,experience=excluded.experience,oratory=excluded.oratory,statecraft=excluded.statecraft,partyMgmt=excluded.partyMgmt,fits=excluded.fits,note=excluded.note,despot=excluded.despot,mode=excluded.mode,cast=excluded.cast,flag=excluded.flag,wiki=excluded.wiki,img=excluded.img,deleted=0,base=0",
         c.nameKey, c.scope, c.name, c.party, c.era, c.appeal, c.experience, c.oratory, c.statecraft, c.partyMgmt, c.fits, c.note, c.despot, c.mode, c.cast, c.flag, c.wiki, c.img);
       await bumpRoster(env);
       return { ok: true, saved: true };
@@ -431,14 +453,15 @@ async function backend(env, d) {
       const scope = String(d.scope || "uk");
       /* tombstone: works for BASE figures too (creates a deleted=1 row that the
          client applies to hide the built-in figure). Re-adding clears it. */
-      await dRun(env, "INSERT INTO b650_pols (nameKey,scope,name,deleted) VALUES (?,?,?,1) ON CONFLICT(nameKey,scope) DO UPDATE SET deleted=1", nameKey, scope, str(d.name || nameKey, 60));
+      await dRun(env, "INSERT INTO b650_pols (nameKey,scope,name,deleted,base) VALUES (?,?,?,1,0) ON CONFLICT(nameKey,scope) DO UPDATE SET deleted=1,base=0", nameKey, scope, str(d.name || nameKey, 60));
       await bumpRoster(env);
       return { ok: true, deleted: true };
     }
     case "admin_restorepol": {
       const a = await auth(env, d); if (!a || (Number(a.level) || 1) < 5) return { ok: false, error: "forbidden" };
       const nameKey = String(d.name || "").trim().toLowerCase(); if (!nameKey) return { ok: false, error: "name required" };
-      await dRun(env, "DELETE FROM b650_pols WHERE nameKey=? AND scope=? AND deleted=1", nameKey, String(d.scope || "uk"));
+      /* un-delete in place (the row persists so it still lists in the editor) */
+      await dRun(env, "UPDATE b650_pols SET deleted=0 WHERE nameKey=? AND scope=?", nameKey, String(d.scope || "uk"));
       await bumpRoster(env);
       return { ok: true, restored: true };
     }
