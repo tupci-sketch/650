@@ -712,10 +712,11 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <p class="acct-note">Start typing a name to find an existing figure and press <b>Load</b> — or just fill the form in fresh to add someone new. <b>Save</b> stores the record on the server; it overrides the built-in figure for everyone at the next load. Every figure in the game can be edited or removed this way.</p>
+        <p class="acct-note">Start typing a name to find an existing figure and press <b>Load</b> — or fill the form in fresh to add someone new. New here: press <b>🔍 Wikipedia</b> to pull anyone with a Wikipedia page straight in (name, bio, portrait). <b>Save</b> stores the record on the server; it overrides the built-in figure for everyone at the next load. Every figure in the game can be edited or removed this way.</p>
         <div class="ap-load-row">
           <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Full name (start typing to find a figure)" />
           <button class="btn btn-ghost" id="apLoad">Load</button>
+          <button class="btn btn-ghost" id="apWikiLookup" title="Pull this person from Wikipedia">🔍 Wikipedia</button>
         </div>
         <datalist id="apNames"></datalist>
 

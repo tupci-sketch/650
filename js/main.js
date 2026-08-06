@@ -1940,6 +1940,32 @@
                              (matches.length > 1 ? " (They also have a " + (fig.scope === "p24" ? "historical" : "2024") + " record \u2014 switch the Roster dropdown to edit that one.)" : "");
     };
     sel("apNew").onclick = function () { apClearForm(); var m = sel("apMsg"); if (m) m.textContent = "Cleared \u2014 fill the form in to add a new figure."; };
+    /* pull anyone with a Wikipedia page straight into the form (name, bio,
+       portrait). Runs in the browser \u2014 only the browser can reach Wikipedia. */
+    if (sel("apWikiLookup")) sel("apWikiLookup").onclick = function () {
+      var name = (sel("apName").value || "").trim();
+      var m = sel("apMsg");
+      if (!name) { if (m) m.textContent = "Type a name first, then press Wikipedia."; return; }
+      if (m) m.textContent = "Looking " + name + " up on Wikipedia\u2026";
+      var title = name.replace(/\s+/g, "_");
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || d.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") { if (m) m.textContent = "No Wikipedia page for \u201c" + name + "\u201d \u2014 check the spelling or add them by hand."; return; }
+          if (d.type === "disambiguation") { if (m) m.textContent = "\u201c" + name + "\u201d is ambiguous on Wikipedia \u2014 use a fuller, more specific name."; return; }
+          if (!d.extract) { if (m) m.textContent = "That page has too little information \u2014 add them by hand."; return; }
+          sel("apName").value = d.title || name;
+          var ex = String(d.extract), dot = ex.indexOf(". ");
+          var sentence = dot > 20 ? ex.slice(0, dot + 1) : ex;
+          if (!sel("apNote").value) sel("apNote").value = sentence.slice(0, 200);
+          sel("apWiki").value = d.title || name;
+          var img = (d.thumbnail && d.thumbnail.source) || (d.originalimage && d.originalimage.source) || "";
+          if (img) sel("apImg").value = img;
+          if (m) m.textContent = "Pulled " + (d.title || name) + (d.description ? " \u2014 " + d.description : "") +
+            ". Set their party, era and ratings, then Save." + (img ? "" : " (No portrait on Wikipedia \u2014 add an image URL if you have one.)");
+        })
+        .catch(function () { if (m) m.textContent = "Couldn't reach Wikipedia just now \u2014 try again."; });
+    };
     if (sel("apFromText")) sel("apFromText").onclick = function () {
       var p = textToPol(sel("apText").value); var m = sel("apMsg");
       if (!p) { if (m) m.textContent = "The text needs at least a \u201cname:\u201d line."; return; }
