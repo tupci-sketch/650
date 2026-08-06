@@ -805,6 +805,105 @@ body::before {
 .adm-pol .ap-nm { font-family:var(--display); font-weight:600; min-width:0; overflow-wrap:anywhere; }
 .btn.danger { border-color:rgba(134,34,49,.5); color:var(--oxblood,#862231); }
 .btn.danger:hover { background:rgba(134,34,49,.08); }
+/* --- profile --- */
+.profile-head { display:flex; align-items:center; gap:12px; }
+.profile-avatar { width:52px; height:52px; border-radius:50%; background:var(--accent,#7a1f2b); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; font-size:18px; flex:0 0 auto; }
+.profile-id { flex:1 1 auto; min-width:0; }
+.profile-name { font-family:var(--display); font-weight:700; font-size:19px; }
+.profile-rank { font-size:12px; color:var(--ink-soft,#8a8a8a); margin-top:1px; }
+.profile-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:16px; }
+@media (max-width:560px){ .profile-stats { grid-template-columns:repeat(2,1fr); } }
+.pf-stat { text-align:center; border:1px solid var(--line,#e3dac6); border-radius:9px; padding:9px 4px; }
+.pf-stat-v { font-family:var(--display); font-weight:700; font-size:20px; }
+.pf-stat-l { font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft,#8a8a8a); margin-top:3px; }
+.profile-nations { margin-top:14px; }
+.pf-nat-h { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft,#8a8a8a); margin-bottom:6px; }
+.pf-nat { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-top:1px solid var(--line,#e3dac6); }
+.pf-nat:first-of-type { border-top:none; }
+.pf-nat-s { font-family:var(--mono); color:var(--ink-soft,#9a9a9a); }
+
+/* --- leaderboard category buttons --- */
+.lb-cats { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px; }
+.lb-cat { font-size:12px; padding:5px 11px; border:1px solid var(--line,#e3dac6); border-radius:999px; background:none; color:var(--ink,#eee); cursor:pointer; white-space:nowrap; }
+.lb-cat:hover { background:rgba(120,120,120,.10); }
+.lb-cat.sel { background:var(--accent,#7a1f2b); color:#fff; border-color:var(--accent,#7a1f2b); }
+.lb-replay { width:100%; margin-top:10px; font-size:12px; }
+
+/* --- load run code row (menu) --- */
+.loadcode-row { display:flex; gap:8px; margin-top:10px; }
+.loadcode-row .lb-input { flex:1 1 auto; min-width:0; font-family:var(--mono,monospace); font-size:12px; }
+.loadcode-row .btn { flex:0 0 auto; }
+
+/* --- cabinet strip (govern screen) --- */
+.cabinet-strip { display:flex; gap:8px; overflow-x:auto; padding:4px 2px 8px; scrollbar-width:thin; }
+.cab-min { position:relative; flex:0 0 auto; width:74px; background:none; border:none; padding:4px 2px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; border-radius:8px; }
+.cab-min:hover { background:rgba(120,120,120,.10); }
+.cab-face { width:48px; height:48px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; font-size:15px; background:var(--paper-2,#2a2a2a); color:var(--ink-soft,#999); border:2px solid var(--line,#e3dac6); box-sizing:border-box; }
+.cab-face img { width:100%; height:100%; object-fit:cover; }
+.cab-min.coal .cab-face { border-color:var(--ring,#888); }
+.cab-post { font-size:9.5px; line-height:1.15; text-align:center; color:var(--ink-soft,#8a8a8a); max-width:74px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.cab-flag { position:absolute; top:2px; right:10px; width:9px; height:9px; border-radius:2px; border:1px solid rgba(0,0,0,.25); }
+/* minister card overlay */
+.min-card-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px; }
+.min-card { position:relative; width:min(420px,94vw); max-height:88vh; overflow:auto; background:var(--paper,#1c1c1c); color:var(--ink,#eee); border:1px solid var(--line,#e3dac6); border-radius:14px; padding:18px; box-shadow:0 18px 60px rgba(0,0,0,.5); }
+.mc-close { position:absolute; top:8px; right:12px; background:none; border:none; font-size:24px; line-height:1; color:var(--ink-soft,#999); cursor:pointer; }
+.mc-head { display:flex; align-items:center; gap:12px; }
+.mc-face { width:60px; height:60px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; font-family:var(--display); font-weight:700; font-size:19px; background:var(--paper-2,#2a2a2a); color:var(--ink-soft,#999); border:2px solid var(--line,#e3dac6); flex:0 0 auto; }
+.mc-face img { width:100%; height:100%; object-fit:cover; }
+.mc-name { font-family:var(--display); font-weight:700; font-size:18px; }
+.mc-role { font-size:12px; color:var(--ink-soft,#8a8a8a); margin-top:2px; }
+.mc-coal { font-weight:600; }
+.mc-note { font-size:12.5px; color:var(--ink-soft,#9a9a9a); line-height:1.5; margin:10px 0 0; font-style:italic; }
+.mc-stats { margin:12px 0 0; display:flex; flex-direction:column; gap:5px; }
+.mc-stat { display:grid; grid-template-columns:78px 1fr 26px; align-items:center; gap:8px; font-size:12px; }
+.mc-stat-l { color:var(--ink-soft,#8a8a8a); }
+.mc-stat-bar { height:7px; background:rgba(120,120,120,.16); border-radius:4px; overflow:hidden; }
+.mc-stat-bar span { display:block; height:100%; background:var(--accent,#7a1f2b); border-radius:4px; }
+.mc-stat-v { font-family:var(--mono); text-align:right; }
+.mc-morale { display:flex; gap:14px; margin-top:12px; font-size:12.5px; color:var(--ink-soft,#9a9a9a); }
+.mc-rival { color:var(--oxblood,#c0503f); font-weight:600; }
+.mc-traits { font-size:12px; color:var(--ink-soft,#8a8a8a); margin:6px 0 0; text-transform:capitalize; }
+.mc-coalnote { font-size:12px; color:var(--ink-soft,#8a8a8a); margin:12px 0 0; }
+.mc-done { font-size:12px; color:var(--ink-soft,#8a8a8a); margin:12px 0 0; }
+.mc-word { margin-top:14px; width:100%; }
+
+/* --- coalition negotiation modal --- */
+.negotiation .neg-head { margin-bottom:12px; }
+.neg-odds { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--ink-soft,#9a9a9a); margin:4px 0 8px; }
+.neg-oddsbar { flex:1; height:9px; background:rgba(120,120,120,.16); border-radius:5px; overflow:hidden; }
+.neg-oddsbar span { display:block; height:100%; border-radius:5px; transition:width .25s ease; }
+.neg-good { color:var(--green,#2e7d4f); } .neg-oddsbar .neg-good { background:var(--green,#2e7d4f); }
+.neg-mid { color:#c79a3a; } .neg-oddsbar .neg-mid { background:#c79a3a; }
+.neg-bad { color:var(--oxblood,#b03a2e); } .neg-oddsbar .neg-bad { background:var(--oxblood,#b03a2e); }
+.neg-hint { font-size:12px; color:var(--ink-soft,#8a8a8a); line-height:1.5; margin:0 0 12px; }
+.neg-demands { display:flex; flex-direction:column; gap:8px; }
+.neg-demand { border:1px solid var(--line,#e3dac6); border-radius:9px; padding:9px 11px; }
+.neg-ask { display:block; font-size:13px; font-style:italic; margin-bottom:8px; }
+.neg-choices { display:flex; gap:8px; }
+.neg-btn { flex:1; padding:5px 8px; font-size:12px; }
+.neg-demand.settled { opacity:.8; }
+.neg-demand.settled .neg-verdict { font-size:11.5px; font-family:var(--mono); }
+.neg-demand.conceded { border-color:rgba(46,125,79,.5); }
+.neg-demand.refused { border-color:rgba(176,58,46,.4); }
+.neg-final { width:100%; margin-top:14px; }
+.neg-result { text-align:center; padding:8px 4px; }
+.neg-result-h { font-family:var(--display); font-weight:700; font-size:20px; margin-bottom:6px; }
+.neg-win .neg-result-h { color:var(--green,#2e7d4f); }
+.neg-lose .neg-result-h { color:var(--oxblood,#b03a2e); }
+.neg-result p { font-size:13px; color:var(--ink-soft,#9a9a9a); line-height:1.5; margin:0 0 14px; }
+.neg-continue { width:100%; }
+
+/* --- coalition handover (govern log intro) --- */
+.coal-handover { border:1px solid var(--line,#e3dac6); border-radius:10px; padding:10px 12px; margin-bottom:8px; background:rgba(120,120,120,.06); }
+.coal-handover-h { font-family:var(--display); font-weight:700; font-size:14px; margin-bottom:2px; }
+.coal-handover-note { font-size:12px; color:var(--ink-soft,#6b6b6b); margin:0 0 8px; line-height:1.5; }
+.coal-give { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0; font-size:13px; border-top:1px solid var(--line,#e3dac6); }
+.coal-give:first-of-type { border-top:none; }
+.coal-give-post { font-family:var(--display); font-weight:600; }
+.coal-give-min { display:flex; align-items:center; gap:6px; }
+.coal-give-party { color:var(--ink-soft,#6b6b6b); font-size:11px; }
+.coal-sw { display:inline-block; width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+.coal-cede { font-family:var(--mono); font-size:10px; color:var(--ink-soft,#6b6b6b); margin-left:6px; }
 .adm-check { font-size:13px; display:flex; align-items:center; gap:8px; }
 /* --- friendly politician editor (form) --- */
 .ap-load-row { display:flex; gap:8px; align-items:stretch; }

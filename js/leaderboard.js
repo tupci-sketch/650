@@ -52,6 +52,50 @@ G.LB.runSig = function (e) {
   var c = (e.cabinet || []).map(function (s) { return s.name; }).join(",");
   return [(e.runId || "legacy"), e.mode, e.difficulty, e.cabinetSize, c].join("|");
 };
+/* ---- ranked spec: the hardest PLAYABLE config (admin-overridable) --------- */
+G.LB.RANKED_DEFAULT = { country: "uk", mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded", system: "", scenario: "", redos: 0, govern: 1, policy: 1, campaign: 1 };
+G.LB.ranked = function () { return (G.NET && G.NET.config && G.NET.config.ranked) || G.LB.RANKED_DEFAULT; };
+/* fetch the ranked board — cb(top, communal, err, rankedSpec) */
+G.LB.fetchRanked = function (cb) {
+  if (!G.LB.URL || typeof fetch !== "function") { cb([], false, "offline"); return; }
+  G.LB._post({ game: "650", kind: "ranked" }, function (d) {
+    if (d && d.top) cb(d.top, true, null, d.ranked); else cb([], false, (d && d.error) || "offline");
+  });
+};
+/* fetch any board by its exact key (e.g. "system:av_australia") */
+G.LB.fetchBoardByKey = function (key, cb) {
+  if (!G.LB.URL || typeof fetch !== "function") { cb([], false, "offline"); return; }
+  G.LB._post({ game: "650", kind: "board_key", key: key }, function (d) {
+    if (d && d.top) cb(d.top, true); else cb([], false, (d && d.error) || "offline");
+  });
+};
+
+/* ---- shareable run codes --------------------------------------------------
+   A compact, URL-safe encoding of everything needed to reproduce a run exactly
+   (settings + cabinet + the seed). Anyone can load it to replay the run; a run
+   whose fingerprint already scored can never count again (see the backend). */
+G.LB.encodeRun = function (o) {
+  try {
+    var b = btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+    return b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");   // URL-safe
+  } catch (e) { return ""; }
+};
+G.LB.decodeRun = function (s) {
+  try {
+    s = String(s || "").trim().replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    return JSON.parse(decodeURIComponent(escape(atob(s))));
+  } catch (e) { return null; }
+};
+/* the run's identity for anti-replay: deterministic over settings + cabinet
+   (by position) + seed + model. Any exact replay yields the same fingerprint. */
+G.LB.runFingerprint = function (o) {
+  if (!o) return "";
+  var cab = (o.cab || []).map(function (c) { return c.k + ":" + c.n; }).sort().join(",");
+  var s = [o.m, o.l || "", o.d, o.z, o.sc || "", o.sy || "", cab, (o.s >>> 0), o.mv || ""].join("|");
+  return (G.hash32 ? G.hash32(s) >>> 0 : s).toString(36);
+};
+
 /* ---- anti double-submit: the exact same posted STATE of a run ------------ */
 G.LB.signature = function (e) {
   return [G.LB.runSig(e), G.LB.normKey(e.name), e.seats,
@@ -94,6 +138,9 @@ G.LB.cleanEntry = function (e) {
     electoralSystem: String(e.electoralSystem || "").slice(0, 40),
     totalSeats: totalSeats,
     pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
+    ranked: !!e.ranked,
+    runFp: String(e.runFp || "").slice(0, 24),
+    runCode: String(e.runCode || "").slice(0, 2000),
     cabinet: G.LB._cabinet(e.cabinet), breakdown: G.LB._breakdown(e.breakdown), ts: Date.now()
   };
 };
@@ -141,7 +188,7 @@ G.LB.submit = function (raw, cb, opts) {
   var payload = { game: "650", kind: "submit", owner: G.LB.getOwner(), token: (G.NET && G.NET.token) ? G.NET.token() : "", name: e.name,
                   seats: e.seats, legacy: e.legacy, govt: e.govt,
                   mode: e.mode, difficulty: e.difficulty, cabinetSize: e.cabinetSize,
-                  runId: e.runId, partyName: e.partyName, partyAlign: e.partyAlign,
+                  runId: e.runId, runFp: e.runFp, runCode: e.runCode, ranked: e.ranked, partyName: e.partyName, partyAlign: e.partyAlign,
                   scenarioKey: e.scenarioKey, electoralSystem: e.electoralSystem, totalSeats: e.totalSeats,
                   cabinet: e.cabinet, breakdown: e.breakdown };
   if (G.LB.URL) {

@@ -243,6 +243,11 @@
         <button class="btn btn-ghost" id="liveBtn">📺 Live</button>
         <button class="btn btn-ghost" id="adminBtn" style="display:none">🛠 Housekeeping</button>
       </div>
+      <div class="loadcode-row">
+        <input id="loadCodeInput" class="lb-input" autocomplete="off" placeholder="Paste a run code to replay someone's exact run…" />
+        <button class="btn btn-ghost" id="loadCodeBtn">Load run</button>
+      </div>
+      <p class="acct-note" id="loadCodeMsg" style="display:none"></p>
     </section>
 
     <!-- ======================================================= DRAFT ==== -->
@@ -407,6 +412,7 @@
         <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
         <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
+        <button class="btn btn-ghost" id="runCodeBtn" title="Copy a code others can load to replay this exact run">🔗 Copy run code</button>
         <button class="btn btn-ghost" id="againBtn">Run it again</button>
         <button class="btn btn-ghost" id="wikiBtn">📜 View election record</button>
         <button class="btn btn-ghost" id="resultLbBtn">★ Post to leaderboard</button>
@@ -608,7 +614,22 @@
         <p class="section-label">Despatches</p>
         <div class="gov-log" id="govLog"></div>
       </div>
+      <!-- the cabinet, left to right: portraits + posts, clickable -->
+      <div class="panel" id="cabinetStripPanel" style="display:none">
+        <p class="section-label">Your cabinet <span class="board-note" id="cabinetStripNote">tap a minister</span></p>
+        <div class="cabinet-strip" id="cabinetStrip"></div>
+      </div>
     </section>
+
+    <!-- minister detail card (overlay) -->
+    <div class="min-card-overlay" id="ministerCardOverlay" style="display:none">
+      <div class="min-card" id="ministerCard" role="dialog" aria-modal="true"></div>
+    </div>
+
+    <!-- coalition negotiation (overlay) -->
+    <div class="min-card-overlay" id="negotiationOverlay" style="display:none">
+      <div class="min-card negotiation" id="negotiationCard" role="dialog" aria-modal="true"></div>
+    </div>
 
     <!-- ====================================================== LEGACY === -->
     <section id="screen-legacy" class="screen">
@@ -654,14 +675,25 @@
     <!-- ====================================================== FOOTER ==== -->
     <!-- ================================================== LEADERBOARD == -->
     <section id="screen-account" class="screen">
-      <p class="section-label">Account</p>
+      <p class="section-label" id="acctTitle">Account</p>
       <p class="mini-help" id="acctMsg">Sign in to save your runs across devices, lock your leaderboard name to you, and join the chat.</p>
-      <div class="panel acct-panel">
+      <!-- sign-in / register (hidden when signed in) -->
+      <div class="panel acct-panel" id="acctLoginPanel">
         <div class="acct-tabs"><button class="acct-tab sel" data-at="login">Sign in</button><button class="acct-tab" data-at="register">Register</button></div>
         <input id="acctUser" class="lb-input" type="text" maxlength="24" placeholder="Username" />
         <input id="acctPass" class="lb-input" type="password" maxlength="64" placeholder="Password (min 6 characters)" />
         <button class="btn btn-primary" id="acctSubmit">Sign in</button>
         <p class="acct-note">Passwords are salted and hashed on the server — never stored or sent back in the clear.</p>
+      </div>
+      <!-- profile (shown when signed in) -->
+      <div class="panel profile-panel" id="profilePanel" style="display:none">
+        <div class="profile-head">
+          <span class="profile-avatar" id="profileAvatar">—</span>
+          <div class="profile-id"><div class="profile-name" id="profileName">—</div><div class="profile-rank" id="profileRank"></div></div>
+          <button class="btn btn-ghost" id="profileSignOut">Sign out</button>
+        </div>
+        <div class="profile-stats" id="profileStats"></div>
+        <div class="profile-nations" id="profileNations"></div>
       </div>
       <!-- Player's run history (shown when signed in) -->
       <div class="panel" id="runsPanel" style="display:none">
@@ -690,6 +722,29 @@
         <button class="btn btn-ghost" id="admBannerSave">Save banner</button>
       </div>
       <div class="panel admin-block">
+        <h4>Ranked mode</h4>
+        <p class="acct-note">The single ranked competition everyone shares. Defaults to the hardest playable setup — change it here and every client picks it up.</p>
+        <div class="ap-form">
+          <label class="ap-field"><span>Mode</span>
+            <select id="rkMode" class="lb-input"><option value="wildcard">Wildcard</option><option value="unity">Greatest Cabinet</option><option value="dynasty">Dynasty</option><option value="parl2024">2024 Parliament</option></select></label>
+          <label class="ap-field"><span>Difficulty</span>
+            <select id="rkDiff" class="lb-input"><option value="brutal">Brutal</option><option value="hard">Hard</option><option value="normal">Normal</option><option value="easy">Easy</option></select></label>
+          <label class="ap-field"><span>Cabinet</span>
+            <select id="rkSize" class="lb-input"><option value="expanded">Expanded (16)</option><option value="standard">Standard (12)</option></select></label>
+          <label class="ap-field"><span>Nation / system</span>
+            <select id="rkSystem" class="lb-input"></select></label>
+          <label class="ap-field"><span>Draft do-overs</span>
+            <select id="rkRedos" class="lb-input"><option value="0">None</option><option value="1">One</option><option value="2">Two</option><option value="3">Three</option></select></label>
+        </div>
+        <div class="ap-form">
+          <label class="adm-check ap-field"><input type="checkbox" id="rkGovern" /> Full governed term</label>
+          <label class="adm-check ap-field"><input type="checkbox" id="rkPolicy" /> Manifesto phase</label>
+          <label class="adm-check ap-field"><input type="checkbox" id="rkCampaign" /> Campaign phase</label>
+        </div>
+        <button class="btn btn-ghost" id="rkSave">Save ranked spec</button>
+        <p class="acct-note" id="rkMsg"></p>
+      </div>
+      <div class="panel admin-block">
         <h4>Live TV / news streams</h4>
         <textarea id="admStreams" class="lb-input adm-area" placeholder="One per line:   Label | https://embeddable-url"></textarea>
         <button class="btn btn-ghost" id="admStreamsSave">Save streams</button>
@@ -697,10 +752,11 @@
       </div>
       <div class="panel admin-block">
         <h4>Add / edit a politician</h4>
-        <p class="acct-note">Start typing a name to find an existing figure and press <b>Load</b> — or just fill the form in fresh to add someone new. <b>Save</b> stores the record on the server; it overrides the built-in figure for everyone at the next load. Every figure in the game can be edited or removed this way.</p>
+        <p class="acct-note">Start typing a name to find an existing figure and press <b>Load</b> — or fill the form in fresh to add someone new. New here: press <b>🔍 Wikipedia</b> to pull anyone with a Wikipedia page straight in (name, bio, portrait). <b>Save</b> stores the record on the server; it overrides the built-in figure for everyone at the next load. Every figure in the game can be edited or removed this way.</p>
         <div class="ap-load-row">
           <input id="apName" class="lb-input" list="apNames" autocomplete="off" placeholder="Full name (start typing to find a figure)" />
           <button class="btn btn-ghost" id="apLoad">Load</button>
+          <button class="btn btn-ghost" id="apWikiLookup" title="Pull this person from Wikipedia">🔍 Wikipedia</button>
         </div>
         <datalist id="apNames"></datalist>
 
@@ -793,14 +849,7 @@ fits: pm, chancellor"></textarea>
 
     <section id="screen-leaderboard" class="screen">
       <p class="section-label">The Leaderboard <span class="board-note">one best run per player</span></p>
-      <div class="lb-select"><select id="lbBoardMode" class="lb-mini">
-        <option value="overall">★ Overall — best across all boards</option>
-        <option value="ranked" selected>Ranked · Wildcard · Hard · Expanded</option>
-        <option value="unity|normal|standard">Greatest Cabinet · Normal · Standard</option>
-        <option value="wildcard|normal|expanded">Wildcard · Normal · Expanded</option>
-        <option value="dynasty|normal|standard">Dynasty · Normal · Standard</option>
-        <option value="parl2024|normal|expanded">2024 Parliament · Normal · Expanded</option>
-      </select></div>
+      <div class="lb-cats" id="lbCats"></div>
       <p class="mini-help" id="lbStatus">Loading…</p>
       <p class="mini-help" id="lbWhoNote"></p>
       <div class="panel"><div class="lb-table" id="lbTable"></div></div>
@@ -853,6 +902,7 @@ fits: pm, chancellor"></textarea>
   <script src="js/data.party_fix.js"></script>
   <script src="js/scenarios.js"></script>
   <script src="js/govern.js"></script>
+  <script src="js/coalition.js"></script>
   <script src="js/govern.intl.js"></script>
   <script src="js/govern.events.js"></script>
   <script src="js/campaign.js"></script>

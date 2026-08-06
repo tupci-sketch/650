@@ -577,14 +577,160 @@ G.UI.renderGovern = function () {
   G.UI.setMeter("meterUnity", t.meters.unity);
   G.UI.updateGovSeats();
   G.UI.refreshGovActions();
-  $("govLog").innerHTML = '<div class="feed-line muted">' +
+  var intro = '<div class="feed-line muted">' +
     (opp ? "You take charge of the Opposition. The long campaign begins…" : "You enter office. The work begins…") + '</div>';
+  if (!opp && t.handovers && t.handovers.length) {
+    var fl = t.coalitionFlavor || {};
+    var rows = t.handovers.map(function (h) {
+      return '<div class="coal-give"><span class="coal-give-post">' + G.UI._esc(h.title) + '</span>' +
+             '<span class="coal-give-min"><span class="coal-sw" style="background:' + (h.colour || '#6b6b6b') + '"></span>' +
+             G.UI._esc(h.minister.name) + ' <span class="coal-give-party">' + G.UI._esc(h.party) + '</span></span></div>';
+    }).join("");
+    intro = '<div class="coal-handover"><div class="coal-handover-h">' + G.UI._esc(fl.title || "Coalition") +
+            '</div><p class="coal-handover-note">' + G.UI._esc(fl.note || "") +
+            ' You cede <b>' + t.handovers.length + '</b> cabinet ' + (t.handovers.length === 1 ? 'post' : 'posts') +
+            ' to your partners:</p>' + rows + '</div>' + intro;
+  }
+  $("govLog").innerHTML = intro;
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderTurnEvents();
   G.UI.renderObjectiveBanner();
+  G.UI.renderCabinetStrip();
   G.UI.show("screen-govern");
 };
+/* ---- coalition negotiation modal ---------------------------------------- */
+G.UI.renderNegotiation = function (st) {
+  var overlay = document.getElementById("negotiationOverlay");
+  var card = document.getElementById("negotiationCard");
+  if (!overlay || !card || !st) return;
+  var pct = Math.round(st.odds * 100);
+  var oddsClass = pct >= 66 ? "neg-good" : pct >= 40 ? "neg-mid" : "neg-bad";
+  var html = "";
+  if (st.done) {
+    html = '<div class="neg-result ' + (st.success ? "neg-win" : "neg-lose") + '">' +
+      '<div class="neg-result-h">' + (st.success ? "Deal struck" : "Talks collapsed") + '</div>' +
+      '<p>' + (st.success
+        ? "The " + G.UI._esc(st.leadParty) + " partnership is agreed. They take their seats at the cabinet table."
+        : "The " + G.UI._esc(st.leadParty) + " walked away. You’ll have to find another way to a majority.") + '</p>' +
+      '<button class="btn btn-primary neg-continue" data-neg="continue">' + (st.success ? "Form the government →" : "Back to the numbers →") + '</button>' +
+      '</div>';
+  } else {
+    var rows = st.demands.map(function (d, i) {
+      if (d.conceded != null) {
+        return '<div class="neg-demand settled ' + (d.conceded ? "conceded" : "refused") + '">' +
+          '<span class="neg-ask">“' + G.UI._esc(d.def.ask) + '”</span>' +
+          '<span class="neg-verdict">' + (d.conceded ? "conceded — " + G.UI._esc(d.def.label) : "refused") + '</span></div>';
+      }
+      return '<div class="neg-demand">' +
+        '<span class="neg-ask">“' + G.UI._esc(d.def.ask) + '”</span>' +
+        '<span class="neg-choices">' +
+          '<button class="btn btn-ghost neg-btn" data-neg="concede" data-i="' + i + '">Concede</button>' +
+          '<button class="btn btn-ghost neg-btn" data-neg="refuse" data-i="' + i + '">Hold firm</button>' +
+        '</span></div>';
+    }).join("");
+    var answered = G.Negotiation.answered(st);
+    html =
+      '<button class="mc-close" data-neg="cancel" aria-label="Close">×</button>' +
+      '<div class="neg-head"><div class="mc-name">Coalition talks · ' + G.UI._esc(st.leadParty) + '</div>' +
+        '<div class="mc-role">Chemistry: <b class="coal-tag ' + st.tag + '">' + st.tag + '</b> · your negotiators rate ' + st.skill + '</div></div>' +
+      '<div class="neg-odds"><span>Chance of a deal</span>' +
+        '<span class="neg-oddsbar"><span class="' + oddsClass + '" style="width:' + pct + '%"></span></span>' +
+        '<b class="' + oddsClass + '">' + pct + '%</b></div>' +
+      '<p class="neg-hint">Concede to raise the odds — but you’ll pay for it in office. Hold firm to keep what’s yours, and gamble the talks.</p>' +
+      '<div class="neg-demands">' + rows + '</div>' +
+      '<button class="btn btn-primary neg-final" data-neg="resolve"' + (answered ? "" : " disabled") + '>' +
+        (answered ? "Put it to them" : "Answer their demands first") + '</button>';
+  }
+  card.innerHTML = html;
+  overlay.style.display = "flex";
+};
+G.UI.hideNegotiation = function () { var o = document.getElementById("negotiationOverlay"); if (o) o.style.display = "none"; };
+
+/* the cabinet, left to right: a portrait + post per minister, tap for detail.
+   Coalition partners carry their party colour as a ring + flag. */
+G.UI.renderCabinetStrip = function () {
+  var strip = document.getElementById("cabinetStrip");
+  var panel = document.getElementById("cabinetStripPanel");
+  if (!strip || !panel) return;
+  var t = G.term, cab = (G.state && G.state.cabinet) || {};
+  if (t && t.kind === "opp") { panel.style.display = "none"; return; }
+  var html = (G.PORTFOLIOS || []).map(function (port) {
+    var pol = cab[port.key]; if (!pol) return "";
+    var coal = pol.coalitionParty;
+    var ring = coal ? (pol.coalitionColour || "#888") : "";
+    return '<button class="cab-min' + (coal ? ' coal' : '') + '" data-port="' + port.key + '"' +
+      (coal ? ' style="--ring:' + ring + '"' : '') + ' title="' + G.UI._esc(port.name + ' — ' + pol.name) + '">' +
+      '<span class="cab-face" data-pol="' + G.UI._esc(pol.name) + '">' + G.UI._initials(pol.name) + '</span>' +
+      '<span class="cab-post">' + G.UI._esc(port.name) + '</span>' +
+      (coal ? '<span class="cab-flag" style="background:' + ring + '"></span>' : '') +
+      '</button>';
+  }).join("");
+  strip.innerHTML = html;
+  panel.style.display = html ? "" : "none";
+  G.UI._hydratePortraits(strip);
+};
+
+/* minister detail card — stats, morale, and one light interaction ("have a
+   word" nudges loyalty, once a session). Coalition partners are read-only. */
+G.UI.showMinisterCard = function (portKey) {
+  var overlay = document.getElementById("ministerCardOverlay");
+  var card = document.getElementById("ministerCard");
+  if (!overlay || !card) return;
+  var pol = G.state && G.state.cabinet && G.state.cabinet[portKey];
+  var port = G.PORTFOLIO_BY_KEY && G.PORTFOLIO_BY_KEY[portKey];
+  if (!pol || !port) return;
+  var coal = pol.coalitionParty;
+  var ms = G.minState ? G.minState(pol.name) : { loyalty: 55, ambition: 45, traits: [] };
+  var s = pol.stats || {};
+  function bar(lbl, v) {
+    v = Math.max(0, Math.min(100, v || 0));
+    return '<div class="mc-stat"><span class="mc-stat-l">' + lbl + '</span>' +
+           '<span class="mc-stat-bar"><span style="width:' + v + '%"></span></span>' +
+           '<span class="mc-stat-v">' + Math.round(v) + '</span></div>';
+  }
+  var traits = (ms.traits && ms.traits.length) ? ms.traits.join(", ") : "no notable traits yet";
+  var wordable = !coal && G.term && !G.term.over && !(ms._wordedSession === G.term.session);
+  card.innerHTML =
+    '<button class="mc-close" data-mc="close" aria-label="Close">×</button>' +
+    '<div class="mc-head">' +
+      '<span class="mc-face" data-pol="' + G.UI._esc(pol.name) + '">' + G.UI._initials(pol.name) + '</span>' +
+      '<div class="mc-id"><div class="mc-name">' + G.UI._esc(pol.name) + '</div>' +
+        '<div class="mc-role">' + G.UI._esc(port.name) + (coal ? ' · <span class="mc-coal" style="color:' + (pol.coalitionColour || '#888') + '">' + G.UI._esc(coal) + '</span>' : '') + '</div></div>' +
+    '</div>' +
+    (pol.note ? '<p class="mc-note">' + G.UI._esc(pol.note) + '</p>' : '') +
+    '<div class="mc-stats">' +
+      bar("Appeal", s.appeal) + bar("Experience", s.experience) + bar("Oratory", s.oratory) +
+      bar("Statecraft", s.statecraft) + bar("Party mgmt", s.partyMgmt) +
+    '</div>' +
+    '<div class="mc-morale">' +
+      '<span>Loyalty <b>' + Math.round(ms.loyalty) + '</b></span>' +
+      '<span>Ambition <b>' + Math.round(ms.ambition) + '</b></span>' +
+      (ms.rivalry ? '<span class="mc-rival">plotting</span>' : '') +
+    '</div>' +
+    '<p class="mc-traits">' + G.UI._esc(traits) + '</p>' +
+    (coal
+      ? '<p class="mc-coalnote">A coalition partner — they answer to their own party, not to you.</p>'
+      : (wordable
+          ? '<button class="btn btn-ghost mc-word" data-mc="word" data-port="' + portKey + '">Have a quiet word</button>'
+          : (G.term && !G.term.over ? '<p class="mc-done">You’ve already spoken with them this session.</p>' : '')));
+  overlay.style.display = "flex";
+  G.UI._hydratePortraits(card);
+};
+G.UI.hideMinisterCard = function () {
+  var o = document.getElementById("ministerCardOverlay"); if (o) o.style.display = "none";
+};
+G.UI._haveWord = function (portKey) {
+  var pol = G.state && G.state.cabinet && G.state.cabinet[portKey];
+  if (!pol || !G.minState || !G.term) return;
+  var ms = G.minState(pol.name);
+  if (ms._wordedSession === G.term.session) return;
+  ms.loyalty = Math.max(20, Math.min(95, (ms.loyalty || 55) + 4));
+  ms._wordedSession = G.term.session;
+  if (G.UI.pushGovLog) G.UI.pushGovLog({ text: "You had a quiet word with " + pol.name + " — loyalty steadies.", cls: "good" });
+  G.UI.showMinisterCard(portKey);   // re-render (button now spent)
+};
+
 G.UI.pushGovLog = function (lines) {
   var feed = $("govLog");
   (Array.isArray(lines) ? lines : [lines]).slice().reverse().forEach(function (ln) {
@@ -605,6 +751,7 @@ G.UI.afterConfirm = function () {
   $("govSession").textContent = "· session " + Math.min(t.session, t.length) + " of " + t.length;
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
+  G.UI.renderCabinetStrip();
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {
@@ -1002,7 +1149,7 @@ G.UI.renderPostElectionIntl = function (res, sys) {
       var b = document.createElement("button");
       b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
       var tag = d.tag || (d.natural ? "natural" : "unlikely");
-      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + G.UI._cedeTag(d, res) + '</span>' +
                     '<span class="coal-meta"><span class="coal-sub">' + d.combined + ' seats</span>' +
                     '<span class="coal-tag ' + tag + '">' + tag + '</span></span>';
       box.appendChild(b);
@@ -1031,6 +1178,18 @@ G.UI.renderPostElectionIntl = function (res, sys) {
 /* Replace the UK hexmap with a system-appropriate visual: a geographic hex
    cartogram of the country (when a layout exists) plus a system-specific
    breakdown (EC tally / coalition list / region bars) below it. */
+/* how many cabinet posts a deal would cost you — previewed on the coalition
+   buttons so the trade-off is visible before you sign. */
+G.UI._cedeTag = function (deal, res) {
+  try {
+    if (!G.buildCoalitionCabinet || !res || !res.opposition || !G.state || !G.state.cabinet) return "";
+    var sysKey = (res.electoralSystem && res.electoralSystem !== "fptp_uk") ? res.electoralSystem : (G.state._electoralSystemKey || null);
+    var built = G.buildCoalitionCabinet(deal, res.opposition, G.state.cabinet, { sysKey: sysKey, playerSeats: res.seats });
+    var n = built && built.handovers ? built.handovers.length : 0;
+    return n ? '<span class="coal-cede">cede ' + n + ' post' + (n === 1 ? '' : 's') + '</span>' : "";
+  } catch (e) { return ""; }
+};
+
 /* ---- odds labels: reflect THIS system's real thresholds ----------------- */
 /* "Landslide 400+" only makes sense for the 650-seat Commons; every system has
    its own majority/landslide/supermajority/total, so label the odds tiles with
@@ -1399,7 +1558,7 @@ G.UI.renderPostElection = function (res) {
       var b = document.createElement("button");
       b.className = "coal-opt"; b.setAttribute("data-act", "deal"); b.setAttribute("data-i", i);
       var tag = d.tag || (d.natural ? "natural" : "unlikely");
-      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + '</span>' +
+      b.innerHTML = '<span class="coal-main">' + sw + 'Coalition with ' + names + G.UI._cedeTag(d, res) + '</span>' +
                     '<span class="coal-meta"><span class="coal-sub">' + d.combined + ' seats</span>' +
                     '<span class="coal-tag ' + tag + '">' + tag + '</span></span>';
       box.appendChild(b);
@@ -1633,8 +1792,13 @@ G.UI._lbRowEl = function (e, rank) {
   var detail = null;
   row.onclick = function () {
     if (detail) { detail.parentNode.removeChild(detail); detail = null; return; }
-    detail = document.createElement("div"); detail.className = "lb-detail"; detail.innerHTML = G.UI._cabinetInner(e);
+    detail = document.createElement("div"); detail.className = "lb-detail";
+    var inner = G.UI._cabinetInner(e);
+    if (e.runCode && G.UI.onReplay) inner += '<button class="btn btn-ghost lb-replay">▶ Load &amp; replay this exact run</button>';
+    detail.innerHTML = inner;
     row.parentNode.insertBefore(detail, row.nextSibling);
+    var rb = detail.querySelector(".lb-replay");
+    if (rb) rb.onclick = function (ev) { ev.stopPropagation(); G.UI.onReplay(e.runCode); };
   };
   return row;
 };
@@ -1643,7 +1807,7 @@ G.UI._drawLb = function () {
   var box = $("lbTable"); if (!box) return;
   box.innerHTML = "";
   var tabs = document.createElement("div"); tabs.className = "lb-tabs";
-  [["communal", "Hardest (UK)"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
+  [["communal", "This board"], ["allpct", "All Results %"], ["personal", "Your Runs"]].forEach(function (t) {
     var b = document.createElement("button");
     b.className = "lb-tab" + (G.UI._lbView === t[0] ? " sel" : "");
     b.textContent = t[1];
@@ -1719,6 +1883,53 @@ G.UI.renderLeaderboard = function (top, communal, error) {
     var ci = $("chatInput"), cs = $("chatSend");
     if (ci) { ci.disabled = !me; ci.placeholder = me ? "Say something…" : "Sign in to chat…"; }
     if (cs) cs.disabled = !me;
+  };
+
+  /* the signed-in player's profile: identity + stats aggregated from their runs
+     (best seats, governed terms, ranked best, per-nation bests). */
+  G.UI.renderProfile = function (me, runs) {
+    if (!me) return;
+    var nameEl = $("profileName"), rankEl = $("profileRank"), avEl = $("profileAvatar");
+    if (nameEl) nameEl.textContent = me.name;
+    if (avEl) avEl.textContent = (me.name || "?").slice(0, 2).toUpperCase();
+    if (rankEl) rankEl.textContent = me.level >= 9 ? "Administrator" : me.level >= 5 ? "Moderator" : "Player";
+    runs = runs || [];
+    var NAT = { "": "🇬🇧 UK", fptp_uk: "🇬🇧 UK" };
+    var sys = G.ELECTORAL_SYSTEMS || {};
+    function natLabel(k) { if (!k || k === "fptp_uk") return "🇬🇧 UK"; var s = sys[k]; return s ? (s.flag ? s.flag + " " : "") + (s.country || s.name || k) : k; }
+    var games = runs.length, governed = 0, best = null, bestPct = null, rankedBest = null, byNat = {};
+    var rk = (G.LB && G.LB.ranked) ? G.LB.ranked() : { mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded" };
+    runs.forEach(function (r) {
+      if (r.govt || r.legacy != null) governed++;
+      if (!best || r.seats > best.seats) best = r;
+      var pct = r.pct != null ? r.pct : (r.totalSeats > 0 ? r.seats / r.totalSeats * 100 : 0);
+      if (!bestPct || pct > bestPct.pct) bestPct = { pct: pct, r: r };
+      if (r.mode === rk.mode && r.difficulty === rk.difficulty && r.cabinetSize === rk.cabinetSize && (!r.electoralSystem || r.electoralSystem === "fptp_uk")) {
+        if (!rankedBest || r.seats > rankedBest.seats) rankedBest = r;
+      }
+      var key = r.electoralSystem || "fptp_uk";
+      if (!byNat[key] || r.seats > byNat[key].seats) byNat[key] = r;
+    });
+    var statsEl = $("profileStats");
+    if (statsEl) {
+      function tile(v, l) { return '<div class="pf-stat"><div class="pf-stat-v">' + v + '</div><div class="pf-stat-l">' + l + '</div></div>'; }
+      statsEl.innerHTML =
+        tile(games, "Games played") +
+        tile(best ? best.seats : "—", "Best seats") +
+        tile(bestPct ? bestPct.pct.toFixed(1) + "%" : "—", "Best share") +
+        tile(governed, "Governed terms") +
+        tile(rankedBest ? rankedBest.seats : "—", "Ranked best");
+    }
+    var natEl = $("profileNations");
+    if (natEl) {
+      var keys = Object.keys(byNat).sort(function (a, b) { return byNat[b].seats - byNat[a].seats; });
+      natEl.innerHTML = keys.length
+        ? '<div class="pf-nat-h">Best by nation</div>' + keys.map(function (k) {
+            var r = byNat[k];
+            return '<div class="pf-nat"><span>' + esc(natLabel(k)) + '</span><span class="pf-nat-s">' + r.seats + ' / ' + (r.totalSeats || 650) + '</span></div>';
+          }).join("")
+        : "";
+    }
   };
 
   G.UI.renderPlayerRuns = function (runs) {

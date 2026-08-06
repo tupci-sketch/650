@@ -10,11 +10,27 @@
   var sel = function (id) { return document.getElementById(id); };
   var each = function (list, fn) { Array.prototype.forEach.call(list, fn); };
   function setSel(rowId, attr, val) { var row = sel(rowId); if (!row) return; each(row.querySelectorAll("[" + attr + "]"), function (b) { b.classList.toggle("sel", b.getAttribute(attr) === val); }); }
-  function isRankedSetup() { return choice.mode === "wildcard" && choice.difficulty === "hard" && choice.cabinetSize === "expanded"; }
+  function rankedSpec() { return (G.LB && G.LB.ranked) ? G.LB.ranked() : { country: "uk", mode: "wildcard", difficulty: "brutal", cabinetSize: "expanded", redos: 0, govern: 1, policy: 1, campaign: 1 }; }
+  function allErasOn() {
+    var all = (G.ERAS || []).map(function (e) { return e.id; });
+    return all.length > 0 && all.every(function (id) { return (choice.eras || []).indexOf(id) !== -1; });
+  }
+  function isRankedSetup() {
+    var r = rankedSpec();
+    return choice.mode === r.mode && choice.difficulty === r.difficulty && choice.cabinetSize === r.cabinetSize &&
+           (choice.country || "uk") === (r.country || "uk") &&
+           (choice.redos | 0) === (r.redos | 0) &&
+           (!!choice.govern) === (!!r.govern) && (!!choice.policy) === (!!r.policy) && (!!choice.campaignOn) === (!!r.campaign) &&
+           allErasOn();
+  }
+  function rankedSummary() {
+    var r = rankedSpec();
+    return "Wildcard · Brutal · Expanded (16) · all eras · full term with manifesto & campaign · no do-overs";
+  }
   function updateEligibility() {
     var b = sel("lbEligBadge"); if (!b) return;
-    if (isRankedSetup()) { b.textContent = "\uD83C\uDFC6 Leaderboard-eligible \u2014 this is the ranked mode (Wildcard \u00b7 Hard \u00b7 Expanded)."; b.className = "elig-badge ok"; }
-    else { b.textContent = "Not ranked \u2014 only Wildcard \u00b7 Hard \u00b7 Expanded counts on the global board. You'll still get a personal board, and can post for fun."; b.className = "elig-badge"; }
+    if (isRankedSetup()) { b.textContent = "\uD83C\uDFC6 Ranked \u2014 this run counts on the ranked board (" + rankedSummary() + ")."; b.className = "elig-badge ok"; }
+    else { b.textContent = "Not ranked \u2014 the ranked board is " + rankedSummary() + ". Any run still posts to its nation board and your personal board; press \u201CSet ranked mode\u201D to compete for the top."; b.className = "elig-badge"; }
   }
   function setLbBtns(disabled, label) { ["resultLbBtn", "legacyLbBtn"].forEach(function (id) { var b = sel(id); if (!b) return; b.disabled = !!disabled; if (label) b.textContent = label; }); }
 
@@ -456,14 +472,16 @@
         /* surface a saved game (cloud when signed in, else the local slot) —
            unless a live in-memory game is already offering an in-place resume */
         showSessionCard();
+        toggleProfilePanels(me);
         if (me) {
-          /* load run history for the account screen */
+          if (G.UI.renderProfile) G.UI.renderProfile(me, []);   // header immediately; stats fill on fetch
+          /* load run history for the profile + recent-games list */
           if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+            var runs = (d && d.ok && d.runs) ? d.runs : [];
+            if (G.UI.renderProfile) G.UI.renderProfile(me, runs);
             var rp = sel("runsPanel"); if (!rp) return;
-            if (d && d.ok && d.runs && d.runs.length) {
-              if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(d.runs);
-              rp.style.display = "";
-            } else rp.style.display = "none";
+            if (runs.length) { if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(runs); rp.style.display = ""; }
+            else rp.style.display = "none";
           });
         } else {
           var rp2 = sel("runsPanel"); if (rp2) rp2.style.display = "none";
@@ -726,10 +744,20 @@
     };
     var rp = sel("rankedPresetBtn");
     if (rp) rp.onclick = function () {
-      choice.mode = "wildcard"; choice.difficulty = "hard"; choice.cabinetSize = "expanded";
-      setSel("modeRow", "data-mode", "wildcard"); setSel("diffRow", "data-diff", "hard"); setSel("sizeRow", "data-size", "expanded");
-      sel("dynastyPick").classList.remove("show"); sel("wildNote").classList.add("show");
-      buildEraToggles(true); buildCastToggles(); buildDynastyChips(); updateHint(); updateEligibility(); updateEraVisibility();
+      var r = rankedSpec();
+      choice.country = r.country || "uk";
+      choice.mode = r.mode; choice.difficulty = r.difficulty; choice.cabinetSize = r.cabinetSize;
+      choice.redos = r.redos | 0; choice.govern = !!r.govern; choice.policy = !!r.policy; choice.campaignOn = !!r.campaign;
+      choice.eras = (G.ERAS || []).map(function (e) { return e.id; });          // all eras on
+      applyCountryChoice && applyCountryChoice(choice.country);
+      setSel("modeRow", "data-mode", choice.mode); setSel("diffRow", "data-diff", choice.difficulty); setSel("sizeRow", "data-size", choice.cabinetSize);
+      setSel("governRow", "data-govern", choice.govern ? "true" : "false");
+      setSel("redoRow", "data-redos", String(choice.redos));
+      setSel("policyRow", "data-policy", choice.policy ? "true" : "false");
+      setSel("campaignRow", "data-campaign", choice.campaignOn ? "true" : "false");
+      if (sel("dynastyPick")) sel("dynastyPick").classList.remove("show");
+      if (sel("wildNote")) sel("wildNote").classList.add("show");
+      buildEraToggles(false); buildCastToggles(); buildDynastyChips(); updateHint(); updateEligibility(); updateEraVisibility();
       var hint = sel("setupHint"); if (hint) { hint.scrollIntoView && hint.scrollIntoView({ behavior: "smooth", block: "center" }); }
     };
     sel("aboutBtn").onclick = function () { G.UI.renderAbout(); };
@@ -849,10 +877,31 @@
     if (G.state.watch) startWatch(lastResult);
     else showResult(lastResult);
   }
+  /* the shareable run payload: settings + cabinet (by position) + exact seed */
+  function runPayloadFrom(res) {
+    var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
+    var cab = [];
+    (G.PORTFOLIOS || []).forEach(function (port) { var p = cabinet[port.key]; if (p) cab.push({ k: port.key, n: p.name }); });
+    return {
+      v: 1, s: (res.seed >>> 0),
+      m: G.state.mode, l: G.state.lineage || null, d: G.state.difficulty, z: G.state.cabinetSize,
+      e: (G.state.eras || []).slice(), sc: G.state.scenarioKey || null, sy: G.state._electoralSystemKey || null,
+      cty: choice.country || "uk",
+      cu: G.state.custom ? { name: G.state.custom.name, align: G.state.custom.align, colour: G.state.custom.colour } : null,
+      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1")
+    };
+  }
   function showResult(res) {
     G.UI.renderResult(res);
     updatePersonalBest(res);
     autoSave("result");
+    /* build the shareable code + fingerprint for this run */
+    try {
+      var payload = runPayloadFrom(res);
+      res._runPayload = payload;
+      res._runCode = G.LB ? G.LB.encodeRun(payload) : "";
+      res._runFp = G.LB ? G.LB.runFingerprint(payload) : "";
+    } catch (e) {}
     /* record an anonymous run summary + show how you compare (fail-soft, optional) */
     if (G.SIM650 && G.SIM650.report) G.SIM650.report(res, {
       scenario: res.scenarioKey || (G.state && G.state.scenarioKey) || "freshstart",
@@ -879,8 +928,32 @@
       if (unlocked.length && G.UI.showAchievements) G.UI.showAchievements(unlocked);
     }
     try {
-      if (G.LB && G.LB.recordLocalRun) G.LB.recordLocalRun(entryFrom(res));
+      if (G.LB && G.LB.recordLocalRun && !res._replay) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
+  }
+
+  /* load a shared run code from the menu and replay it exactly. A loaded replay
+     is flagged non-scoring (it isn't YOUR parliament). */
+  function loadRunCode(codeArg) {
+    var inp = sel("loadCodeInput"), msg = sel("loadCodeMsg");
+    var raw = (codeArg != null) ? String(codeArg) : ((inp && inp.value) || "").trim();
+    function say(t) { if (msg) { msg.style.display = ""; msg.textContent = t; } }
+    if (!raw) { say("Paste a run code first."); return; }
+    var decoded = G.LB && G.LB.decodeRun(raw);
+    if (!decoded || !decoded.cab) { say("That doesn't look like a valid run code."); return; }
+    say("Loading the run…");
+    var out = G.runFromCode(decoded);
+    if (out.error === "missing") { say("Can't replay: this run uses figures your game doesn't have — " + out.missing.slice(0, 3).join(", ") + (out.missing.length > 3 ? "…" : "") + "."); return; }
+    if (out.error === "model") { say("This run was recorded on model " + out.want + "; the current model is " + out.have + ", so it can't be reproduced exactly."); return; }
+    if (out.error || !out.res) { say("Couldn't load that run code."); return; }
+    say("");
+    cancelWatch();
+    currentVerdict = null; submitting = false;
+    setLbBtns(false, "★ Post to leaderboard");
+    var res = out.res;
+    res._replay = true;                 // a loaded replay never counts as your own parliament
+    lastResult = res;
+    showResult(res);
   }
 
   /* ----------------------------------------------- seat-by-seat count ----- */
@@ -1078,6 +1151,15 @@
       postToX(G.UI.resultText(lastResult) + " #650game", function () { return G.UI.shareCardBlob(lastResult); });
     };
 
+    if (sel("runCodeBtn")) sel("runCodeBtn").onclick = function () {
+      if (!lastResult || !lastResult._runCode) { flashButton(sel("runCodeBtn"), "No code"); return; }
+      var code = lastResult._runCode;
+      var done = function () { flashButton(sel("runCodeBtn"), "Copied ✓"); };
+      if (navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(code).then(done).catch(function () { legacyCopy(code, done); });
+      else legacyCopy(code, done);
+    };
+
     sel("againBtn").onclick = function () {
       cancelWatch();
       currentVerdict = null; submitting = false;             // a new election is a new, unique turn
@@ -1137,17 +1219,74 @@
     if (G.NET && G.NET.me) el.textContent = "Posting as " + G.NET.me.name + ".";
     else el.textContent = "The public board is for registered players \u2014 sign in (free) to post your runs.";
   }
+  function toggleProfilePanels(me) {
+    var login = sel("acctLoginPanel"), prof = sel("profilePanel"), title = sel("acctTitle"), msg = sel("acctMsg");
+    if (login) login.style.display = me ? "none" : "";
+    if (prof) prof.style.display = me ? "" : "none";
+    if (title) title.textContent = me ? "Your profile" : "Account";
+    if (msg) msg.style.display = me ? "none" : "";
+  }
+  function openAccount() {
+    if (G.NET && G.NET.me) {
+      toggleProfilePanels(G.NET.me);
+      if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, []);
+      if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
+        var runs = (d && d.ok && d.runs) ? d.runs : [];
+        if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, runs);
+        var rp = sel("runsPanel");
+        if (runs.length) { if (G.UI.renderPlayerRuns) G.UI.renderPlayerRuns(runs); if (rp) rp.style.display = ""; }
+        else if (rp) rp.style.display = "none";
+      });
+    } else {
+      toggleProfilePanels(null);
+      setAcctTab("login");
+    }
+    G.UI.show("screen-account");
+  }
+  var lbCat = "ranked";                       // current leaderboard category id
+  function lbCategories() {
+    var cats = [
+      { id: "ranked",  label: "\ud83c\udfc6 Ranked",   kind: "ranked" },
+      { id: "overall", label: "\u2605 All-time",  kind: "overall" }
+    ];
+    var sys = G.ELECTORAL_SYSTEMS || {};
+    var LABELS = {
+      fptp_uk: "UK", fptp_usa_house: "US House", ec_usa_president: "US College",
+      pr_dhondt_bundestag: "Germany", pr_dhondt_weimar: "Weimar", trs_france: "France",
+      av_australia: "Australia", fptp_canada: "Canada", fptp_india: "India", fptp_japan: "Japan",
+      guided_china: "China", guided_north_korea: "North Korea", guided_soviet: "Soviet", guided_cuba: "Cuba"
+    };
+    var order = ["fptp_uk", "fptp_usa_house", "ec_usa_president", "pr_dhondt_bundestag", "pr_dhondt_weimar",
+                 "trs_france", "av_australia", "fptp_canada", "fptp_india", "fptp_japan",
+                 "guided_china", "guided_north_korea", "guided_soviet", "guided_cuba"];
+    order.forEach(function (k) {
+      var s = sys[k]; if (!s) return;
+      cats.push({ id: k, label: (s.flag ? s.flag + " " : "") + (LABELS[k] || s.country || k),
+                  kind: "board", key: (k === "fptp_uk") ? "unity|normal|standard" : ("system:" + k) });
+    });
+    return cats;
+  }
+  function renderLbCats() {
+    var box = sel("lbCats"); if (!box) return;
+    box.innerHTML = lbCategories().map(function (c) {
+      return '<button class="lb-cat' + (c.id === lbCat ? " sel" : "") + '" data-cat="' + c.id + '">' + G.UI._esc(c.label) + '</button>';
+    }).join("");
+  }
   function openLeaderboard() {
     updateLbWho();
+    if (G.UI) G.UI.onReplay = function (code) { loadRunCode(code); };
+    renderLbCats();
     G.UI.show("screen-leaderboard"); loadLeaderboard();
   }
   function loadLeaderboard() {
     var s = sel("lbStatus"); if (s) s.textContent = "Loading\u2026";
-    var bm = sel("lbBoardMode"), v = bm ? bm.value : "ranked";
-    var done = function (d) { G.UI.renderLeaderboard((d && d.top) || [], true, (d && d.ok) ? null : "offline"); };
-    if (v === "overall" && G.NET) { G.NET.overall().then(done); return; }
-    if (v && v !== "ranked" && G.NET) { var p = v.split("|"); G.NET.board({ mode: p[0], difficulty: p[1], cabinetSize: p[2] }).then(done); return; }
-    G.LB.fetchTop(function (top, communal, err) { G.UI.renderLeaderboard(top, communal, err); });
+    var cats = lbCategories();
+    var c = cats.filter(function (x) { return x.id === lbCat; })[0] || cats[0];
+    var render = function (top, communal, err) { G.UI.renderLeaderboard(top || [], communal !== false, err); };
+    if (c.kind === "ranked") { G.LB.fetchRanked(function (top, com, err) { render(top, com, err); }); return; }
+    if (c.kind === "overall" && G.NET) { G.NET.overall().then(function (d) { render((d && d.top) || [], true, (d && d.ok) ? null : "offline"); }); return; }
+    if (c.kind === "board") { G.LB.fetchBoardByKey(c.key, function (top, com, err) { render(top, com, err); }); return; }
+    G.LB.fetchTop(function (top, communal, err) { render(top, communal, err); });
   }
   /* one finished ELECTION = one entry. The cabinet comes from the manifest
      snapshotted at hold() (A3) and the runId minted there keys the record on
@@ -1170,6 +1309,8 @@
              scenarioKey: (G.state && G.state.scenarioKey) || "",
              electoralSystem: (G.state && G.state._electoralSystemKey) || "",
              totalSeats: _totalSeats,
+             ranked: isRankedSetup(),
+             runFp: res._runFp || "", runCode: res._runCode || "",
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }
@@ -1181,6 +1322,9 @@
       G.UI.show("screen-account");
       var msg = sel("acctMsg"); if (msg) msg.textContent = "Sign in (or register) to post your run to the leaderboard.";
       return;
+    }
+    if (lastResult && lastResult._replay) {                  // a loaded replay is not your parliament
+      setLbBtns(true, "Replays don't score"); openLeaderboard(); return;
     }
     var e = currentEntry(); if (!e || !e.name) return;
     if (submitting) return;                                  // already posting
@@ -1196,6 +1340,7 @@
       G.UI.renderLeaderboard(top, communal, err);
       if (err === "offline") setLbBtns(false, "\u2605 Try posting again");          // allow retry
       else if (err === "duplicate") setLbBtns(true, "Already posted \u2713");
+      else if (err === "replay") setLbBtns(true, "Replay \u2014 doesn't score");
       else if (err === "not hardest mode") setLbBtns(true, "Not in ranked mode");
       else if (err === "login") setLbBtns(true, "Sign in to post");
       else setLbBtns(true, "Posted \u2713");
@@ -1237,8 +1382,16 @@
     if (G.state.policyOn) G.UI.renderPolicy("programme");
     else { G.UI.renderGovern(); if (G.UI.renderCareerBanner) G.UI.renderCareerBanner(G.career); }
   }
-  function startCoalitionGovern(res, deal, minority) {
-    enterGovernment(res, { coalition: deal || null, minority: !!minority });
+  function startCoalitionGovern(res, deal, minority, concessions) {
+    enterGovernment(res, { coalition: deal || null, minority: !!minority, concessions: concessions || null });
+  }
+  /* the negotiation mini-game: picking a partner opens talks that may or may
+     not succeed. On success we govern with the (possibly conceded) deal. */
+  var negState = null;
+  function beginNegotiation(res, deal) {
+    if (!G.Negotiation) { startCoalitionGovern(res, deal, false); return; }
+    negState = G.Negotiation.start(deal, res);
+    G.UI.renderNegotiation(negState);
   }
   function startOpposition(res) {
     G.startOpposition(res);
@@ -1255,7 +1408,7 @@
       var act = n.getAttribute("data-act");
       if (act === "deal") {
         var i = parseInt(n.getAttribute("data-i"), 10);
-        startCoalitionGovern(lastResult, lastResult.coalition.deals[i], false);
+        beginNegotiation(lastResult, lastResult.coalition.deals[i]);
       } else if (act === "minority") {
         startCoalitionGovern(lastResult, null, true);
       } else if (act === "opposition") {
@@ -1263,6 +1416,28 @@
       }
     });
     sel("oppositionBtn").onclick = function () { if (lastResult) startOpposition(lastResult); };
+    /* negotiation modal interactions */
+    var negOv = sel("negotiationOverlay");
+    if (negOv) negOv.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest("[data-neg]") : null;
+      if (e.target === negOv) return;                 // backdrop stays (talks are committal)
+      if (!a || !negState) return;
+      var act = a.getAttribute("data-neg");
+      if (act === "concede" || act === "refuse") {
+        G.Negotiation.choose(negState, parseInt(a.getAttribute("data-i"), 10), act === "concede");
+        G.UI.renderNegotiation(negState);
+      } else if (act === "resolve") {
+        if (!G.Negotiation.answered(negState)) return;
+        G.Negotiation.resolve(negState);
+        G.UI.renderNegotiation(negState);
+      } else if (act === "cancel") {
+        negState = null; G.UI.hideNegotiation();
+      } else if (act === "continue") {
+        var st = negState; negState = null; G.UI.hideNegotiation();
+        if (st && st.success) startCoalitionGovern(lastResult, st.deal, false, st.concessions);
+        /* on failure we simply return to the coalition screen, already shown */
+      }
+    });
   }
 
   function wirePolicy() {
@@ -1361,6 +1536,22 @@
       G.UI.afterConfirm();
       if (r.over) endTerm();
     };
+    /* cabinet strip: tap a minister to open their card */
+    var strip = sel("cabinetStrip");
+    if (strip) strip.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".cab-min") : null;
+      if (b) G.UI.showMinisterCard(b.getAttribute("data-port"));
+    });
+    /* minister card overlay: close (backdrop or ×) + "have a word" */
+    var ov = sel("ministerCardOverlay");
+    if (ov) ov.addEventListener("click", function (e) {
+      if (e.target === ov) { G.UI.hideMinisterCard(); return; }
+      var a = e.target && e.target.closest ? e.target.closest("[data-mc]") : null;
+      if (!a) return;
+      var act = a.getAttribute("data-mc");
+      if (act === "close") G.UI.hideMinisterCard();
+      else if (act === "word") G.UI._haveWord(a.getAttribute("data-port"));
+    });
     /* once-a-term reshuffle: pick two seats to swap */
     var resel = [];
     sel("reshuffleBtn").onclick = function () {
@@ -1522,16 +1713,18 @@
     btn.onclick = function () {
       if (!G.career || !G.career.active) { goMenu(); return; }
       /* compute retirements based on serve counts set in careerRecordTerm */
-      var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+      var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
       /* add retiring names to retiredMinisters so pool excludes them */
       retiring.forEach(function (r) {
         if (G.career.retiredMinsters) G.career.retiredMinsters[r.politician.name] = true;
       });
       /* build carry-over: ministers NOT retiring keep their portfolio */
       var carryOver = {};
-      var cabinet = (G.state && G.state.cabinet) || {};
+      /* coalition partners' ministers don't carry over as your own — the term's
+         all-yours line-up (kept aside when the coalition formed) is the base. */
+      var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
       Object.keys(cabinet).forEach(function (key) {
-        var pol = cabinet[key]; if (!pol) return;
+        var pol = cabinet[key]; if (!pol || pol.coalitionParty) return;
         var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
         if (!isRetiring) carryOver[key] = pol;
       });
@@ -1583,7 +1776,7 @@
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */
-        var retiring = G.checkRetirements ? G.checkRetirements(G.state.cabinet || {}) : [];
+        var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
         G.UI.renderRetirements(retiring, G.career);
       } else {
         if (origOnclick) origOnclick.call(this);
@@ -1640,11 +1833,30 @@
   }
   function openAdmin() {
     stopChatPoll(); G.UI.show("screen-admin");
-    if (G.NET) G.NET.loadConfig().then(function () { G.UI.renderAdmin(); });
+    if (G.NET) G.NET.loadConfig().then(function () { G.UI.renderAdmin(); fillRankedAdmin(); });
     apBuildControls();
+    fillRankedAdmin();
     fillPolNames();
     refreshUsers();
     refreshPolList();
+  }
+  function fillRankedAdmin() {
+    var r = (G.NET && G.NET.config && G.NET.config.ranked) || (G.LB && G.LB.RANKED_DEFAULT) || {};
+    var sysSel = sel("rkSystem");
+    if (sysSel && !sysSel.options.length) {
+      var opts = '<option value="">🇬🇧 UK · Commons (FPTP)</option>';
+      var sys = G.ELECTORAL_SYSTEMS || {};
+      ["fptp_usa_house", "ec_usa_president", "pr_dhondt_bundestag", "pr_dhondt_weimar", "trs_france", "av_australia", "fptp_canada", "fptp_india", "fptp_japan", "guided_china", "guided_north_korea", "guided_soviet", "guided_cuba"].forEach(function (k) {
+        var s = sys[k]; if (!s) return; opts += '<option value="' + k + '">' + (s.flag ? s.flag + " " : "") + G.UI._esc(s.name || k) + '</option>';
+      });
+      sysSel.innerHTML = opts;
+    }
+    var set = function (id, v) { var el = sel(id); if (el) el.value = v; };
+    var chk = function (id, v) { var el = sel(id); if (el) el.checked = !!v; };
+    set("rkMode", r.mode || "wildcard"); set("rkDiff", r.difficulty || "brutal");
+    set("rkSize", r.cabinetSize || "expanded"); set("rkSystem", r.system || "");
+    set("rkRedos", String(r.redos | 0));
+    chk("rkGovern", r.govern); chk("rkPolicy", r.policy); chk("rkCampaign", r.campaign);
   }
   function fillPolNames() {
     var dl = sel("apNames"); if (!dl || !G.POLITICIANS) return;
@@ -1834,8 +2046,13 @@
   function wirePlatform() {
     sel("acctOpenBtn").onclick = function () {
       stopChatPoll();
-      if (G.NET && G.NET.me) { if (!window.confirm || window.confirm("Sign out of " + G.NET.me.name + "?")) G.NET.logout(); return; }
-      setAcctTab("login"); G.UI.show("screen-account");
+      openAccount();
+    };
+    if (sel("profileSignOut")) sel("profileSignOut").onclick = function () {
+      if (!G.NET) return;
+      if (!window.confirm || window.confirm("Sign out of " + (G.NET.me ? G.NET.me.name : "your account") + "?")) {
+        G.NET.logout().then(function () { toggleProfilePanels(null); goMenu(); });
+      }
     };
     sel("acctBackBtn").onclick = goMenu;
     each(document.querySelectorAll("#screen-account .acct-tab"), function (b) { b.onclick = function () { setAcctTab(b.getAttribute("data-at")); }; });
@@ -1851,6 +2068,8 @@
     sel("chatBtn").onclick = openChat;
     sel("liveBtn").onclick = openLive;
     sel("adminBtn").onclick = openAdmin;
+    if (sel("loadCodeBtn")) sel("loadCodeBtn").onclick = loadRunCode;
+    if (sel("loadCodeInput")) sel("loadCodeInput").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadRunCode(); } });
     sel("chatBackBtn").onclick = goMenu;
     sel("liveBackBtn").onclick = goMenu;
     sel("adminBackBtn").onclick = goMenu;
@@ -1876,6 +2095,20 @@
       });
       G.NET.adminStreams(streams).then(function (d) { flash(sel("admStreamsSave"), (d && d.ok) ? "Saved \u2713" : "Failed"); });
     };
+    if (sel("rkSave")) sel("rkSave").onclick = function () {
+      if (!G.NET || !G.NET.adminRanked) return;
+      var sysKey = sel("rkSystem").value;
+      var country = sysKey && G.ELECTORAL_SYSTEMS && G.ELECTORAL_SYSTEMS[sysKey] ? (G.ELECTORAL_SYSTEMS[sysKey].regionKey || "uk") : "uk";
+      var spec = {
+        country: country, mode: sel("rkMode").value, difficulty: sel("rkDiff").value, cabinetSize: sel("rkSize").value,
+        system: sysKey, scenario: "", redos: parseInt(sel("rkRedos").value, 10) || 0,
+        govern: sel("rkGovern").checked, policy: sel("rkPolicy").checked, campaign: sel("rkCampaign").checked
+      };
+      var m = sel("rkMsg"); if (m) m.textContent = "Saving\u2026";
+      G.NET.adminRanked(spec).then(function (d) {
+        if (m) m.textContent = (d && d.ok) ? "Ranked spec saved \u2014 live for everyone." : "Couldn't save: " + ((d && d.error) || "offline") + ".";
+      });
+    };
     sel("apLoad").onclick = function () {
       var name = (sel("apName").value || "").trim();
       var m = sel("apMsg");
@@ -1892,6 +2125,32 @@
                              (matches.length > 1 ? " (They also have a " + (fig.scope === "p24" ? "historical" : "2024") + " record \u2014 switch the Roster dropdown to edit that one.)" : "");
     };
     sel("apNew").onclick = function () { apClearForm(); var m = sel("apMsg"); if (m) m.textContent = "Cleared \u2014 fill the form in to add a new figure."; };
+    /* pull anyone with a Wikipedia page straight into the form (name, bio,
+       portrait). Runs in the browser \u2014 only the browser can reach Wikipedia. */
+    if (sel("apWikiLookup")) sel("apWikiLookup").onclick = function () {
+      var name = (sel("apName").value || "").trim();
+      var m = sel("apMsg");
+      if (!name) { if (m) m.textContent = "Type a name first, then press Wikipedia."; return; }
+      if (m) m.textContent = "Looking " + name + " up on Wikipedia\u2026";
+      var title = name.replace(/\s+/g, "_");
+      fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title), { headers: { accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || d.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") { if (m) m.textContent = "No Wikipedia page for \u201c" + name + "\u201d \u2014 check the spelling or add them by hand."; return; }
+          if (d.type === "disambiguation") { if (m) m.textContent = "\u201c" + name + "\u201d is ambiguous on Wikipedia \u2014 use a fuller, more specific name."; return; }
+          if (!d.extract) { if (m) m.textContent = "That page has too little information \u2014 add them by hand."; return; }
+          sel("apName").value = d.title || name;
+          var ex = String(d.extract), dot = ex.indexOf(". ");
+          var sentence = dot > 20 ? ex.slice(0, dot + 1) : ex;
+          if (!sel("apNote").value) sel("apNote").value = sentence.slice(0, 200);
+          sel("apWiki").value = d.title || name;
+          var img = (d.thumbnail && d.thumbnail.source) || (d.originalimage && d.originalimage.source) || "";
+          if (img) sel("apImg").value = img;
+          if (m) m.textContent = "Pulled " + (d.title || name) + (d.description ? " \u2014 " + d.description : "") +
+            ". Set their party, era and ratings, then Save." + (img ? "" : " (No portrait on Wikipedia \u2014 add an image URL if you have one.)");
+        })
+        .catch(function () { if (m) m.textContent = "Couldn't reach Wikipedia just now \u2014 try again."; });
+    };
     if (sel("apFromText")) sel("apFromText").onclick = function () {
       var p = textToPol(sel("apText").value); var m = sel("apMsg");
       if (!p) { if (m) m.textContent = "The text needs at least a \u201cname:\u201d line."; return; }
@@ -2034,6 +2293,13 @@
         G.NET.adminSetLevel(who, lvl).then(done);
       }
     });
-    var bm = sel("lbBoardMode"); if (bm) bm.addEventListener("change", function () { loadLeaderboard(); });
+    var cats = sel("lbCats");
+    if (cats) cats.addEventListener("click", function (e) {
+      var b = e.target && e.target.closest ? e.target.closest(".lb-cat") : null;
+      if (!b) return;
+      lbCat = b.getAttribute("data-cat");
+      renderLbCats();
+      loadLeaderboard();
+    });
   }
 })();
