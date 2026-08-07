@@ -642,6 +642,7 @@ G.CONFIG = {
                              // constituencies stay safe or marginal from game to game
   regionSwing: 0.38,      // per-region shared swing each campaign
   unityLeanSpread: 0.5,   // mild regional variation for unity / wildcard tickets
+  seatElectorateK: 0.020, // per-seat voter-bloc texture strength (mean-zero in region)
 
   /* incumbency bonus: seats won in a previous term (career mode) are slightly
      harder to flip — the incumbent effect. Applied as a logit bonus for held

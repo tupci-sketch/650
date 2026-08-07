@@ -25,10 +25,13 @@ G.CAMPAIGN_THEMES = [
 
 /* ---- initialise a fresh campaign state on G.state ------------------------ */
 G.campaignInit = function () {
-  var days = 12;
+  /* generous now — you can spread across the regions AND the blocs and still
+     concentrate where it counts, instead of rationing a dozen days. */
+  var days = 26;
   var diff = G.state && G.state.difficulty;
-  if (diff === "easy") days = 14;
-  if (diff === "hard") days = 10;
+  if (diff === "easy") days = 30;
+  if (diff === "hard") days = 22;
+  if (diff === "brutal") days = 20;
   G.state.campaign = {
     totalDays: days,
     daysLeft: days,

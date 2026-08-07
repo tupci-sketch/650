@@ -27,7 +27,7 @@ window.G = window.G || {};
   var G = window.G;
   var SC = G.SimCore = G.SimCore || {};
 
-  SC.MODEL_VERSION = "mc2";
+  SC.MODEL_VERSION = "mc3";   // mc3: voter blocs are a real per-seat force
 
   /* ---- fat-tailed national swing -----------------------------------------
      A 2-component Gaussian mixture: most campaigns are "normal", ~15% are a
