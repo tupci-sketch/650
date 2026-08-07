@@ -513,7 +513,10 @@ G.simulateCampaign = function (params) {
     var regSwing = G.gaussR(rnd) * rswing;
     list.forEach(function (c) {
       var incumbBonus = (params.heldSeats && params.heldSeats[c.gss]) ? (C.incumbencyLean || 0) : 0;
-      var logit = baseLogit + lean + nat + regSwing + G.seatBaseLean(c) + incumbBonus + G.gaussR(rnd) * noise;
+      /* per-seat voter-bloc texture: the seats where a swinging bloc lives are
+         the ones that actually move (mean-zero within the region). */
+      var elecTex = (params.blocSupport && G.seatElectorateTexture) ? G.seatElectorateTexture(c, params.blocSupport, r.id) : 0;
+      var logit = baseLogit + lean + nat + regSwing + G.seatBaseLean(c) + incumbBonus + elecTex + G.gaussR(rnd) * noise;
       var won = rnd() < G.sigmoid(logit);
       var winner;
       if (won) { rec.won++; seats++; winner = bloc.label; }

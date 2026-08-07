@@ -277,10 +277,12 @@ G.electorateInit = function (playerAlign, policy) {
   return support;
 };
 
-/* ---- national vote nudge (≈ ±0.06) --------------------------------------- */
+/* ---- national vote nudge (≈ ±0.09) --------------------------------------- */
+/* The voter blocs are a real force now: a well-tended electorate is worth
+   close to a full difficulty tier of national vote. */
 G.electorateVoteMod = function (blocSupport) {
   if (!blocSupport) return 0;
-  var scale = 0.06;
+  var scale = 0.09;
   var sum = 0, total = 0;
   G.activeBlocs().forEach(function (b) {
     var s = blocSupport[b.key] != null ? blocSupport[b.key] : 50;
@@ -291,11 +293,14 @@ G.electorateVoteMod = function (blocSupport) {
   return Math.max(-scale, Math.min(scale, (sum / total) * (scale / 18)));
 };
 
-/* ---- per-region logit tilt (≈ ±0.01–0.03 per region) -------------------- */
-/* Uses the active country's regions so the tilt lands on the right seats.    */
+/* ---- per-region logit tilt ----------------------------------------------- */
+/* Now a meaningful swing, not a cosmetic one: a region whose blocs have swung
+   hard behind you can move a real slice of its seats. Uses the active country's
+   regions so the tilt lands on the right seats.                              */
+G.ELECT_REGION_SCALE = 0.11;      // per (support-50) point, size×concentration weighted
 G.electorateRegionTilt = function (blocSupport) {
   if (!blocSupport) return {};
-  var scale = 0.012;
+  var scale = G.ELECT_REGION_SCALE;
   var tilt = {};
   var blocs = G.activeBlocs();
   var regions = (G.activeRegions ? G.activeRegions() : null) || G.REGIONS || [];
@@ -308,10 +313,37 @@ G.electorateRegionTilt = function (blocSupport) {
       wt  += b.size * mul;
     });
     tilt[r.id] = wt > 0
-      ? Math.max(-scale * 3, Math.min(scale * 3, (tot / wt) * (scale / 18)))
+      ? Math.max(-scale * 4, Math.min(scale * 4, (tot / wt) * (scale / 18)))
       : 0;
   });
   return tilt;
+};
+
+/* ---- per-SEAT bloc texture (mean-zero within a region) -------------------
+   The region tilt above moves the seat COUNT; this decides WHICH seats move.
+   Each seat has a deterministic bloc profile (its region's concentrations,
+   varied per seat by a stable hash), so when a bloc swings, the seats where
+   that bloc actually lives are the ones that flip. Mean-zero within the region
+   so it adds texture without changing the count (keeps the forecast honest).
+   Pure function of blocSupport + seat id → fully reproducible.               */
+G.seatElectorateTexture = function (c, blocSupport, regionId) {
+  if (!blocSupport || !c) return 0;
+  var blocs = G.activeBlocs();
+  var seatId = c.gss || c.id || "";
+  var K = G.CONFIG && G.CONFIG.seatElectorateK != null ? G.CONFIG.seatElectorateK : 0.020;
+  var num = 0, den = 0, baseNum = 0, baseDen = 0;
+  blocs.forEach(function (b) {
+    var conc = (b.regions && b.regions[regionId] != null) ? b.regions[regionId] : 1.0;
+    if (conc <= 0) return;
+    var s = blocSupport[b.key] != null ? blocSupport[b.key] : 50;
+    var jit = 0.35 + 1.30 * (((G.hash32 ? G.hash32(seatId + "|" + b.key) : 0) % 1000) / 1000);  // 0.35..1.65
+    var w = b.size * conc * jit, wb = b.size * conc;
+    num += w * (s - 50); den += w;
+    baseNum += wb * (s - 50); baseDen += wb;
+  });
+  var seatVal = den > 0 ? num / den : 0;
+  var regVal  = baseDen > 0 ? baseNum / baseDen : 0;
+  return K * (seatVal - regVal);          // deviation from the region mean
 };
 
 /* ---- apply a delta map, clamp 0–100 -------------------------------------- */
