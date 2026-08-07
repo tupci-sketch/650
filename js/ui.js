@@ -1039,6 +1039,7 @@ G.UI.renderResultIntl = function (res) {
   G.UI.renderForecastChart(res, "forecastChart");
   G.UI.renderLeverage(res);
   G.UI.setOddsLabels(res);
+  G.UI.renderResultElectorate(res);
 
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
@@ -1188,6 +1189,28 @@ G.UI._cedeTag = function (deal, res) {
     var n = built && built.handovers ? built.handovers.length : 0;
     return n ? '<span class="coal-cede">cede ' + n + ' post' + (n === 1 ? '' : 's') + '</span>' : "";
   } catch (e) { return ""; }
+};
+
+/* ---- voter blocs on the result screen ----------------------------------- */
+/* Now that bloc support genuinely swings seats, show who stood with you and who
+   walked — the strongest and weakest first. */
+G.UI.renderResultElectorate = function (res) {
+  var panel = document.getElementById("resultElectoratePanel");
+  var list = document.getElementById("resultBlocList");
+  if (!panel || !list) return;
+  var bs = res && res.blocSupport;
+  var blocs = G.activeBlocs ? G.activeBlocs() : G.ELECTORATE_BLOCS;
+  if (!bs || !blocs || !blocs.length) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+  var rows = blocs.map(function (b) {
+    return { name: b.name, s: Math.round(bs[b.key] != null ? bs[b.key] : 50) };
+  }).sort(function (a, b) { return b.s - a.s; });
+  list.innerHTML = rows.map(function (r) {
+    var cls = r.s >= 58 ? "bloc-good" : r.s < 42 ? "bloc-bad" : "bloc-mid";
+    return '<div class="bloc-row"><span class="bloc-name">' + G.UI._esc(r.name) + '</span>' +
+      '<span class="bloc-bar-wrap"><span class="bloc-bar ' + cls + '" style="width:' + r.s + '%"></span></span>' +
+      '<span class="bloc-num">' + r.s + '</span></div>';
+  }).join("");
 };
 
 /* ---- odds labels: reflect THIS system's real thresholds ----------------- */
@@ -1459,6 +1482,7 @@ G.UI.renderResult = function (res) {
   G.UI.renderForecastChart(res, "forecastChart");
   G.UI.renderLeverage(res);
   G.UI.setOddsLabels(res);
+  G.UI.renderResultElectorate(res);
 
   /* commons bar */
   $("majMark").style.left = (C.majority / C.totalSeats * 100) + "%";
