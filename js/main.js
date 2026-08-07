@@ -972,17 +972,14 @@
      by each region's seat count. */
   function regionBounds(res, intl) {
     var out = [], idx = 0;
-    if (intl) {
-      ((res.campaign && res.campaign.byRegion) || res.byRegion || []).forEach(function (r) {
-        out.push({ id: r.id, name: r.name, start: idx, end: idx + r.total, total: r.total });
-        idx += r.total;
-      });
-    } else {
-      G.REGIONS.forEach(function (r) {
-        out.push({ id: r.id, name: r.name, start: idx, end: idx + r.seats, total: r.seats });
-        idx += r.seats;
-      });
-    }
+    /* the UK now declares in realistic (interleaved) national order, so there
+       are no contiguous region blocks — seats declare one by one with their MP.
+       International lists still flow region by region. */
+    if (!intl) return out;
+    ((res.campaign && res.campaign.byRegion) || res.byRegion || []).forEach(function (r) {
+      out.push({ id: r.id, name: r.name, start: idx, end: idx + r.total, total: r.total });
+      idx += r.total;
+    });
     return out;
   }
 
@@ -1015,6 +1012,7 @@
       regionTotals: regionTotals, declaredByRegion: {}, wonByRegion: {}
     };
     if (watch.bounds[0]) G.UI.pushFeed("Counting in " + watch.bounds[0].name + "…", "muted");
+    else if (!intl) G.UI.pushFeed("Polls have closed. The first declarations come from the North East…", "muted");
     frame();
   }
 
@@ -1039,11 +1037,17 @@
       /* flip the seat's hex (works for the UK constituency map and every
          international country cartogram alike — both key hexes by seat id) */
       G.UI.flipSeat(w.byId[res.id], res.won, w.colour,
-                    res.won ? null : G.partyColour(res.winner, w.blocLabel, w.blocColour), res.winner);
-      /* the UK declares real, named constituencies seat-by-seat; international
-         seats are synthetic, so there the feed reports at the region level */
-      if (!quiet && !w.intl)
-        G.UI.pushFeed(res.name + (res.won ? " — won" : " — lost (" + res.winner + ")"), res.won ? "win" : "");
+                    res.won ? null : G.partyColour(res.winner, w.blocLabel, w.blocColour), res.winner, res.mp);
+      /* the UK declares real, named constituencies seat-by-seat, now with the
+         elected member named; international seats are synthetic, reported at the
+         region level, but still carry a named member on the map/hover. */
+      if (!quiet && !w.intl) {
+        var mp = res.mp ? res.mp : "";
+        var line = res.won
+          ? res.name + " — " + (mp ? mp + " elected" : "won")
+          : res.name + " — " + (mp ? mp + " (" + res.winner + ")" : "lost (" + res.winner + ")");
+        G.UI.pushFeed(line, res.won ? "win" : "");
+      }
       if (res.won) { w.won++; w.regWon++; w.wonByRegion[res.region] = (w.wonByRegion[res.region] || 0) + 1; }
       w.declaredByRegion[res.region] = (w.declaredByRegion[res.region] || 0) + 1;
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
