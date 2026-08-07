@@ -461,6 +461,12 @@ G.simulateCampaign = function (params) {
        Pure function of byRegion + landscape — no rng, so replays are identical. */
     if (_r && _r.byRegion && !_r.results && G.expandSeatResults)
       _r.results = G.expandSeatResults(_r, _sys);
+    /* name every seat's MP (the international per-seat list already flows by
+       region, so no re-ordering) */
+    if (_r && _r.results && G.assignSeatMPs) G.assignSeatMPs(_r.results, {
+      blocLabel: _r.blocLabel, draftedNames: params.draftedNames,
+      cabinet: G.state && G.state.cabinet, oppositionField: params.opposition
+    });
     /* per-region prior for the live-night nowcast: each region's player win rate.
        Deterministic (a read of this campaign's own regional outcome), so it lets
        the projection track THIS result as seats declare — parity with the UK
@@ -531,6 +537,13 @@ G.simulateCampaign = function (params) {
     return { party: label, seats: totals[label], colour: G.partyColour(label, bloc.label, bloc.colour),
              isYou: label === bloc.label };
   }).sort(function (a, b) { return b.seats - a.seats; });
+
+  /* name every seat's MP (deterministic), then declare in realistic UK order */
+  if (G.assignSeatMPs) G.assignSeatMPs(results, {
+    blocLabel: bloc.label, draftedNames: params.draftedNames, cabinet: G.state && G.state.cabinet,
+    oppositionField: opposition
+  });
+  if (G.orderDeclarations) results = G.orderDeclarations(results, false);
 
   return { seats: seats, byRegion: byRegion, results: results,
            breakdown: breakdown, blocLabel: bloc.label, blocColour: bloc.colour,

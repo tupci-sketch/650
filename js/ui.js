@@ -359,12 +359,12 @@ G.UI.buildMap = function (containerId, opts) {
       info = mp ? (mp.name + " (" + mp.party + ")") : "vacant / no data";
     } else if (opts.revealed && opts.results) {
       var rr = resById[c.id];
-      if (rr && rr.won) { fill = opts.colour; state = "won"; }
+      if (rr && rr.won) { fill = opts.colour; state = "won"; info = rr.mp ? (rr.mp + " (elected)") : ""; }
       else {
         /* colour the seat by the WINNING party's real colour (C) */
         fill = (rr && rr.winner) ? G.partyColour(rr.winner, opts.blocLabel, opts.colour) : "rgba(80,74,60,.22)";
         state = "lost";
-        if (rr && rr.winner) info = rr.winner + " win";
+        if (rr && rr.winner) info = (rr.mp ? rr.mp + " · " : "") + rr.winner + " win";
       }
     }
     svg += '<polygon points="' + G.UI._hexPts(p.cx, p.cy, s) + '" fill="' + fill + '"' +
@@ -387,11 +387,12 @@ G.UI.buildMap = function (containerId, opts) {
   for (var i = 0; i < polys.length; i++) byId[polys[i].getAttribute("data-id")] = polys[i];
   return { byId: byId };
 };
-G.UI.flipSeat = function (el, won, colour, winnerColour, winnerLabel) {
+G.UI.flipSeat = function (el, won, colour, winnerColour, winnerLabel, mp) {
   if (!el) return;
   el.setAttribute("fill", won ? colour : (winnerColour || "rgba(80,74,60,.22)"));
   el.setAttribute("data-state", won ? "won" : "lost");
-  if (!won && winnerLabel) el.setAttribute("data-info", winnerLabel + " win");
+  var info = won ? (mp ? mp + " (elected)" : "") : ((mp ? mp + " · " : "") + (winnerLabel ? winnerLabel + " win" : ""));
+  if (info) el.setAttribute("data-info", info);
 };
 /* the legend lists the parties actually present: you first, then the main
    others by seats won (C2). Pass the result breakdown; falls back to the old
