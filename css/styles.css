@@ -1815,3 +1815,25 @@ html.theme-light .country-card.sel  { background: rgba(47,109,68,.07); }
 .dly-name:hover { text-decoration: underline; }
 .dly-grid { font-size: 11px; letter-spacing: -1px; }
 @media (max-width: 560px) { .dly-grid { display: none; } .dly-row { grid-template-columns: 30px 1fr auto; } }
+
+/* ---- head-to-head --------------------------------------------------------- */
+.h2h-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 10px 0; }
+.h2h-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-soft); }
+.h2h-head { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; margin: 6px 0 10px; }
+.h2h-code { font-family: var(--mono); font-size: 14px; } .h2h-code b { font-size: 20px; letter-spacing: .15em; color: var(--brass-lite); }
+.h2h-spec { font-size: 13px; color: var(--ink-soft); } .h2h-vs { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.h2h-wait, .h2h-turn, .h2h-place { font-size: 15px; } .h2h-turn.mine { color: var(--brass-lite); }
+.h2h-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 10px 0; }
+.h2h-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper-3); color: var(--ink); cursor: pointer; text-align: center; }
+.h2h-card:hover { border-color: var(--brass); }
+.h2h-party, .h2h-fits { font-size: 12px; color: var(--ink-soft); } .h2h-ovr { font-family: var(--mono); font-weight: 700; color: var(--brass-lite); }
+.h2h-posts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.h2h-post { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper-3); color: var(--ink); cursor: pointer; }
+.h2h-post.fit-good { border-color: var(--green); } .h2h-post.fit-bad { opacity: .7; }
+.h2h-cabs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+@media (max-width: 640px) { .h2h-cabs { grid-template-columns: 1fr; } }
+.h2h-cab { background: var(--paper-2); border-radius: 8px; padding: 10px 12px; border-top: 4px solid var(--side); }
+.h2h-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 3px 0; border-bottom: 1px dotted var(--line); }
+.h2h-row span { color: var(--ink-soft); }
+.h2h-final { text-align: center; padding: 14px; border-radius: 8px; background: var(--paper-3); margin: 10px 0; }
+.h2h-score { font-family: var(--display); font-weight: 800; font-size: 40px; }

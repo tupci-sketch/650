@@ -1343,6 +1343,7 @@
   function currentEntry() { return entryFrom(lastResult); }
   function submitToLeaderboard() {
     if (lastResult && lastResult._daily) { postDaily(true); return; }
+    if (lastResult && lastResult._h2h) { setLbBtns(true, "Head-to-head — not ranked"); return; }
     if (!G.NET || !G.NET.me) {                       // the leaderboard is for signed-in players only
       setLbBtns(true, "Sign in to post");
       setAcctTab("login");
@@ -1864,7 +1865,17 @@
   function afterDailyResult(res) {
     var panel = sel("dailyPanel");
     var isDaily = !!(G.state && G.state._daily) && !res._replay;
-    if (sel("againBtn")) sel("againBtn").style.display = isDaily ? "none" : "";
+    if (sel("againBtn")) sel("againBtn").style.display = (isDaily || res._h2h) ? "none" : "";
+    var hp = sel("h2hPanel");
+    if (hp) {
+      hp.style.display = res._h2h ? "" : "none";
+      if (res._h2h) {
+        var me = res.h2h.me, op = res.h2h.opp;
+        sel("h2hResultLine").innerHTML = '<div class="h2h-score"><span style="color:' + me.colour + '">' + me.seats + '</span> – <span style="color:' + op.colour + '">' + op.seats + '</span></div><p class="gov-line">' +
+          (me.seats > op.seats ? "You beat " + G.UI._esc(op.name) + " on the night." : me.seats < op.seats ? G.UI._esc(op.name) + " takes the night." : "A dead heat.") + '</p>';
+        setLbBtns(true, "Head-to-head — not ranked");
+      }
+    }
     if (!panel) return;
     if (!isDaily) { panel.style.display = "none"; return; }
     res._daily = true;
@@ -1929,6 +1940,10 @@
     if (sel("dailyCopyBtn")) sel("dailyCopyBtn").onclick = function () { copyText(G.Daily.shareText(), sel("dailyCopyBtn")); };
     if (sel("dailyFullBtn")) sel("dailyFullBtn").onclick = openDailyBoard;
     if (sel("dailyBackBtn")) sel("dailyBackBtn").onclick = goMenu;
+    if (sel("h2hBtn")) sel("h2hBtn").onclick = function () { if (G.H2H) G.H2H.open(); };
+    if (sel("h2hBackBtn")) sel("h2hBackBtn").onclick = goMenu;
+    if (sel("h2hBackToMatch")) sel("h2hBackToMatch").onclick = function () { cancelWatch(); if (G.H2H) G.H2H.open(); };
+    if (G.H2H) G.H2H.wire();
     if (sel("dailyShareBtn2")) sel("dailyShareBtn2").onclick = function () { copyText(G.Daily.shareText(), sel("dailyShareBtn2")); };
     setInterval(function () { if (sel("screen-menu") && sel("screen-menu").classList.contains("active")) renderDailyCard(); }, 60000);
   }

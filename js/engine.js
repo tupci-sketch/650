@@ -154,11 +154,16 @@ G.poolFor = function (opts) {
 
   /* country-aware filtering: active whenever an international electoral system is set
      OR when country is explicitly passed (e.g. dynasty draft before applyScenario runs) */
-  var activeSysKey = G.state && G.state._electoralSystemKey;
-  var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
-  var activeCountry = activeSys ? activeSys.country : null;
-  if (!activeCountry && opts.country && opts.country !== "uk") {
-    activeCountry = opts.country.toUpperCase();
+  /* an explicitly chosen country always wins: G.state may still hold the
+     PREVIOUS game's system here (newGame builds the pool before the new
+     scenario is applied), which would leak the old nation's pool */
+  var activeCountry = null;
+  if (opts.country) {
+    activeCountry = opts.country !== "uk" ? String(opts.country).toUpperCase() : null;
+  } else {
+    var activeSysKey = G.state && G.state._electoralSystemKey;
+    var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
+    activeCountry = activeSys ? activeSys.country : null;
   }
   /* normalize full-name country strings to the 2-letter codes used in PARTY_COUNTRY */
   var _CNAME_TO_CODE = { "Japan": "JP", "China": "CN", "Germany": "DE", "France": "FR",

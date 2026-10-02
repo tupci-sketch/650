@@ -58,8 +58,11 @@ G.UI.partyBadge = function (label, colour) {
 var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-campaign", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
 
 G.UI.show = function (screenId) {
+  /* every <section class="screen"> — so new screens never need registering */
+  var all = document.querySelectorAll(".screen");
+  for (var i = 0; i < all.length; i++) all[i].classList.toggle("active", all[i].id === screenId);
   SCREENS.forEach(function (s) {
-    var el = $(s); if (el) el.classList.toggle("active", s === screenId);
+    var el = $(s); if (el && !el.classList.contains("screen")) el.classList.toggle("active", s === screenId);
   });
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
