@@ -1871,3 +1871,6 @@ html.theme-light .country-card.sel  { background: rgba(47,109,68,.07); }
 .hof-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dotted var(--line); font-size: 14px; }
 .lb-nm[data-profile] { cursor: pointer; }
 .lb-nm[data-profile]:hover { text-decoration: underline; }
+.rs-why { grid-column: 1 / -1; font-size: 12px; color: var(--ink-soft); margin-top: -2px; }
+.hexmap svg { cursor: grab; } .hexmap svg:active { cursor: grabbing; }
+.leg-tl { font-size: 13px; color: var(--ink-soft); } .leg-tl b { color: var(--ink); }

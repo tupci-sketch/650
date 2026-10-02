@@ -49,7 +49,7 @@ G.UI.partyBadge = function (label, colour) {
   var dom = G.PARTY_LOGO && G.PARTY_LOGO[label];
   if (dom) {
     return '<img class="party-logo" src="https://www.google.com/s2/favicons?domain=' + dom +
-           '&sz=64" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;party-dot&quot; style=&quot;background:' +
+           '&sz=64" alt="" loading="lazy" onerror="if(this.parentNode)this.outerHTML=\'<span class=&quot;party-dot&quot; style=&quot;background:' +
            (colour || "#999") + '&quot;></span>\'">';
   }
   return '<span class="party-dot" style="background:' + (colour || "#999") + '"></span>';
@@ -312,6 +312,7 @@ G.UI.refreshControls = function () {
   if ($("skipPartyBtn")) $("skipPartyBtn").style.display = "none";
 
   $("holdBtn").disabled = !complete;
+  if ($("draftCardBtn")) $("draftCardBtn").style.display = complete ? "" : "none";
   $("holdBtn").textContent = st.watch ? "Hold the election \u2192" : "Hold the election";
 };
 
@@ -851,6 +852,16 @@ G.UI.renderLegacy = function (v) {
   G.UI.setMeter("legUnity", v.meters.unity);
   $("legSeats").innerHTML = "<b>" + v.seats + "</b> seats · " + v.sessionsServed + " of " + v.length +
     " sessions served" + (v.caretakers ? " · " + v.caretakers + " caretaker department" + (v.caretakers > 1 ? "s" : "") : "");
+  /* the living term: final poll, who you faced, who walked */
+  var tls = G.TermLife && G.TermLife.summary ? G.TermLife.summary() : null;
+  if (tls) {
+    var bits = [];
+    if (tls.finalPoll && G.term && !(G.term.tl && G.term.tl.despot)) bits.push("final poll <b>" + tls.finalPoll.you + "%</b>" + (G.term.rival ? " to " + G.UI._esc(G.term.rival.party) + "'s " + tls.finalPoll.rival + "%" : ""));
+    if (tls.rivalLeaders && tls.rivalLeaders.length) bits.push((G.term.kind === "opp" ? "faced " : "opposite you: ") + tls.rivalLeaders.map(G.UI._esc).join(" → "));
+    if (tls.defections) bits.push(tls.defections + " floor-crossing" + (tls.defections > 1 ? "s" : ""));
+    if (tls.byElections.length) bits.push(tls.byElections.length + " by-election" + (tls.byElections.length > 1 ? "s" : "") + " (" + tls.byElections.filter(function (x) { return x.result === "held"; }).length + " held)");
+    if (bits.length) $("legSeats").innerHTML += '<br><span class="leg-tl">' + bits.join(" · ") + '</span>';
+  }
   var pb = $("legacyPledges");
   if (pb) {
     if (v.pledges && v.pledges.length) {
@@ -1448,6 +1459,9 @@ G.UI.renderResult = function (res) {
   } else if (res.tier.role === "kingmaker") {
     banner.className = "govt-banner";
     banner.textContent = "You hold the balance of power";
+  } else if (res.tier.role === "largest") {
+    banner.className = "govt-banner";
+    banner.textContent = "The largest party — the first move is yours";
   } else {
     banner.className = "govt-banner lose";
     banner.textContent = "You lead the Opposition — the Shadow Cabinet";
@@ -1958,7 +1972,8 @@ G.UI.renderLeaderboard = function (top, communal, error) {
         tile(best ? best.seats : "—", "Best seats") +
         tile(bestPct ? bestPct.pct.toFixed(1) + "%" : "—", "Best share") +
         tile(governed, "Governed terms") +
-        tile(rankedBest ? rankedBest.seats : "—", "Ranked best");
+        tile(rankedBest ? rankedBest.seats : "—", "Ranked best") +
+        (G.Daily ? tile(G.Daily.best().played, "Dailies played") + tile(G.Daily.streak() ? "🔥 " + G.Daily.streak() : "0", "Daily streak") : "");
     }
     var natEl = $("profileNations");
     if (natEl) {

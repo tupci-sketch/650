@@ -299,6 +299,7 @@
           <div class="btn-row" style="margin-top:16px">
             <button class="btn btn-primary" id="holdBtn" style="flex:1" disabled>Hold the election</button>
           </div>
+          <button class="btn btn-ghost draft-card-btn" id="draftCardBtn" style="display:none;margin-top:8px;width:100%">🖼 Share your cabinet</button>
         </div>
       </div>
     </section>
@@ -442,6 +443,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
+        <button class="btn btn-ghost" id="cabCardBtn">🖼 Cabinet card</button>
         <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
         <button class="btn btn-ghost" id="runCodeBtn" title="Copy a code others can load to replay this exact run">🔗 Copy run code</button>
@@ -970,6 +972,7 @@ fits: pm, chancellor"></textarea>
         <a class="foot-link coffee" href="https://buymeacoffee.com/650game" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a>
         <a class="foot-link x" href="https://x.com/650game" target="_blank" rel="noopener noreferrer">𝕏 @650game</a>
         <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle light/dark theme">☀ Light theme</button>
+        <button class="theme-toggle" id="soundToggleBtn" aria-label="Toggle sound">🔕 Sound off</button>
       </div>
       <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied by the same logic to every party and are not a judgement of any individual. Wildcard mode is satire, not endorsement. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
     </footer>
@@ -1015,6 +1018,7 @@ fits: pm, chancellor"></textarea>
   <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/ui.night.js"></script>
+  <script src="js/polish.js"></script>
   <script src="js/country_hexmaps.js"></script>
   <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>

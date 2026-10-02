@@ -1021,6 +1021,7 @@
     /* seats per region — for the live nowcast projection */
     var regionTotals = {};
     results.forEach(function (r) { regionTotals[r.region] = (regionTotals[r.region] || 0) + 1; });
+    if (G.Sound) G.Sound.play("bong");          // the polls close
     watch = {
       res: res, intl: intl,
       byId: setup.byId, colour: setup.colour,
@@ -1136,6 +1137,7 @@
     });
     G.UI.setWatchTally(w.won, w.i);
     G.UI.pushFeed("All " + w.total + " seats declared.", "win");
+    if (G.Sound && w.res && w.res.tier && w.res.tier.govt) G.Sound.play("fanfare");
     sel("skipCountBtn").style.display = "none";
     sel("toResultBtn").style.display = "";
   }
@@ -1979,6 +1981,10 @@
     if (sel("h2hBackBtn")) sel("h2hBackBtn").onclick = goMenu;
     if (sel("h2hBackToMatch")) sel("h2hBackToMatch").onclick = function () { cancelWatch(); if (G.H2H) G.H2H.open(); };
     if (G.H2H) G.H2H.wire();
+    if (sel("draftCardBtn")) sel("draftCardBtn").onclick = function () { G.UI.downloadCabinetCard(); };
+    if (sel("cabCardBtn")) sel("cabCardBtn").onclick = function () { G.UI.downloadCabinetCard(); };
+    if (sel("soundToggleBtn")) { sel("soundToggleBtn").textContent = G.Sound && G.Sound.on ? "🔔 Sound on" : "🔕 Sound off";
+      sel("soundToggleBtn").onclick = function () { if (G.Sound) G.Sound.set(!G.Sound.on); }; }
     if (sel("hofBtn")) sel("hofBtn").onclick = function () { if (G.Profiles) G.Profiles.openHof(); };
     if (sel("hofBackBtn")) sel("hofBackBtn").onclick = goMenu;
     if (sel("playerBackBtn")) sel("playerBackBtn").onclick = function () { G.UI.show((G.Profiles && G.Profiles._back) || "screen-menu"); };
