@@ -456,6 +456,7 @@
     wireRetirement();
     wireLegacyCareer();
     wirePlatform();
+    wireDaily();
     renderRecords();
     sel("homeLink").onclick = goMenu;
     if (G.buildGeo) G.buildGeo();
@@ -930,6 +931,7 @@
     try {
       if (G.LB && G.LB.recordLocalRun && !res._replay) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
+    afterDailyResult(res);
   }
 
   /* load a shared run code from the menu and replay it exactly. A loaded replay
@@ -1225,6 +1227,7 @@
     G.UI.show("screen-menu");
     goWizardStep(1);        /* always land on the first setup step */
     showSessionCard();
+    renderDailyCard();
   }
 
   /* --------------------------------------------------------- leaderboard -- */
@@ -1332,11 +1335,14 @@
              totalSeats: _totalSeats,
              ranked: isRankedSetup(),
              runFp: res._runFp || "", runCode: res._runCode || "",
+             parl: (G.career && G.career.active && G.career.parliament) || 1,
+             pm: res.pmName && res.pmName !== "—" ? res.pmName : "",
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }
   function currentEntry() { return entryFrom(lastResult); }
   function submitToLeaderboard() {
+    if (lastResult && lastResult._daily) { postDaily(true); return; }
     if (!G.NET || !G.NET.me) {                       // the leaderboard is for signed-in players only
       setLbBtns(true, "Sign in to post");
       setAcctTab("login");
@@ -1816,6 +1822,115 @@
   function wireExplore() {
     var s = sel("exploreSearch");
     if (s) s.addEventListener("input", function () { G.UI.filterExplore(s.value); });
+  }
+
+  /* ------------------------------------------------------ daily challenge -- */
+  function fmtCountdown(ms) { var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000); return h + "h " + m + "m"; }
+  function renderDailyCard() {
+    var card = sel("dailyCard"); if (!card || !G.Daily) return;
+    var sp = G.Daily.spec(), h = G.Daily.today(), streak = G.Daily.streak();
+    var started = !h ? null : (h.done ? null : h);
+    card.innerHTML =
+      '<div class="daily-body"><p class="daily-kicker">Daily Challenge #' + sp.num + (streak ? ' · <span class="daily-streak">🔥 ' + streak + '-day streak</span>' : '') + '</p>' +
+      '<p class="daily-spec">' + G.UI._esc(G.Daily.label(sp)) + '</p>' +
+      (h && h.done
+        ? '<p class="daily-done">Played: <b>' + h.seats + '</b>/' + h.total + ' seats · ' + G.UI._esc(h.tier || "") + ' · next in ' + fmtCountdown(G.Daily.msToNext()) + '</p>'
+        : '<p class="daily-sub">Same deals, same luck, one attempt. ' + (started ? 'You have a draft in progress.' : 'Who builds the best cabinet today?') + '</p>') +
+      '</div><div class="daily-btns">' +
+      (h && h.done
+        ? '<button class="btn btn-ghost" id="dailyShareBtn">Share</button><button class="btn btn-ghost" id="dailyBoardBtn">Today\'s board</button>'
+        : '<button class="btn btn-primary" id="dailyPlayBtn">' + (started ? 'Resume today\'s →' : 'Play today\'s →') + '</button><button class="btn btn-ghost" id="dailyBoardBtn">Board</button>') +
+      '</div>';
+    card.style.display = "";
+  }
+  function startDaily() {
+    if (!G.Daily) return;
+    var out = G.Daily.begin();
+    if (out.error === "played") { openDailyBoard(); return; }
+    var sp = out.spec;
+    cancelWatch();
+    currentVerdict = null; submitting = false;
+    setLbBtns(false, "\u2605 Post to the daily board");
+    choice.country = sp.country; choice.mode = sp.mode; choice.difficulty = sp.difficulty; choice.scenarioKey = sp.scenario;
+    G.UI.show("screen-draft");
+    G.UI.renderDraft();
+  }
+  function copyText(text, btn) {
+    var done = function () { if (btn) flashButton(btn, "Copied ✓"); };
+    if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent || "")) { navigator.share({ text: text }).catch(function () {}); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(function () { legacyCopy(text, done); });
+    else legacyCopy(text, done);
+  }
+  function afterDailyResult(res) {
+    var panel = sel("dailyPanel");
+    var isDaily = !!(G.state && G.state._daily) && !res._replay;
+    if (sel("againBtn")) sel("againBtn").style.display = isDaily ? "none" : "";
+    if (!panel) return;
+    if (!isDaily) { panel.style.display = "none"; return; }
+    res._daily = true;
+    var h = G.Daily.finish(res);
+    panel.style.display = "";
+    sel("dailyPanelHead").textContent = "Daily Challenge #" + h.num;
+    sel("dailyShareText").textContent = G.Daily.shareText(h);
+    sel("dailyStreak").textContent = G.Daily.streak() ? "🔥 " + G.Daily.streak() + "-day streak" : "";
+    setLbBtns(false, "\u2605 Post to the daily board");
+    if (G.NET && G.NET.me) postDaily(false); else loadDailyBoard("dailyBoardMini", 8);
+  }
+  function postDaily(open) {
+    var h = G.Daily && G.Daily.today();
+    if (!G.NET || !G.NET.me) {
+      setAcctTab("login"); G.UI.show("screen-account");
+      var msg = sel("acctMsg"); if (msg) msg.textContent = "Sign in (or register) to post to the daily board.";
+      return;
+    }
+    if (!h || !h.done) return;
+    setLbBtns(true, "Posting\u2026");
+    G.Daily.submit(h).then(function (d) {
+      setLbBtns(true, d && d.ok ? "Posted \u2713" : (d && d.error === "duplicate" ? "Already posted \u2713" : "Couldn't post"));
+      if (open) openDailyBoard(); else loadDailyBoard("dailyBoardMini", 8);
+    });
+  }
+  function loadDailyBoard(boxId, limit, key) {
+    var box = sel(boxId); if (!box || !G.Daily) return;
+    box.innerHTML = '<p class="muted">Loading today\'s board…</p>';
+    G.Daily.board(key).then(function (d) {
+      if (!d || !d.ok) { box.innerHTML = '<p class="muted">The daily board is unavailable right now.</p>'; return; }
+      var rows = (d.top || []).slice(0, limit || 50);
+      if (!rows.length) { box.innerHTML = '<p class="muted">No one has posted today yet — be the first.</p>'; return; }
+      box.innerHTML = '<div class="dly-meta">' + d.count + ' player' + (d.count === 1 ? '' : 's') + ' today' + (d.you ? ' · you are <b>#' + d.you.rank + '</b>' : '') + ' · median ' + d.median + ' seats</div>' +
+        rows.map(function (r, i) {
+          return '<div class="dly-row' + (d.you && d.you.name === r.name ? ' me' : '') + '"><span class="dly-rk">' + (i + 1) + '</span>' +
+            '<span class="dly-name" data-profile="' + G.UI._esc(r.name) + '">' + G.UI._esc(r.name) + '</span>' +
+            '<span class="dly-grid">' + G.UI._esc((r.grid || "").replace(/\n/g, "")) + '</span>' +
+            '<span class="dly-seats"><b>' + r.seats + '</b>/' + r.total + '</span></div>';
+        }).join("");
+    });
+  }
+  function openDailyBoard() {
+    G.UI.show("screen-daily");
+    var sp = G.Daily.spec(), h = G.Daily.today();
+    sel("dailyBoardHead").textContent = "Daily Challenge #" + sp.num + " — " + G.Daily.label(sp);
+    sel("dailyMine").innerHTML = h && h.done
+      ? '<pre class="daily-share">' + G.UI._esc(G.Daily.shareText(h)) + '</pre>'
+      : '<p class="muted">You haven\'t played today\'s challenge yet.</p>';
+    var bst = G.Daily.best();
+    sel("dailyStats").textContent = bst.played ? ("Played " + bst.played + " · best " + bst.best + " seats · streak " + G.Daily.streak()) : "";
+    loadDailyBoard("dailyBoardFull", 100);
+  }
+  function wireDaily() {
+    renderDailyCard();
+    var card = sel("dailyCard");
+    if (card) card.addEventListener("click", function (e) {
+      var id = e.target && e.target.id;
+      if (id === "dailyPlayBtn") startDaily();
+      else if (id === "dailyBoardBtn") openDailyBoard();
+      else if (id === "dailyShareBtn") copyText(G.Daily.shareText(), e.target);
+    });
+    if (sel("dailyCopyBtn")) sel("dailyCopyBtn").onclick = function () { copyText(G.Daily.shareText(), sel("dailyCopyBtn")); };
+    if (sel("dailyFullBtn")) sel("dailyFullBtn").onclick = openDailyBoard;
+    if (sel("dailyBackBtn")) sel("dailyBackBtn").onclick = goMenu;
+    if (sel("dailyShareBtn2")) sel("dailyShareBtn2").onclick = function () { copyText(G.Daily.shareText(), sel("dailyShareBtn2")); };
+    setInterval(function () { if (sel("screen-menu") && sel("screen-menu").classList.contains("active")) renderDailyCard(); }, 60000);
   }
 
   /* ----------------------------------------------------------- records ---- */

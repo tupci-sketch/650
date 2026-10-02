@@ -670,6 +670,9 @@ G.deal = function () {
   if (!und.length) return null;
 
   var C = G.CONFIG;
+  /* the Daily Challenge (and head-to-head) deal from a SHARED seed: the n-th
+     deal of the day draws identically for everyone who has made the same picks */
+  var R = (st._dealSeed != null && G.makeRng) ? G.makeRng(G.hash32(st._dealSeed + "|deal|" + st.spinsTaken)) : Math.random;
   var boost = G._needsPity();
   if (boost) { st.pity.uses--; st.pity.used++; }
 
@@ -683,7 +686,7 @@ G.deal = function () {
     var tot = 0, w = keys.map(function (k) {
       var v = Math.pow(by[k].length, alpha) * (odds[k] || 1); tot += v; return v;
     });
-    var r = Math.random() * tot;
+    var r = R() * tot;
     for (var i = 0; i < keys.length; i++) { r -= w[i]; if (r <= 0) return keys[i]; }
     return keys[keys.length - 1];
   }
@@ -698,7 +701,7 @@ G.deal = function () {
       w[i] = Math.max(1, G.PROMINENCE(bucket[i]));
       total += w[i];
     }
-    var r = Math.random() * total;
+    var r = R() * total;
     for (i = 0; i < bucket.length; i++) { r -= w[i]; if (r <= 0) return bucket[i]; }
     return bucket[bucket.length - 1];
   }

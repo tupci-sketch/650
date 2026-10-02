@@ -48,6 +48,8 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
+      <!-- the Daily Challenge -->
+      <div class="daily-card" id="dailyCard" style="display:none"></div>
       <!-- Session card: resume a live game or continue a saved one (local or cloud) -->
       <div class="continue-card" id="continueCard" style="display:none"></div>
       <!-- Save indicator (fixed bottom-right) -->
@@ -353,6 +355,13 @@
         <div class="standings" id="seatBreakdown"></div>
       </div>
 
+      <div class="panel daily-panel" id="dailyPanel" style="margin-top:24px; display:none">
+        <p class="section-label"><span id="dailyPanelHead">Daily Challenge</span> <span class="board-note" id="dailyStreak"></span></p>
+        <pre class="daily-share" id="dailyShareText"></pre>
+        <div class="btn-row"><button class="btn btn-primary" id="dailyCopyBtn">Copy &amp; share</button><button class="btn btn-ghost" id="dailyFullBtn">Full daily board</button></div>
+        <div class="dly-board" id="dailyBoardMini"></div>
+      </div>
+
       <div class="panel" id="nightPanel" style="margin-top:24px; display:none">
         <p class="section-label">The night in numbers <span class="board-note" id="nightNote"></span></p>
         <div class="night-grid">
@@ -433,6 +442,14 @@
         <button class="btn btn-ghost" id="resultLbBtn">★ Post to leaderboard</button>
         <button class="btn btn-ghost" id="menuBtn">Change game</button>
       </div>
+    </section>
+
+    <!-- ================================================ DAILY BOARD ==== -->
+    <section id="screen-daily" class="screen">
+      <p class="section-label" id="dailyBoardHead">Daily Challenge</p>
+      <div class="panel"><div id="dailyMine"></div><p class="acct-note" id="dailyStats"></p>
+        <div class="btn-row"><button class="btn btn-ghost" id="dailyShareBtn2">Copy share text</button><button class="btn btn-ghost" id="dailyBackBtn">← Back</button></div></div>
+      <div class="panel" style="margin-top:14px"><p class="section-label">Today's board</p><div class="dly-board" id="dailyBoardFull"></div></div>
     </section>
 
     <!-- ================================================= WIKI SCREEN ==== -->
@@ -953,6 +970,7 @@ fits: pm, chancellor"></textarea>
   <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/platform.js"></script>
+  <script src="js/daily.js"></script>
   <script src="js/sim650.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <script src="js/emoji.js"></script>

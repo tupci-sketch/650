@@ -130,6 +130,17 @@ async function ensureSchema(env) {
      editable from housekeeping); base=0 marks an admin delta (edit / add /
      tombstone) that the gameplay overlay applies over the bundled base. */
   await addCol(env, "b650_pols", "base", "INTEGER DEFAULT 0");
+  /* the Daily Challenge: one posted result per player per (UTC) day */
+  await DB.prepare("CREATE TABLE IF NOT EXISTS b650_daily (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, userKey TEXT, name TEXT, seats INTEGER, total INTEGER, grid TEXT, runCode TEXT, pm TEXT, ts INTEGER)").run();
+  await DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS b650_daily_uk ON b650_daily(day, userKey)").run();
+  /* head-to-head matches: a shared seeded draft, alternating picks */
+  await DB.prepare("CREATE TABLE IF NOT EXISTS b650_matches (code TEXT PRIMARY KEY, host TEXT, hostName TEXT, guest TEXT, guestName TEXT, spec TEXT, picks TEXT, status TEXT, results TEXT, created INTEGER, updated INTEGER)").run();
+  /* public profile fields + career length on runs (for the Hall of Fame) */
+  await addCol(env, "b650_accounts", "bio", "TEXT");
+  await addCol(env, "b650_accounts", "colour", "TEXT");
+  await addCol(env, "b650_accounts", "badges", "TEXT");
+  await addCol(env, "b650_runs", "parl", "INTEGER");
+  await addCol(env, "b650_runs", "pm", "TEXT");
   schemaReady = true;
 }
 async function addCol(env, table, col, type) {
@@ -222,19 +233,20 @@ async function upsertRun(env, name, d, kind, partyName) {
     govt: d.govt ? 1 : 0, mode: str(d.mode, 12), difficulty: str(d.difficulty, 8), cabinetSize: str(d.cabinetSize, 10),
     kind, cabinet: JSON.stringify(d.cabinet || []), breakdown: JSON.stringify(d.breakdown || []),
     runId: rid, party: partyName, align: str(d.partyAlign, 14), scenarioKey: str(d.scenarioKey, 40),
-    electoralSystem: str(d.electoralSystem, 40), totalSeats: Number(d.totalSeats) > 0 ? Number(d.totalSeats) : 650
+    electoralSystem: str(d.electoralSystem, 40), totalSeats: Number(d.totalSeats) > 0 ? Number(d.totalSeats) : 650,
+    parl: clampInt(d.parl, 1, 99), pm: str(d.pm, 60).replace(/[<>&"]/g, "")
   };
   if (rid) {
     const ex = await dFirst(env, "SELECT id, legacy, seats FROM b650_runs WHERE nameKey=? AND runId=? AND kind=? ORDER BY id DESC LIMIT 1", nameKey, rid, kind);
     if (ex) {
       if (row.legacy == null && ex.legacy != null && clampInt(ex.seats, 0, MAX_SEATS) === row.seats) row.legacy = clampInt(ex.legacy, 0, 100);
-      await dRun(env, "UPDATE b650_runs SET ts_iso=?,name=?,seats=?,legacy=?,govt=?,mode=?,difficulty=?,cabinetSize=?,cabinet=?,breakdown=?,party=?,align=?,scenarioKey=?,electoralSystem=?,totalSeats=? WHERE id=?",
-        row.ts_iso, row.name, row.seats, row.legacy, row.govt, row.mode, row.difficulty, row.cabinetSize, row.cabinet, row.breakdown, row.party, row.align, row.scenarioKey, row.electoralSystem, row.totalSeats, ex.id);
+      await dRun(env, "UPDATE b650_runs SET ts_iso=?,name=?,seats=?,legacy=?,govt=?,mode=?,difficulty=?,cabinetSize=?,cabinet=?,breakdown=?,party=?,align=?,scenarioKey=?,electoralSystem=?,totalSeats=?,parl=?,pm=? WHERE id=?",
+        row.ts_iso, row.name, row.seats, row.legacy, row.govt, row.mode, row.difficulty, row.cabinetSize, row.cabinet, row.breakdown, row.party, row.align, row.scenarioKey, row.electoralSystem, row.totalSeats, row.parl, row.pm, ex.id);
       return;
     }
   }
-  await dRun(env, "INSERT INTO b650_runs (ts_iso,name,nameKey,seats,legacy,govt,mode,difficulty,cabinetSize,kind,cabinet,breakdown,runId,party,align,scenarioKey,electoralSystem,totalSeats) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    row.ts_iso, row.name, row.nameKey, row.seats, row.legacy, row.govt, row.mode, row.difficulty, row.cabinetSize, row.kind, row.cabinet, row.breakdown, row.runId, row.party, row.align, row.scenarioKey, row.electoralSystem, row.totalSeats);
+  await dRun(env, "INSERT INTO b650_runs (ts_iso,name,nameKey,seats,legacy,govt,mode,difficulty,cabinetSize,kind,cabinet,breakdown,runId,party,align,scenarioKey,electoralSystem,totalSeats,parl,pm) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    row.ts_iso, row.name, row.nameKey, row.seats, row.legacy, row.govt, row.mode, row.difficulty, row.cabinetSize, row.kind, row.cabinet, row.breakdown, row.runId, row.party, row.align, row.scenarioKey, row.electoralSystem, row.totalSeats, row.parl, row.pm);
 }
 
 async function doScore(env, d, kind) {
@@ -387,6 +399,230 @@ function polColsFrom(p) {
   };
 }
 
+/* ---------------- the Daily Challenge ---------------- */
+function utcDay(t) { const d = new Date(t == null ? Date.now() : t); return d.toISOString().slice(0, 10); }
+async function dailySubmit(env, d) {
+  const a = await auth(env, d); if (!a) return { ok: false, error: "login" };
+  const day = str(d.day, 10);
+  const now = Date.now();
+  if (day !== utcDay(now) && day !== utcDay(now - 864e5)) return { ok: false, error: "day closed" };
+  const total = clampInt(d.total, 1, MAX_SEATS), seats = clampInt(d.seats, 0, total);
+  const grid = str(d.grid, 200).replace(/[^⬛\u{1F7E9}\u{1F7E8}\u{1F7E5}\u{1F480}\n]/gu, "");
+  const r = await dRun(env, "INSERT OR IGNORE INTO b650_daily (day,userKey,name,seats,total,grid,runCode,pm,ts) VALUES (?,?,?,?,?,?,?,?,?)",
+    day, keyOf(a.userKey), nm(a.display), seats, total, grid, str(d.runCode, 2000), str(d.pm, 60).replace(/[<>&"]/g, ""), now);
+  const changed = r && r.meta ? r.meta.changes : 1;
+  if (!changed) return { ok: false, error: "duplicate" };
+  return { ok: true };
+}
+async function dailyBoard(env, d) {
+  const day = str(d.day, 10) || utcDay();
+  const rows = await dAll(env, "SELECT name, userKey, seats, total, grid, runCode, ts FROM b650_daily WHERE day=? ORDER BY (seats*1.0/total) DESC, ts ASC LIMIT 500", day);
+  const a = d.token ? await auth(env, d) : null;
+  let you = null;
+  rows.forEach((r, i) => { if (a && keyOf(r.userKey) === keyOf(a.userKey)) you = { rank: i + 1, name: nm(r.name), seats: r.seats }; });
+  const seatsSorted = rows.map(r => Number(r.seats) || 0).sort((x, y) => x - y);
+  const median = seatsSorted.length ? seatsSorted[Math.floor(seatsSorted.length / 2)] : 0;
+  return { ok: true, day, count: rows.length, median, you,
+           top: rows.slice(0, 100).map(r => ({ name: nm(r.name), seats: Number(r.seats) || 0, total: Number(r.total) || 650, grid: str(r.grid, 200), runCode: str(r.runCode, 2000), ts: Number(r.ts) || 0 })) };
+}
+function streakOf(days) {
+  const set = new Set(days); let best = 0;
+  days.forEach(k => {
+    const prev = utcDay(Date.parse(k + "T00:00:00Z") - 864e5);
+    if (set.has(prev)) return;
+    let n = 0, t = Date.parse(k + "T00:00:00Z");
+    while (set.has(utcDay(t))) { n++; t += 864e5; }
+    if (n > best) best = n;
+  });
+  return best;
+}
+function currentStreak(days) {
+  const set = new Set(days); let t = Date.now(), n = 0;
+  if (!set.has(utcDay(t))) t -= 864e5;
+  while (set.has(utcDay(t))) { n++; t -= 864e5; }
+  return n;
+}
+
+/* ---------------- head-to-head ---------------- */
+const H2H_CODE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function h2hCode() { let c = ""; const b = crypto.getRandomValues(new Uint8Array(5)); for (const x of b) c += H2H_CODE[x % H2H_CODE.length]; return c; }
+function h2hView(m, a) {
+  const role = a ? (keyOf(a.userKey) === m.host ? "host" : (keyOf(a.userKey) === m.guest ? "guest" : null)) : null;
+  return { code: m.code, hostName: nm(m.hostName), guestName: m.guestName ? nm(m.guestName) : null, spec: parse(m.spec) || {},
+           picks: parse(m.picks) || [], status: str(m.status, 12), results: parse(m.results) || {}, role, updated: Number(m.updated) || 0 };
+}
+const H2H_SPEC = { country: 4, scenario: 40, mode: 12, difficulty: 8, cabinetSize: 10, seed: 40 };
+async function h2h(env, d) {
+  const a = await auth(env, d);
+  const kind = String(d.kind);
+  if (kind === "h2h_get") {
+    const m = await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", str(d.code, 8).toUpperCase());
+    return m ? { ok: true, match: h2hView(m, a) } : { ok: false, error: "no such match" };
+  }
+  if (!a) return { ok: false, error: "login" };
+  const me = keyOf(a.userKey), now = Date.now();
+  if (kind === "h2h_create") {
+    await dRun(env, "DELETE FROM b650_matches WHERE status='waiting' AND created<?", now - 864e5);
+    const spec = {}; Object.keys(H2H_SPEC).forEach(k => { spec[k] = str((d.spec || {})[k], H2H_SPEC[k]).replace(/[^a-z0-9_\-|]/gi, ""); });
+    if (["unity", "wildcard"].indexOf(spec.mode) === -1) spec.mode = "unity";
+    if (["easy", "normal", "hard", "brutal"].indexOf(spec.difficulty) === -1) spec.difficulty = "normal";
+    if (["standard", "expanded"].indexOf(spec.cabinetSize) === -1) spec.cabinetSize = "standard";
+    let code = h2hCode();
+    for (let i = 0; i < 4 && await dFirst(env, "SELECT code FROM b650_matches WHERE code=?", code); i++) code = h2hCode();
+    spec.seed = spec.seed || code + "|" + now;
+    await dRun(env, "INSERT INTO b650_matches (code,host,hostName,guest,guestName,spec,picks,status,results,created,updated) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+      code, me, nm(a.display), "", "", JSON.stringify(spec), "[]", "waiting", "{}", now, now);
+    return { ok: true, match: h2hView(await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code), a) };
+  }
+  const code = str(d.code, 8).toUpperCase();
+  const m = await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code);
+  if (!m) return { ok: false, error: "no such match" };
+  if (kind === "h2h_join") {
+    if (m.host === me || m.guest === me) return { ok: true, match: h2hView(m, a) };
+    if (m.status !== "waiting" || m.guest) return { ok: false, error: "match full" };
+    await dRun(env, "UPDATE b650_matches SET guest=?, guestName=?, status='draft', updated=? WHERE code=? AND status='waiting'", me, nm(a.display), now, code);
+    return { ok: true, match: h2hView(await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code), a) };
+  }
+  const role = m.host === me ? "host" : (m.guest === me ? "guest" : null);
+  if (!role) return { ok: false, error: "not your match" };
+  if (kind === "h2h_move") {
+    if (m.status !== "draft") return { ok: false, error: "not drafting", match: h2hView(m, a) };
+    const picks = parse(m.picks) || [], spec = parse(m.spec) || {};
+    const need = (spec.cabinetSize === "expanded" ? 16 : 12) * 2;
+    const seq = clampInt(d.seq, 0, 99);
+    if (seq !== picks.length) return { ok: false, error: "out of turn", match: h2hView(m, a) };
+    if ((seq % 2 === 0 ? "host" : "guest") !== role) return { ok: false, error: "not your turn", match: h2hView(m, a) };
+    const name = str(d.name, 60), port = str(d.port, 16).replace(/[^a-z]/g, "");
+    if (!name || picks.some(p => p.n === name)) return { ok: false, error: "already picked", match: h2hView(m, a) };
+    if (picks.some(p => p.r === role && p.k === port)) return { ok: false, error: "post filled", match: h2hView(m, a) };
+    picks.push({ r: role, n: name, k: port });
+    const status = picks.length >= need ? "election" : "draft";
+    const res = await dRun(env, "UPDATE b650_matches SET picks=?, status=?, updated=? WHERE code=? AND picks=?", JSON.stringify(picks), status, now, code, m.picks);
+    if (res && res.meta && !res.meta.changes) return { ok: false, error: "race", match: h2hView(await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code), a) };
+    return { ok: true, match: h2hView(await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code), a) };
+  }
+  if (kind === "h2h_result") {
+    if (m.status !== "election" && m.status !== "done") return { ok: false, error: "draft not finished", match: h2hView(m, a) };
+    const results = parse(m.results) || {};
+    const mine = clampInt(d.mySeats, 0, MAX_SEATS), theirs = clampInt(d.oppSeats, 0, MAX_SEATS);
+    results[role] = { mine, theirs, ts: now };
+    const status = results.host && results.guest ? "done" : "election";
+    await dRun(env, "UPDATE b650_matches SET results=?, status=?, updated=? WHERE code=?", JSON.stringify(results), status, now, code);
+    return { ok: true, match: h2hView(await dFirst(env, "SELECT * FROM b650_matches WHERE code=?", code), a) };
+  }
+  return { ok: false, error: "unknown kind" };
+}
+async function h2hRecord(env, userKey) {
+  const rows = await dAll(env, "SELECT host, guest, results FROM b650_matches WHERE status='done' AND (host=? OR guest=?)", userKey, userKey);
+  let w = 0, l = 0, dr = 0;
+  rows.forEach(r => {
+    const res = parse(r.results) || {}, role = r.host === userKey ? "host" : "guest", x = res[role] || res[role === "host" ? "guest" : "host"];
+    if (!x) return;
+    const mine = res[role] ? x.mine : x.theirs, theirs = res[role] ? x.theirs : x.mine;
+    if (mine > theirs) w++; else if (mine < theirs) l++; else dr++;
+  });
+  return { w, l, d: dr };
+}
+
+/* ---------------- public profiles ---------------- */
+const SYS_LABEL = { "": "United Kingdom", fptp_uk: "United Kingdom", fptp_usa_house: "US House", ec_usa_president: "US Presidency",
+  pr_dhondt_weimar: "Weimar Germany", pr_dhondt_bundestag: "Germany", trs_france: "France", av_australia: "Australia",
+  fptp_canada: "Canada", fptp_india: "India", fptp_japan: "Japan", guided_north_korea: "North Korea", guided_soviet: "Soviet Union",
+  guided_cuba: "Cuba", guided_china: "China" };
+async function publicProfile(env, d) {
+  const key = keyOf(d.name);
+  const a = await dFirst(env, "SELECT userKey, display, level, createdISO, lastISO, bio, colour, badges, banned FROM b650_accounts WHERE userKey=?", key);
+  if (!a || a.banned) return { ok: false, error: "no such player" };
+  const board = await dAll(env, "SELECT boardKey, seats, totalSeats, legacy, electoralSystem, scenarioKey, mode, difficulty, ts FROM b650_board WHERE userKey=?", key);
+  const runs = await dAll(env, "SELECT ts_iso, seats, totalSeats, legacy, govt, mode, difficulty, electoralSystem, scenarioKey, party, parl, pm FROM b650_runs WHERE nameKey=? ORDER BY id DESC LIMIT 400", key);
+  const daily = await dAll(env, "SELECT day, seats, total FROM b650_daily WHERE userKey=? ORDER BY day DESC LIMIT 400", key);
+  const nations = {};
+  runs.concat(board.map(b => ({ seats: b.seats, totalSeats: b.totalSeats, electoralSystem: b.electoralSystem, legacy: b.legacy }))).forEach(r => {
+    const sysk = str(r.electoralSystem, 40), lbl = SYS_LABEL[sysk] || sysk || "United Kingdom";
+    const n = nations[lbl] = nations[lbl] || { nation: lbl, runs: 0, best: 0, total: Number(r.totalSeats) || 650, bestLegacy: null };
+    n.runs++;
+    if ((Number(r.seats) || 0) > n.best) { n.best = Number(r.seats) || 0; n.total = Number(r.totalSeats) || 650; }
+    if (r.legacy != null && (n.bestLegacy == null || r.legacy > n.bestLegacy)) n.bestLegacy = Number(r.legacy);
+  });
+  Object.values(nations).forEach(n => { n.runs = Math.max(0, n.runs); });
+  const ranked = board.filter(b => b.boardKey === RANKED_BOARD)[0] || null;
+  const days = daily.map(r => r.day);
+  return { ok: true, profile: {
+    name: nm(a.display), level: Number(a.level) || 1, since: str(a.createdISO, 10), lastSeen: str(a.lastISO, 10),
+    bio: str(a.bio, 280), colour: /^#[0-9a-f]{6}$/i.test(String(a.colour || "")) ? a.colour : "",
+    badges: (parse(a.badges) || []).slice(0, 60).map(b => str(b, 40)),
+    runs: runs.length, govts: runs.filter(r => r.govt).length,
+    bestLegacy: runs.reduce((m, r) => r.legacy != null && r.legacy > m ? Number(r.legacy) : m, -1),
+    longestCareer: runs.reduce((m, r) => Math.max(m, Number(r.parl) || 1), 0),
+    nations: Object.values(nations).sort((x, y) => y.runs - x.runs).slice(0, 14),
+    ranked: ranked ? { seats: ranked.seats, legacy: ranked.legacy } : null,
+    daily: { played: days.length, best: daily.reduce((m, r) => Math.max(m, Number(r.seats) || 0), 0), streak: currentStreak(days), bestStreak: streakOf(days),
+             recent: daily.slice(0, 14).map(r => ({ day: r.day, seats: r.seats, total: r.total })) },
+    h2h: await h2hRecord(env, key),
+    recent: runs.slice(0, 10).map(r => ({ ts: str(r.ts_iso, 10), seats: r.seats, total: r.totalSeats || 650, nation: SYS_LABEL[str(r.electoralSystem, 40)] || "United Kingdom", mode: str(r.mode, 12), legacy: r.legacy, govt: !!r.govt, pm: str(r.pm, 60) }))
+  } };
+}
+async function profileUpdate(env, d) {
+  const a = await auth(env, d); if (!a) return { ok: false, error: "login" };
+  const sets = [], vals = [];
+  if (d.bio != null) {
+    const bio = String(d.bio).replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 280);
+    if (bio && !isClean(bio)) return { ok: false, error: cleanMsg("bio") };
+    sets.push("bio=?"); vals.push(bio);
+  }
+  if (d.colour != null) { const c = String(d.colour); sets.push("colour=?"); vals.push(/^#[0-9a-f]{6}$/i.test(c) ? c : ""); }
+  if (d.badges != null && Array.isArray(d.badges)) { sets.push("badges=?"); vals.push(JSON.stringify(d.badges.slice(0, 60).map(b => str(b, 40).replace(/[^a-z0-9_\-]/gi, "")))); }
+  if (!sets.length) return { ok: true };
+  vals.push(keyOf(a.userKey));
+  await dRun(env, "UPDATE b650_accounts SET " + sets.join(",") + " WHERE userKey=?", ...vals);
+  return { ok: true };
+}
+
+/* ---------------- the Hall of Fame ---------------- */
+async function records(env) {
+  const board = await dAll(env, "SELECT name, seats, totalSeats, legacy, electoralSystem, scenarioKey, mode, difficulty, boardKey, runCode FROM b650_board");
+  const landslides = {};
+  board.forEach(r => {
+    const sysk = str(r.electoralSystem, 40), lbl = SYS_LABEL[sysk] || sysk || "United Kingdom";
+    if (sysk.indexOf("guided_") === 0) return;
+    const tot = Number(r.totalSeats) || 650, pct = (Number(r.seats) || 0) / tot;
+    const cur = landslides[lbl];
+    if (!cur || pct > cur.pct) landslides[lbl] = { nation: lbl, name: nm(r.name), seats: Number(r.seats) || 0, total: tot, pct, mode: str(r.mode, 12), difficulty: str(r.difficulty, 8), runCode: str(r.runCode, 2000) };
+  });
+  const legacy = board.filter(r => r.legacy != null).sort((x, y) => y.legacy - x.legacy).slice(0, 5).map(r => ({ name: nm(r.name), legacy: Number(r.legacy), seats: Number(r.seats) || 0 }));
+  const careers = await dAll(env, "SELECT name, MAX(parl) parl FROM b650_runs WHERE parl IS NOT NULL GROUP BY nameKey ORDER BY parl DESC LIMIT 5");
+  const pms = await dAll(env, "SELECT pm, COUNT(*) n FROM b650_runs WHERE pm IS NOT NULL AND pm<>'' AND govt=1 GROUP BY pm ORDER BY n DESC LIMIT 5");
+  const dailyRows = await dAll(env, "SELECT day, userKey, name, seats, total FROM b650_daily");
+  const byDay = {}, perUser = {};
+  dailyRows.forEach(r => {
+    const k = keyOf(r.userKey); const u = perUser[k] = perUser[k] || { name: nm(r.name), days: [], wins: 0 }; u.days.push(r.day);
+    const b = byDay[r.day]; const pct = (Number(r.seats) || 0) / (Number(r.total) || 650);
+    if (!b || pct > b.pct) byDay[r.day] = { k, pct };
+  });
+  Object.keys(byDay).forEach(day => { if (day !== utcDay() && perUser[byDay[day].k]) perUser[byDay[day].k].wins++; });
+  const users = Object.values(perUser);
+  const streaks = users.map(u => ({ name: u.name, streak: streakOf(u.days) })).sort((x, y) => y.streak - x.streak).slice(0, 5);
+  const dailyWins = users.filter(u => u.wins).sort((x, y) => y.wins - x.wins).slice(0, 5).map(u => ({ name: u.name, wins: u.wins }));
+  const played = users.sort((x, y) => y.days.length - x.days.length).slice(0, 5).map(u => ({ name: u.name, days: u.days.length }));
+  const matches = await dAll(env, "SELECT host, guest, hostName, guestName, results FROM b650_matches WHERE status='done'");
+  const h = {};
+  matches.forEach(m => {
+    const res = parse(m.results) || {}, x = res.host || res.guest; if (!x) return;
+    const hostSeats = res.host ? x.mine : x.theirs, guestSeats = res.host ? x.theirs : x.mine;
+    const add = (k, n, win) => { const e = h[k] = h[k] || { name: nm(n), w: 0, p: 0 }; e.p++; if (win) e.w++; };
+    add(m.host, m.hostName, hostSeats > guestSeats); add(m.guest, m.guestName, guestSeats > hostSeats);
+  });
+  const ranked = (await topBoard(env, RANKED_BOARD))[0] || null;
+  return { ok: true, records: {
+    landslides: Object.values(landslides).sort((x, y) => y.pct - x.pct),
+    legacy, careers: careers.map(c => ({ name: nm(c.name), parl: Number(c.parl) || 1 })),
+    pms: pms.map(p => ({ pm: str(p.pm, 60), govts: Number(p.n) || 0 })),
+    streaks, dailyWins, dailyPlayed: played,
+    h2h: Object.values(h).sort((x, y) => y.w - x.w || y.p - x.p).slice(0, 5),
+    ranked: ranked ? { name: ranked.name, seats: ranked.seats, legacy: ranked.legacy } : null
+  } };
+}
+
 /* ---------------- main handler ---------------- */
 async function backend(env, d) {
   switch (String(d.kind || "")) {
@@ -465,6 +701,12 @@ async function backend(env, d) {
       await bumpRoster(env);
       return { ok: true, restored: true };
     }
+    case "daily_submit": return await dailySubmit(env, d);
+    case "daily_board": return await dailyBoard(env, d);
+    case "h2h_create": case "h2h_join": case "h2h_get": case "h2h_move": case "h2h_result": return await h2h(env, d);
+    case "profile_public": return await publicProfile(env, d);
+    case "profile_update": return await profileUpdate(env, d);
+    case "records": return await records(env);
     case "player_runs": {
       const a = await auth(env, d); if (!a) return { ok: false, error: "login" };
       const rows = await dAll(env, "SELECT * FROM b650_runs WHERE nameKey=? ORDER BY id DESC LIMIT 25", keyOf(a.userKey));
