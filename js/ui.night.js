@@ -89,6 +89,15 @@ G.UI = G.UI || {};
 
     /* the moments */
     var m = G.NightFX.moments(res), box = $("nightMoments"), parts = [];
+    /* a historic what-if: judged against what really happened */
+    var scKey = G.state && G.state.scenarioKey;
+    var sc = scKey && (G.SCENARIOS || []).filter(function (x) { return x.key === scKey; })[0];
+    if (sc && sc.par) {
+      var d = res.seats - sc.par.seats;
+      parts.push('<div class="nm par ' + (d > 0 ? 'win' : 'bad') + '">🏛 <b>History\'s par:</b> ' + esc(sc.par.who) + ' won ' + sc.par.seats +
+        (sc.par.note ? ' (' + esc(sc.par.note) + ')' : '') + '. You won <b>' + res.seats + '</b> — ' +
+        (d > 0 ? '<b>you beat history by ' + d + '</b>.' : d === 0 ? 'exactly as history had it.' : 'history did better by ' + (-d) + '.') + '</div>');
+    }
     if (m) {
       m.scalps.forEach(function (s) { parts.push('<div class="nm scalp">⚡ <b>Scalp:</b> ' + esc(s.party) + ' leader <b>' + esc(s.name) + '</b> loses ' + esc(s.seat) + ' to ' + esc(s.winner === c.blocLabel ? "you" : s.winner) + '.</div>'); });
       m.ministersLost.forEach(function (x) { parts.push('<div class="nm bad">✖ Your ' + esc(x.title) + ' <b>' + esc(x.name) + '</b> loses ' + esc(x.seat) + ' to ' + esc(x.winner) + (x.marginVotes != null ? ' by ' + fmt(x.marginVotes) + ' votes' : '') + '.</div>'); });

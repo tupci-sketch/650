@@ -651,7 +651,10 @@ G.objectiveMet = function (o, ctx) {
   function region(id) { return (ctx.byRegion || []).filter(function (r) { return r.id === id; })[0]; }
   switch (o.type) {
     case "seats":
-    case "majority":       return ctx.seats >= o.target;
+    case "par":            return ctx.seats >= o.target;
+    /* a target below the majority line is a majority OF that size (80-seat
+       majority); otherwise an absolute seat total */
+    case "majority":       return o.target < maj ? ctx.seats - maj >= o.target : ctx.seats >= o.target;
     case "pct":            return total > 0 && (ctx.seats / total * 100) >= o.target;
     case "supermajority":  return ctx.seats >= Math.round(total * (o.pct || 0.6));
     case "coalition":      return !!(ctx.largest && ctx.coalition && !ctx.coalition.soloMajority);
@@ -701,6 +704,107 @@ G.unlockAchievements = function (keys) {
   }
   return fresh;
 };
+
+/* ---- HISTORIC WHAT-IFS: replay a real campaign as the side that lost (or
+   struggled) — with the real result as PAR. Beat history and it counts. ----- */
+(function () {
+  function land(key) { var s = G.SCENARIOS.filter(function (x) { return x.key === key; })[0]; return s ? s.landscape : null; }
+  function cloneLand(l, tweak) {
+    if (!l || typeof l === "string") return l;
+    var out = {}; Object.keys(l).forEach(function (r) { out[r] = l[r].map(function (e) { return [e[0], e[1]]; }); });
+    if (tweak) tweak(out);
+    return out;
+  }
+  var UK1979 = {
+    NE: [["Labour",50],["Conservative",34],["Liberal",14],["Independent",2]], NW: [["Labour",44],["Conservative",42],["Liberal",12],["Independent",2]],
+    YH: [["Labour",46],["Conservative",38],["Liberal",14],["Independent",2]], EM: [["Conservative",48],["Labour",38],["Liberal",12],["Independent",2]],
+    WM: [["Conservative",46],["Labour",40],["Liberal",12],["Independent",2]], EE: [["Conservative",52],["Labour",32],["Liberal",14],["Independent",2]],
+    SE: [["Conservative",56],["Labour",24],["Liberal",18],["Independent",2]], SW: [["Conservative",52],["Labour",24],["Liberal",22],["Independent",2]],
+    LDN: [["Conservative",46],["Labour",40],["Liberal",12],["Independent",2]], SCO: [["Labour",42],["Conservative",32],["SNP",16],["Liberal",10]],
+    WAL: [["Labour",48],["Conservative",32],["Plaid Cymru",10],["Liberal",10]], NI: [["UUP",36],["DUP",14],["SDLP",20],["Alliance",12],["Independent",18]]
+  };
+  var UK1992 = {
+    NE: [["Labour",54],["Conservative",32],["Liberal Democrat",14]], NW: [["Labour",44],["Conservative",38],["Liberal Democrat",18]],
+    YH: [["Labour",44],["Conservative",38],["Liberal Democrat",18]], EM: [["Conservative",46],["Labour",38],["Liberal Democrat",16]],
+    WM: [["Conservative",44],["Labour",40],["Liberal Democrat",16]], EE: [["Conservative",52],["Labour",28],["Liberal Democrat",20]],
+    SE: [["Conservative",56],["Liberal Democrat",24],["Labour",20]], SW: [["Conservative",48],["Liberal Democrat",32],["Labour",20]],
+    LDN: [["Conservative",46],["Labour",38],["Liberal Democrat",16]], SCO: [["Labour",40],["Conservative",26],["SNP",22],["Liberal Democrat",12]],
+    WAL: [["Labour",50],["Conservative",28],["Plaid Cymru",10],["Liberal Democrat",12]], NI: [["UUP",34],["SDLP",24],["DUP",14],["Sinn Féin",10],["Alliance",8],["Independent",10]]
+  };
+  var UK2015 = {
+    NE: [["Labour",46],["Conservative",26],["UKIP",18],["Green",4],["Independent",6]], NW: [["Labour",44],["Conservative",32],["UKIP",14],["Green",4],["Independent",6]],
+    YH: [["Labour",40],["Conservative",34],["UKIP",16],["Green",4],["Independent",6]], EM: [["Conservative",44],["Labour",32],["UKIP",16],["Green",4],["Independent",4]],
+    WM: [["Conservative",42],["Labour",34],["UKIP",16],["Green",4],["Independent",4]], EE: [["Conservative",50],["Labour",22],["UKIP",18],["Green",4],["Independent",6]],
+    SE: [["Conservative",52],["Labour",18],["UKIP",16],["Green",6],["Independent",8]], SW: [["Conservative",48],["Labour",18],["UKIP",14],["Green",6],["Independent",14]],
+    LDN: [["Labour",44],["Conservative",36],["UKIP",8],["Green",6],["Independent",6]], SCO: [["SNP",50],["Labour",24],["Conservative",16],["Independent",10]],
+    WAL: [["Labour",38],["Conservative",28],["UKIP",14],["Plaid Cymru",12],["Independent",8]], NI: [["DUP",26],["Sinn Féin",24],["UUP",16],["SDLP",14],["Alliance",8],["Independent",12]]
+  };
+  var UK2024 = {
+    NE: [["Labour",48],["Reform UK",22],["Conservative",16],["Liberal Democrat",6],["Green",8]], NW: [["Labour",46],["Reform UK",18],["Liberal Democrat",8],["Green",8],["Independent",20]],
+    YH: [["Labour",44],["Reform UK",20],["Liberal Democrat",8],["Green",8],["Independent",20]], EM: [["Labour",40],["Reform UK",20],["Liberal Democrat",10],["Green",8],["Independent",22]],
+    WM: [["Labour",40],["Reform UK",20],["Liberal Democrat",10],["Green",8],["Independent",22]], EE: [["Labour",32],["Liberal Democrat",18],["Reform UK",18],["Green",8],["Independent",24]],
+    SE: [["Liberal Democrat",30],["Labour",28],["Reform UK",16],["Green",10],["Independent",16]], SW: [["Liberal Democrat",36],["Labour",26],["Reform UK",16],["Green",10],["Independent",12]],
+    LDN: [["Labour",48],["Liberal Democrat",14],["Green",14],["Reform UK",8],["Independent",16]], SCO: [["Labour",36],["SNP",30],["Liberal Democrat",12],["Reform UK",8],["Independent",14]],
+    WAL: [["Labour",40],["Reform UK",18],["Plaid Cymru",16],["Liberal Democrat",8],["Independent",18]], NI: [["Sinn Féin",30],["DUP",24],["Alliance",16],["SDLP",12],["UUP",12],["Independent",6]]
+  };
+  var EC2016 = cloneLand(G.INT_LANDSCAPES && G.INT_LANDSCAPES.usa_ec_2020, function (o) {
+    ["EC_MI","EC_WI","EC_PA","EC_AZ","EC_GA","EC_NC"].forEach(function (k) { if (o[k]) o[k] = [["Republican (USA)",51],["Democrat (USA)",47],["Independent",2]]; });
+  });
+  var W = [
+    { key: "wi_major1997", voteShift: -0.005, name: "What If: Major in 1997", year: 1997, country: "uk", lineage: "Conservative",
+      desc: "Eighteen years in power, a party at war over Europe and New Labour at 50 points. Build the Conservative cabinet history never gave John Major.",
+      difficulty: "hard", blocSupport: { shires: 46, business: 44, pensioners: 52, redwall: 28, urbanprog: 24, students: 22 },
+      landscape: land("blair1997"), par: { seats: 165, who: "John Major", note: "the Conservatives' worst result since 1906" } },
+    { key: "wi_corbyn2019", voteShift: 0.05, name: "Hold the Red Wall (2019)", year: 2019, country: "uk", lineage: "Labour",
+      desc: "Get Brexit Done is sweeping through Leave-voting Labour heartlands. Hold the Red Wall with the best Labour cabinet of all time.",
+      difficulty: "hard", blocSupport: { redwall: 36, reform: 70, urbanprog: 60, students: 62, pensioners: 34 },
+      landscape: land("brexit2019"), par: { seats: 202, who: "Jeremy Corbyn", note: "Labour's fewest seats since 1935" } },
+    { key: "wi_callaghan1979", voteShift: 0.072, name: "Winter of Discontent (1979)", year: 1979, country: "uk", lineage: "Labour",
+      desc: "Rubbish in the streets, the IMF memory, and a new kind of Tory leader. Can Labour cling on?",
+      difficulty: "hard", blocSupport: { redwall: 54, business: 34, shires: 34, pensioners: 44 },
+      landscape: UK1979, par: { seats: 269, who: "James Callaghan" } },
+    { key: "wi_kinnock1992", voteShift: -0.035, name: "Kinnock at Sheffield (1992)", year: 1992, country: "uk", lineage: "Labour",
+      desc: "Every poll says Labour. The Sun says otherwise. Turn the shy Tory surge.",
+      difficulty: "normal", blocSupport: { redwall: 60, urbanprog: 56, shires: 40, business: 38 },
+      landscape: UK1992, par: { seats: 271, who: "Neil Kinnock" } },
+    { key: "wi_brown2010", voteShift: 0.075, name: "Brown's Last Stand (2010)", year: 2010, country: "uk", lineage: "Labour",
+      desc: "The crash, the expenses scandal and Cleggmania. Thirteen years in, can Labour stay in Downing Street?",
+      difficulty: "hard", blocSupport: { redwall: 50, urbanprog: 44, business: 36, shires: 36 },
+      landscape: land("hung2010"), par: { seats: 258, who: "Gordon Brown" } },
+    { key: "wi_clegg2015", voteShift: -0.165, name: "After the Coalition (2015)", year: 2015, country: "uk", lineage: "Liberal",
+      desc: "Tuition fees, five years of austerity and the SNP tide. Save the Liberal Democrats from oblivion.",
+      difficulty: "hard", blocSupport: { students: 26, urbanprog: 34, shires: 46 },
+      landscape: UK2015, par: { seats: 8, who: "Nick Clegg", note: "from 57 to 8" } },
+    { key: "wi_sunak2024", voteShift: -0.045, name: "Rishi in the Rain (2024)", year: 2024, country: "uk", lineage: "Conservative",
+      desc: "Fourteen years, five Prime Ministers and a soaked lectern. Reform splitting the right. Stop the wipeout.",
+      difficulty: "hard", blocSupport: { shires: 40, pensioners: 46, business: 36, reform: 72, redwall: 30 },
+      landscape: UK2024, par: { seats: 121, who: "Rishi Sunak", note: "the Conservatives' worst result ever" } },
+    { key: "wi_clinton2016", voteShift: -0.045, name: "What If: Clinton in 2016", year: 2016, country: "us", lineage: "USDem", electoralSystem: "ec_usa_president",
+      desc: "The Blue Wall is cracking in Michigan, Wisconsin and Pennsylvania. Win the Electoral College that Hillary Clinton lost.",
+      difficulty: "hard", landscape: EC2016, par: { seats: 227, who: "Hillary Clinton", note: "won the popular vote, lost the College" } },
+    { key: "wi_otoole2021", voteShift: -0.04, name: "What If: O'Toole in 2021", year: 2021, country: "ca", lineage: "ConCA", electoralSystem: "fptp_canada",
+      desc: "Trudeau's snap election. The Tories win the popular vote again — and lose. Turn votes into seats.",
+      difficulty: "normal", landscape: "canada_2021", par: { seats: 119, who: "Erin O'Toole" } },
+    { key: "wi_morrison2022", voteShift: -0.075, name: "What If: Morrison in 2022", year: 2022, country: "au", lineage: "LibAU", electoralSystem: "av_australia",
+      desc: "The teal wave washes over Liberal heartlands. Hold the Coalition's seats against the independents.",
+      difficulty: "normal", landscape: "australia_2022", par: { seats: 58, who: "Scott Morrison", note: "the Coalition's total" } },
+    { key: "wi_laschet2021", voteShift: -0.125, name: "What If: Laschet in 2021", year: 2021, country: "de", lineage: "CDU", electoralSystem: "pr_dhondt_bundestag",
+      desc: "After Merkel, a laugh in a flood zone. Keep the Union in the Chancellery.",
+      difficulty: "normal", landscape: "bundestag_2021", par: { seats: 197, who: "Armin Laschet" } },
+    { key: "wi_spd1932", voteShift: -0.09, name: "Stop Them in 1932", year: 1932, country: "de", lineage: "SPD_DE", electoralSystem: "pr_dhondt_weimar",
+      desc: "July 1932: the Republic's last free contest of consequence. Build the SPD cabinet that could have held the line.",
+      difficulty: "hard", landscape: "weimar_1932_jul", par: { seats: 133, who: "Otto Wels's SPD" } },
+    { key: "wi_rahul2024", voteShift: -0.05, name: "What If: Rahul in 2024", year: 2024, country: "in", lineage: "INC", electoralSystem: "fptp_india",
+      desc: "Modi seeks a third term. Congress has rebuilt with the INDIA alliance. Go further than 99.",
+      difficulty: "hard", landscape: "india_2024", par: { seats: 99, who: "Rahul Gandhi" } }
+  ];
+  W.forEach(function (w) {
+    w.mode = "dynasty"; w.whatIf = true;
+    w.objective = { type: "par", target: w.par.seats + 1,
+      label: "Beat history: " + w.par.who + " won " + w.par.seats + (w.par.note ? " (" + w.par.note + ")" : "") };
+    G.SCENARIOS.push(w);
+  });
+})();
 
 /* ---- apply a scenario ----------------------------------------------------- */
 /* Sets gameYear, clones the landscape, seeds blocSupport on G.state.
@@ -778,6 +882,9 @@ G.applyScenario = function (key) {
 
   /* lock mode/difficulty if the scenario specifies them */
   if (sc.mode)       G.state.mode       = sc.mode;
+  if (sc.lineage)    G.state.lineage    = sc.lineage;
+  /* a what-if's handicap: the national mood you inherited */
+  G.state._scenarioVoteShift = sc.voteShift || 0;
   if (sc.difficulty) G.state.difficulty = sc.difficulty;
   G.state.scenarioKey = key;
   /* re-title the cabinet for this country (President, Reich Chancellor, …) */

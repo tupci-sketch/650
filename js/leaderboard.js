@@ -140,7 +140,7 @@ G.LB.cleanEntry = function (e) {
     pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
     ranked: !!e.ranked,
     runFp: String(e.runFp || "").slice(0, 24),
-    runCode: String(e.runCode || "").slice(0, 2000),
+    runCode: String(e.runCode || "").slice(0, 6000),
     parl: Math.max(1, Math.min(99, parseInt(e.parl, 10) || 1)),
     pm: String(e.pm || "").slice(0, 60),
     cabinet: G.LB._cabinet(e.cabinet), breakdown: G.LB._breakdown(e.breakdown), ts: Date.now()

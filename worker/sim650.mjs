@@ -177,7 +177,7 @@ function entryFromBoard(r, lv) {
     runId: str(r.runId, 32), partyName: str(r.party, 28), partyAlign: str(r.align, 14),
     scenarioKey: str(r.scenarioKey, 40), electoralSystem: str(r.electoralSystem, 40),
     totalSeats, pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
-    runCode: str(r.runCode, 2000),
+    runCode: str(r.runCode, 6000),
     level: (lv && lv[keyOf(r.name)]) || 1
   };
 }
@@ -272,7 +272,7 @@ async function doScore(env, d, kind) {
 
   /* ANTI-REPLAY: a run's fingerprint is claimed by the first player to score it.
      A byte-identical run submitted by anyone else is a replay and cannot count. */
-  const fp = str(d.runFp, 24), runCode = str(d.runCode, 2000);
+  const fp = str(d.runFp, 24), runCode = str(d.runCode, 6000);
   if (fp) {
     const claim = await dFirst(env, "SELECT userKey FROM b650_claims WHERE runFp=?", fp);
     if (claim && keyOf(claim.userKey) !== userKey) {
@@ -409,7 +409,7 @@ async function dailySubmit(env, d) {
   const total = clampInt(d.total, 1, MAX_SEATS), seats = clampInt(d.seats, 0, total);
   const grid = str(d.grid, 200).replace(/[^⬛\u{1F7E9}\u{1F7E8}\u{1F7E5}\u{1F480}\n]/gu, "");
   const r = await dRun(env, "INSERT OR IGNORE INTO b650_daily (day,userKey,name,seats,total,grid,runCode,pm,ts) VALUES (?,?,?,?,?,?,?,?,?)",
-    day, keyOf(a.userKey), nm(a.display), seats, total, grid, str(d.runCode, 2000), str(d.pm, 60).replace(/[<>&"]/g, ""), now);
+    day, keyOf(a.userKey), nm(a.display), seats, total, grid, str(d.runCode, 6000), str(d.pm, 60).replace(/[<>&"]/g, ""), now);
   const changed = r && r.meta ? r.meta.changes : 1;
   if (!changed) return { ok: false, error: "duplicate" };
   return { ok: true };
@@ -423,7 +423,7 @@ async function dailyBoard(env, d) {
   const seatsSorted = rows.map(r => Number(r.seats) || 0).sort((x, y) => x - y);
   const median = seatsSorted.length ? seatsSorted[Math.floor(seatsSorted.length / 2)] : 0;
   return { ok: true, day, count: rows.length, median, you,
-           top: rows.slice(0, 100).map(r => ({ name: nm(r.name), seats: Number(r.seats) || 0, total: Number(r.total) || 650, grid: str(r.grid, 200), runCode: str(r.runCode, 2000), ts: Number(r.ts) || 0 })) };
+           top: rows.slice(0, 100).map(r => ({ name: nm(r.name), seats: Number(r.seats) || 0, total: Number(r.total) || 650, grid: str(r.grid, 200), runCode: str(r.runCode, 6000), ts: Number(r.ts) || 0 })) };
 }
 function streakOf(days) {
   const set = new Set(days); let best = 0;
@@ -537,14 +537,16 @@ async function publicProfile(env, d) {
   const runs = await dAll(env, "SELECT ts_iso, seats, totalSeats, legacy, govt, mode, difficulty, electoralSystem, scenarioKey, party, parl, pm FROM b650_runs WHERE nameKey=? ORDER BY id DESC LIMIT 400", key);
   const daily = await dAll(env, "SELECT day, seats, total FROM b650_daily WHERE userKey=? ORDER BY day DESC LIMIT 400", key);
   const nations = {};
-  runs.concat(board.map(b => ({ seats: b.seats, totalSeats: b.totalSeats, electoralSystem: b.electoralSystem, legacy: b.legacy }))).forEach(r => {
+  const sane = r => (Number(r.seats) || 0) <= (Number(r.totalSeats) || 650);      // legacy rows recorded without their nation
+  runs.map(r => Object.assign({ _run: 1 }, r)).concat(board.map(b => ({ seats: b.seats, totalSeats: b.totalSeats, electoralSystem: b.electoralSystem, legacy: b.legacy }))).forEach(r => {
+    if (!sane(r)) return;
     const sysk = str(r.electoralSystem, 40), lbl = SYS_LABEL[sysk] || sysk || "United Kingdom";
     const n = nations[lbl] = nations[lbl] || { nation: lbl, runs: 0, best: 0, total: Number(r.totalSeats) || 650, bestLegacy: null };
-    n.runs++;
+    if (r._run) n.runs++;
     if ((Number(r.seats) || 0) > n.best) { n.best = Number(r.seats) || 0; n.total = Number(r.totalSeats) || 650; }
     if (r.legacy != null && (n.bestLegacy == null || r.legacy > n.bestLegacy)) n.bestLegacy = Number(r.legacy);
   });
-  Object.values(nations).forEach(n => { n.runs = Math.max(0, n.runs); });
+
   const ranked = board.filter(b => b.boardKey === RANKED_BOARD)[0] || null;
   const days = daily.map(r => r.day);
   return { ok: true, profile: {
@@ -559,7 +561,7 @@ async function publicProfile(env, d) {
     daily: { played: days.length, best: daily.reduce((m, r) => Math.max(m, Number(r.seats) || 0), 0), streak: currentStreak(days), bestStreak: streakOf(days),
              recent: daily.slice(0, 14).map(r => ({ day: r.day, seats: r.seats, total: r.total })) },
     h2h: await h2hRecord(env, key),
-    recent: runs.slice(0, 10).map(r => ({ ts: str(r.ts_iso, 10), seats: r.seats, total: r.totalSeats || 650, nation: SYS_LABEL[str(r.electoralSystem, 40)] || "United Kingdom", mode: str(r.mode, 12), legacy: r.legacy, govt: !!r.govt, pm: str(r.pm, 60) }))
+    recent: runs.filter(sane).slice(0, 10).map(r => ({ ts: str(r.ts_iso, 10), seats: r.seats, total: r.totalSeats || 650, nation: SYS_LABEL[str(r.electoralSystem, 40)] || "United Kingdom", mode: str(r.mode, 12), legacy: r.legacy, govt: !!r.govt, pm: str(r.pm, 60) }))
   } };
 }
 async function profileUpdate(env, d) {
@@ -586,10 +588,14 @@ async function records(env) {
     const sysk = str(r.electoralSystem, 40), lbl = SYS_LABEL[sysk] || sysk || "United Kingdom";
     if (sysk.indexOf("guided_") === 0) return;
     const tot = Number(r.totalSeats) || 650, pct = (Number(r.seats) || 0) / tot;
+    if (pct > 1) return;
     const cur = landslides[lbl];
-    if (!cur || pct > cur.pct) landslides[lbl] = { nation: lbl, name: nm(r.name), seats: Number(r.seats) || 0, total: tot, pct, mode: str(r.mode, 12), difficulty: str(r.difficulty, 8), runCode: str(r.runCode, 2000) };
+    if (!cur || pct > cur.pct) landslides[lbl] = { nation: lbl, name: nm(r.name), seats: Number(r.seats) || 0, total: tot, pct, mode: str(r.mode, 12), difficulty: str(r.difficulty, 8), runCode: str(r.runCode, 6000) };
   });
-  const legacy = board.filter(r => r.legacy != null).sort((x, y) => y.legacy - x.legacy).slice(0, 5).map(r => ({ name: nm(r.name), legacy: Number(r.legacy), seats: Number(r.seats) || 0 }));
+  const seenLeg = {};
+  const legacy = board.filter(r => r.legacy != null).sort((x, y) => y.legacy - x.legacy)
+    .filter(r => { const k = keyOf(r.name); if (seenLeg[k]) return false; seenLeg[k] = 1; return true; })
+    .slice(0, 5).map(r => ({ name: nm(r.name), legacy: Number(r.legacy), seats: Number(r.seats) || 0 }));
   const careers = await dAll(env, "SELECT name, MAX(parl) parl FROM b650_runs WHERE parl IS NOT NULL GROUP BY nameKey ORDER BY parl DESC LIMIT 5");
   const pms = await dAll(env, "SELECT pm, COUNT(*) n FROM b650_runs WHERE pm IS NOT NULL AND pm<>'' AND govt=1 GROUP BY pm ORDER BY n DESC LIMIT 5");
   const dailyRows = await dAll(env, "SELECT day, userKey, name, seats, total FROM b650_daily");

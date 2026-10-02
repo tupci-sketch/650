@@ -682,6 +682,13 @@
         if (G.SCENARIOS) {
           var sc = G.SCENARIOS.filter(function (s) { return s.key === key; })[0];
           if (sc && sc.mode) { choice.mode = sc.mode; setSel("modeRow", "data-mode", sc.mode); updateEligibility(); }
+          /* a historic what-if locks the tradition you play as */
+          if (sc && sc.lineage) {
+            choice.mode = "dynasty"; choice.lineage = sc.lineage;
+            setSel("modeRow", "data-mode", "dynasty");
+            if (sel("dynastyPick")) sel("dynastyPick").classList.add("show");
+            buildDynastyChips(); updateHint(); updateEligibility();
+          }
           if (sc && sc.difficulty) { choice.difficulty = sc.difficulty; setSel("diffRow", "data-diff", sc.difficulty); }
         }
       });
@@ -882,14 +889,24 @@
   function runPayloadFrom(res) {
     var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
     var cab = [];
-    (G.PORTFOLIOS || []).forEach(function (port) { var p = cabinet[port.key]; if (p) cab.push({ k: port.key, n: p.name }); });
+    /* name + party pin the exact figure (the roster has a few same-named
+       entries); the stat line breaks any remaining tie */
+    (G.PORTFOLIOS || []).forEach(function (port) {
+      var p = cabinet[port.key]; if (!p) return;
+      var st0 = p.stats || {};
+      var dupes = (G.POLITICIANS || []).filter(function (x) { return x.name === p.name; }).length;
+      cab.push(dupes > 1 ? { k: port.key, n: p.name, p: p.party, t: [st0.appeal, st0.experience, st0.oratory, st0.statecraft, st0.partyMgmt].join(".") }
+                         : { k: port.key, n: p.name });
+    });
     return {
       v: 1, s: (res.seed >>> 0),
       m: G.state.mode, l: G.state.lineage || null, d: G.state.difficulty, z: G.state.cabinetSize,
       e: (G.state.eras || []).slice(), sc: G.state.scenarioKey || null, sy: G.state._electoralSystemKey || null,
       cty: choice.country || "uk",
       cu: G.state.custom ? { name: G.state.custom.name, align: G.state.custom.align, colour: G.state.custom.colour } : null,
-      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1")
+      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"),
+      ag: (G.Dynasty ? G.Dynasty.servedMap(cabinet) : null),
+      x: res._ctx || null
     };
   }
   function showResult(res) {
@@ -932,6 +949,7 @@
       if (G.LB && G.LB.recordLocalRun && !res._replay) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
     afterDailyResult(res);
+    if (G.Profiles) G.Profiles.check();
   }
 
   /* load a shared run code from the menu and replay it exactly. A loaded replay
@@ -1254,6 +1272,7 @@
     if (G.NET && G.NET.me) {
       toggleProfilePanels(G.NET.me);
       if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, []);
+      if (G.Profiles) G.Profiles.renderEditor();
       if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
         var runs = (d && d.ok && d.runs) ? d.runs : [];
         if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, runs);
@@ -1707,6 +1726,9 @@
     }
     /* career: record this term and prepare retirement screen */
     if (G.career && G.career.active && G.careerRecordTerm) {
+      /* write this parliament into the party's history book */
+      if (G.Dynasty && lastResult) G.Dynasty.chapter(lastResult, currentVerdict);
+      if (sel("legacyBookBtn")) sel("legacyBookBtn").style.display = "";
       G.careerRecordTerm(lastResult, currentVerdict);
       /* push election history NOW (before legacy screen opens) so the wiki
          button on the legacy screen can show the correct prior-parliament data.
@@ -1741,7 +1763,10 @@
     btn.onclick = function () {
       if (!G.career || !G.career.active) { goMenu(); return; }
       /* compute retirements based on serve counts set in careerRecordTerm */
-      var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
+      var retiring = G.career._pendingRetire ||
+        (G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : []);
+      G.career._pendingRetire = null;
+      if (G.Dynasty) G.Dynasty.noteRetirements(retiring);
       /* add retiring names to retiredMinisters so pool excludes them */
       retiring.forEach(function (r) {
         if (G.career.retiredMinsters) G.career.retiredMinsters[r.politician.name] = true;
@@ -1754,7 +1779,15 @@
       Object.keys(cabinet).forEach(function (key) {
         var pol = cabinet[key]; if (!pol || pol.coalitionParty) return;
         var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
-        if (!isRetiring) carryOver[key] = pol;
+        /* survivors carry on — a parliament older (experience up, sparkle down) */
+        if (!isRetiring) carryOver[key] = G.Dynasty ? G.Dynasty.aged(pol, (G.career.ministerServeCount || {})[pol.name] || 0) : pol;
+      });
+      /* promoted protégés walk straight into their mentor's post, mentored */
+      retiring.forEach(function (r) {
+        if (!r.protege || !r.promote || carryOver[r.portfolioKey]) return;
+        var pr = {}; for (var k in r.protege) if (Object.prototype.hasOwnProperty.call(r.protege, k)) pr[k] = r.protege[k];
+        pr._mentor = r.politician.name; pr._mentored = 3;
+        carryOver[r.portfolioKey] = G.Dynasty.aged(pr, 0);
       });
       /* record election history entry for career (guard: endTerm() may have
          already pushed this parliament's entry when the legacy screen opened) */
@@ -1804,7 +1837,9 @@
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */
-        var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
+        /* decided ONCE, here — what the screen shows is what happens */
+        var cab0 = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
+        var retiring = G.Dynasty ? G.Dynasty.planRetirements(cab0) : (G.checkRetirements ? G.checkRetirements(cab0) : []);
         G.UI.renderRetirements(retiring, G.career);
       } else {
         if (origOnclick) origOnclick.call(this);
@@ -1944,6 +1979,13 @@
     if (sel("h2hBackBtn")) sel("h2hBackBtn").onclick = goMenu;
     if (sel("h2hBackToMatch")) sel("h2hBackToMatch").onclick = function () { cancelWatch(); if (G.H2H) G.H2H.open(); };
     if (G.H2H) G.H2H.wire();
+    if (sel("hofBtn")) sel("hofBtn").onclick = function () { if (G.Profiles) G.Profiles.openHof(); };
+    if (sel("hofBackBtn")) sel("hofBackBtn").onclick = goMenu;
+    if (sel("playerBackBtn")) sel("playerBackBtn").onclick = function () { G.UI.show((G.Profiles && G.Profiles._back) || "screen-menu"); };
+    if (sel("retBookBtn")) sel("retBookBtn").onclick = function () { if (G.Dynasty) G.Dynasty.renderBook("screen-retirement"); };
+    if (sel("legacyBookBtn")) sel("legacyBookBtn").onclick = function () { if (G.Dynasty) G.Dynasty.renderBook("screen-legacy"); };
+    if (sel("bookBackBtn")) sel("bookBackBtn").onclick = function () { G.UI.show((G.Dynasty && G.Dynasty._back) || "screen-menu"); };
+    if (sel("bookCopyBtn")) sel("bookCopyBtn").onclick = function () { copyText(G.Dynasty.bookText(), sel("bookCopyBtn")); };
     if (sel("dailyShareBtn2")) sel("dailyShareBtn2").onclick = function () { copyText(G.Daily.shareText(), sel("dailyShareBtn2")); };
     setInterval(function () { if (sel("screen-menu") && sel("screen-menu").classList.contains("active")) renderDailyCard(); }, 60000);
   }

@@ -50,10 +50,17 @@ window.G = window.G || {};
     G.state.govern = false;
     G.state._h2h = m.code;
     H._key = m.code + "|" + (sp.seed || "");
+    H._byName = null;
   };
 
+  /* resolve through the shared pool first (the roster has a few same-named
+     figures; the pool holds the exact ones that were dealt) */
   function byName(n) {
-    if (!H._byName) { H._byName = {}; (G.POLITICIANS || []).forEach(function (p) { H._byName[p.name] = p; }); }
+    if (!H._byName) {
+      H._byName = {};
+      (G.POLITICIANS || []).forEach(function (p) { if (!H._byName[p.name]) H._byName[p.name] = p; });
+      ((G.state && G.state.pool) || []).forEach(function (p) { H._byName[p.name] = p; });
+    }
     return H._byName[n] || null;
   }
   H.cabinetOf = function (m, role) {
@@ -227,7 +234,14 @@ window.G = window.G || {};
     var res = H.duel(m, H.role);
     H.lastResult = res;
     var mine = res.h2h.me.seats, theirs = res.h2h.opp.seats;
-    if (!(m.results && m.results[H.role])) H.call("h2h_result", { code: m.code, mySeats: mine, oppSeats: theirs });
+    if (!(m.results && m.results[H.role])) {
+      H.call("h2h_result", { code: m.code, mySeats: mine, oppSeats: theirs });
+      if (mine > theirs && G.Profiles) {
+        G.Profiles.award("h2h_win");
+        var n = 0; try { n = (parseInt(window.localStorage.getItem("650.h2hWins") || "0", 10) || 0) + 1; window.localStorage.setItem("650.h2hWins", String(n)); } catch (e) {}
+        if (n >= 5) G.Profiles.award("h2h_five");
+      }
+    }
     H.render();
   };
   H.watch = function () { if (H.lastResult && G._flow) { G.state.watch = true; G._flow.startWatch(H.lastResult); } };

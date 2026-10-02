@@ -497,15 +497,23 @@ G.simulateEC = function (params, rnd) {
     var logit = baseLogit - lean * (C.seatsK || 17) + nat + stateNoise;
     var won = rnd() < G.sigmoid(logit);
     if (won) playerEV += r.seats;
+    /* winner-take-all: a lost state's electors all go to its leading rival
+       ticket (from the scenario's landscape; deterministic, no rng) */
+    var land = (G.activeLandscape ? G.activeLandscape(r.id) : null) || [];
+    var rival = land.filter(function (e) { return e[0] !== bloc.label && e[0] !== bloc.excl; })
+                    .sort(function (a, b) { return b[1] - a[1]; })[0];
     return { id: r.id, name: r.name, total: r.seats, won: won ? r.seats : 0, winnable: true,
-             evWon: won ? r.seats : 0 };
+             evWon: won ? r.seats : 0, rival: rival ? rival[0] : "Opposition" };
   });
 
   var oppEV = totalEV - playerEV;
-  var breakdown = [
-    { party: bloc.label, seats: playerEV, isYou: true, colour: bloc.colour },
-    { party: "Opposition", seats: oppEV, isYou: false, colour: "#9b9b9b" }
-  ];
+  var byRival = {};
+  byRegion.forEach(function (r) { if (!r.won) byRival[r.rival] = (byRival[r.rival] || 0) + r.total; });
+  var breakdown = [{ party: bloc.label, seats: playerEV, isYou: true, colour: bloc.colour }];
+  Object.keys(byRival).sort(function (a, b) { return byRival[b] - byRival[a]; }).forEach(function (p) {
+    breakdown.push({ party: p, seats: byRival[p], isYou: false, colour: (G.PARTIES[p] && G.PARTIES[p].colour) || "#9b9b9b" });
+  });
+  breakdown.sort(function (a, b) { return b.seats - a.seats; });
 
   return { seats: playerEV, totalEV: totalEV, byRegion: byRegion,
            breakdown: breakdown, blocLabel: bloc.label, blocColour: bloc.colour,

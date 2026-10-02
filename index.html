@@ -484,6 +484,12 @@
       <div class="btn-row"><button class="btn btn-ghost" id="playerBackBtn">← Back</button></div>
     </section>
 
+    <!-- =============================================== HISTORY BOOK ==== -->
+    <section id="screen-book" class="screen">
+      <div class="panel book" id="bookBody"></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="bookCopyBtn">Copy the book</button><button class="btn btn-ghost" id="bookBackBtn">← Back</button></div>
+    </section>
+
     <!-- ================================================ DAILY BOARD ==== -->
     <section id="screen-daily" class="screen">
       <p class="section-label" id="dailyBoardHead">Daily Challenge</p>
@@ -558,6 +564,7 @@
         <p class="mini-help" id="retMiniHelp">The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next parliament.</p>
         <div class="btn-row">
           <button class="btn btn-primary" id="retContinueBtn">Draft replacements — <span id="retTermWord">Parliament</span> <span id="retParlNum">2</span> →</button>
+          <button class="btn btn-ghost" id="retBookBtn">📖 The party's history</button>
         </div>
       </div>
     </section>
@@ -733,6 +740,7 @@
       <div id="legacyObjectivesStrip" class="objectives-strip" style="display:none"></div>
       <div class="btn-row">
         <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
+        <button class="btn btn-ghost" id="legacyBookBtn" style="display:none">📖 The party's history</button>
         <button class="btn btn-ghost" id="legacyXBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="legacyShareBtn">Copy result</button>
         <button class="btn btn-ghost" id="legacyWikiBtn">📜 Election record</button>
@@ -778,6 +786,7 @@
         </div>
         <div class="profile-stats" id="profileStats"></div>
         <div class="profile-nations" id="profileNations"></div>
+        <div class="profile-edit" id="profileEdit"></div>
       </div>
       <!-- Player's run history (shown when signed in) -->
       <div class="panel" id="runsPanel" style="display:none">
@@ -1012,6 +1021,8 @@ fits: pm, chancellor"></textarea>
   <script src="js/platform.js"></script>
   <script src="js/daily.js"></script>
   <script src="js/h2h.js"></script>
+  <script src="js/dynasty.js"></script>
+  <script src="js/profiles.js"></script>
   <script src="js/sim650.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <script src="js/emoji.js"></script>

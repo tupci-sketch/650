@@ -289,6 +289,16 @@ G.LINEAGE_PARTY = {           /* the party label that represents each lineage  *
 G.playerBloc = function (mode, lineage, custom) {
   if (mode === "dynasty") {
     var lbl = G.LINEAGE_PARTY[lineage] || lineage;
+    /* abroad the field is labelled in the country's own terms ("Democrat
+       (USA)", "Liberal (CA)"…): adopt the label the active landscape uses for
+       this tradition, so your party is never ALSO fielded as its own rival */
+    var regs = (G.activeRegions ? G.activeRegions() : null) || [];
+    for (var ri = 0; ri < regs.length && G.lineageOf; ri++) {
+      var land = (G.activeLandscape ? G.activeLandscape(regs[ri].id) : null) || [];
+      var hit = land.filter(function (e) { return e[0] !== lbl && G.lineageOf(e[0]) === lineage; })[0];
+      if (hit) { lbl = hit[0]; break; }
+      if (land.some(function (e) { return e[0] === lbl; })) break;
+    }
     var pty = G.PARTIES[lbl];
     return { label: lbl, colour: pty ? pty.colour : "#2f5d3a", excl: lbl };
   }
@@ -332,7 +342,9 @@ G.expandSeatResults = function (campaign, sys) {
 
     /* opposition split for this region, largest-remainder over `lost` seats */
     var oppSeats = {};
-    if (lost > 0) {
+    if (lost > 0 && r.rival) {
+      oppSeats[r.rival] = lost;            // winner-take-all (Electoral College)
+    } else if (lost > 0) {
       var land = (G.activeLandscape ? G.activeLandscape(r.id) : null) || [];
       var opp = [];
       land.forEach(function (e) { if (e[0] !== blocLabel && e[1] > 0) opp.push({ p: e[0], w: e[1] }); });
@@ -717,6 +729,9 @@ G.runElection = function (cabinet, opts) {
   /* electorate vote nudge: bloc support → ≈ ±0.06 national vote shift */
   if (G.electorateVoteMod && opts.blocSupport)
     vote = Math.max(0.05, Math.min(0.62, vote + G.electorateVoteMod(opts.blocSupport)));
+  /* a historic what-if's inherited national mood */
+  if (G.state && G.state._scenarioVoteShift)
+    vote = Math.max(0.05, Math.min(0.62, vote + G.state._scenarioVoteShift));
   /* campaign vote delta (debate win/loss + theme) */
   if (opts.campaignVoteDelta)
     vote = Math.max(0.05, Math.min(0.62, vote + opts.campaignVoteDelta));

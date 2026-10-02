@@ -834,6 +834,8 @@ G.UI.legacyText = function (v) {
          "Build a cabinet and govern at 650-0.co.uk";
 };
 G.UI.renderLegacy = function (v) {
+  var bkb = document.getElementById("legacyBookBtn");
+  if (bkb && !(G.career && G.career.active)) bkb.style.display = "none";
   var opp = v.kind === "opp";
   var b = $("legacyBanner");
   var fell = v.outcome === "collapsed" || v.outcome === "ousted";
@@ -1823,7 +1825,7 @@ G.UI._lbRowEl = function (e, rank) {
   }
   row.innerHTML =
     '<span class="lb-rk">' + rank + '</span>' +
-    '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '">' + G.UI._esc(e.name || "—") + '</span>' +
+    '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '"' + (e.name && G.UI._lbView !== "personal" ? ' data-profile="' + G.UI._esc(e.name) + '" title="View profile"' : '') + '>' + G.UI._esc(e.name || "—") + '</span>' +
     '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
     '<span class="lb-seats">' + seatsDisplay + '</span>' +
     '<span class="lb-leg">' + leg + '</span>';
@@ -2380,10 +2382,16 @@ G.UI.renderRetirements = function (retiring, career) {
             '<b>' + G.UI._esc(pol.name) + '</b>' +
             '<span class="ret-port">' + G.UI._esc(port.name) + '</span>' +
             '<span class="ret-served">' + served + ' parliament' + (served !== 1 ? 's' : '') + ' served</span>' +
+            (r.protege ? '<label class="ret-protege"><input type="checkbox" data-protege="' + G.UI._esc(r.portfolioKey) + '"' + (r.promote ? ' checked' : '') + '> Promote protégé <b>' +
+              G.UI._esc(r.protege.name) + '</b> <i>(' + G.UI._esc(r.protege.party) + ', mentored +3)</i></label>' : '<span class="ret-served">No heir — the post goes to the draft.</span>') +
           '</div>' +
         '</div>';
       }).join("");
       G.UI._hydratePortraits(listEl);
+      listEl.onchange = function (e) {
+        var k = e.target && e.target.getAttribute && e.target.getAttribute("data-protege"); if (!k) return;
+        (retiring || []).forEach(function (r) { if (r.portfolioKey === k) r.promote = !!e.target.checked; });
+      };
     }
   }
 
@@ -2595,6 +2603,7 @@ G.UI.renderScenarioPicker = function (chosen, countryFilter) {
     return '<div class="scenario-card' + (isSel ? " sel" : "") + '" data-scenario="' + s.key + '">' +
       '<h4>' + G.UI._esc(s.name) + '</h4>' +
       '<p>' + G.UI._esc(s.desc) + '</p>' +
+      (s.whatIf ? '<small class="sc-whatif">What-if · play as ' + G.UI._esc((G.LINEAGE_PARTY && G.LINEAGE_PARTY[s.lineage]) || s.lineage) + ' · par ' + s.par.seats + '</small>' : '') +
       (s.objective ? '<p class="sc-obj">🎯 ' + G.UI._esc(s.objective.label) + '</p>' : '') +
       lockInfo + despotTag +
       '</div>';
