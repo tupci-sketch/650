@@ -598,6 +598,8 @@ G.UI.renderGovern = function () {
   G.UI.renderTurnEvents();
   G.UI.renderObjectiveBanner();
   G.UI.renderCabinetStrip();
+  if (G.UI.renderPolls) G.UI.renderPolls();
+  if (G.UI.renderRival) G.UI.renderRival();
   G.UI.show("screen-govern");
 };
 /* ---- coalition negotiation modal ---------------------------------------- */
@@ -753,6 +755,8 @@ G.UI.afterConfirm = function () {
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderCabinetStrip();
+  if (G.UI.renderPolls) G.UI.renderPolls();
+  if (G.UI.renderRival) G.UI.renderRival();
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {
@@ -1042,12 +1046,15 @@ G.UI.renderResultIntl = function (res) {
   G.UI.setOddsLabels(res);
   G.UI.renderResultElectorate(res);
 
+  if (G.UI.renderNight) G.UI.renderNight(res);
+
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
   G.PORTFOLIOS.forEach(function (port) {
     var h = G.state.cabinet[port.key];
     var line = document.createElement("div"); line.className = "roll-line";
-    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? h.name : "—") + '</span>';
+    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? G.UI._esc(h.name) : "—") +
+      (h && G.UI.seatNote ? G.UI.seatNote(res, h.name) : "") + '</span>';
     roll.appendChild(line);
   });
 
@@ -1490,12 +1497,15 @@ G.UI.renderResult = function (res) {
   $("majKeyLabel").textContent = C.majority + " needed";
   setTimeout(function () { $("commonsFill").style.width = (res.seats / C.totalSeats * 100) + "%"; }, 80);
 
+  if (G.UI.renderNight) G.UI.renderNight(res);
+
   /* front bench */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
   G.PORTFOLIOS.forEach(function (port) {
     var h = G.state.cabinet[port.key];
     var line = document.createElement("div"); line.className = "roll-line";
-    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? h.name : "—") + '</span>';
+    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? G.UI._esc(h.name) : "—") +
+      (h && G.UI.seatNote ? G.UI.seatNote(res, h.name) : "") + '</span>';
     roll.appendChild(line);
   });
 

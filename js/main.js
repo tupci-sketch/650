@@ -1046,8 +1046,19 @@
         var line = res.won
           ? res.name + " — " + (mp ? mp + " elected" : "won")
           : res.name + " — " + (mp ? mp + " (" + res.winner + ")" : "lost (" + res.winner + ")");
-        G.UI.pushFeed(line, res.won ? "win" : "");
+        /* GAIN / HOLD against the previous holder, and the majority */
+        if (res.change === "gain" && res.prev) line += " · " + (res.won ? "GAIN" : res.winner + " GAIN") + " from " + res.prev;
+        else if (res.change === "hold") line += " · HOLD";
+        if (res.marginVotes != null) line += " · maj " + res.marginVotes.toLocaleString();
+        if (res.recount) line = "After a recount: " + line;
+        G.UI.pushFeed(line, (res.won ? "win" : "") + (res.change === "gain" ? " gain" : "") + (res.recount ? " recount" : ""));
       }
+      /* the night's big moments: scalps, fallen ministers, narrow escapes */
+      if (!quiet && G.NightFX && w.res.campaign.homes) {
+        var big = G.NightFX.feedLine(res, w.res.campaign);
+        if (big) { res._bigShown = true; G.UI.pushFeed(big.text, "big " + big.cls); if (G.UI.flashMoment) G.UI.flashMoment(big); }
+      }
+      if (!quiet && G.Sound) G.Sound.seat(res);
       if (res.won) { w.won++; w.regWon++; w.wonByRegion[res.region] = (w.wonByRegion[res.region] || 0) + 1; }
       w.declaredByRegion[res.region] = (w.declaredByRegion[res.region] || 0) + 1;
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
@@ -1097,6 +1108,12 @@
       w.regIdx++; w.regWon = 0;
     }
     w.done = true;
+    /* a skipped count still gets its headlines */
+    if (G.NightFX && w.res.campaign.homes) w.results.forEach(function (r) {
+      if (r._bigShown) return;
+      var big = G.NightFX.feedLine(r, w.res.campaign);
+      if (big) { r._bigShown = true; G.UI.pushFeed(big.text, "big " + big.cls); }
+    });
     G.UI.setWatchTally(w.won, w.i);
     G.UI.pushFeed("All " + w.total + " seats declared.", "win");
     sel("skipCountBtn").style.display = "none";
@@ -2334,4 +2351,6 @@
       loadLeaderboard();
     });
   }
+  /* a narrow hook for automated checks and the daily/H2H flows */
+  G._flow = { startWatch: function (r) { lastResult = r; startWatch(r); }, showResult: function (r) { lastResult = r; showResult(r); } };
 })();

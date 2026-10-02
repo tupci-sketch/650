@@ -618,7 +618,11 @@ G.startTerm = function (res, opts) {
   if (opts.concessions && opts.concessions.pledgeDrop && G.term.pledges && G.term.pledges.length) {
     G.term.pledges.pop();
   }
+  /* real people, real seats: your benches, the named Opposition, the polls,
+     and any minister who lost their seat on election night */
+  if (G.TermLife) G.TermLife.start(res, opts);
   G.govDrawTurn(2);
+  if (G.TermLife) G.TermLife.opening();
   return G.term;
 };
 
@@ -763,6 +767,7 @@ G._applyChoiceEffects = function (ev, choice, log) {
     });
   }
   if (choice.resign) G._caretake(log);
+  if (choice.tl && G.TermLife) G.TermLife.applyChoice(ev, choice, log);
   if (ev.special === "byel" && choice.seatId && G.term.kind === "opp") {
     G.term.targetsUsed[choice.seatId] = 1;
     if (gambleWon) {
@@ -800,12 +805,15 @@ G.confirmTurn = function () {
     t.meters.economy = G._clampM(t.meters.economy + (50 - t.gov.approval) / 25);
     if (t.forceLock > 0) t.forceLock--;
   }
+  /* the named Opposition moves, your benches stir, the polls report */
+  if (G.TermLife) G.TermLife.afterTurn(log);
   t.history.push({
     session: t.session,
     titles: t.turnEvents.map(function (te) { return te.event.title; }).join(" / "),
     choices: t.turnEvents.map(function (te) { return te.event.choices[te.stagedChoice].label; }).join(" / "),
     meters: { approval: t.meters.approval, economy: t.meters.economy, unity: t.meters.unity },
-    seats: t.seats
+    seats: t.seats,
+    poll: t.polls && t.polls.length ? t.polls[t.polls.length - 1] : null
   });
   if (t.kind === "govt") {
     if (G._confidenceAtRisk()) {
@@ -826,6 +834,7 @@ G.confirmTurn = function () {
     return { log: log, over: true, outcome: t.outcome };
   }
   G.govDrawTurn(2);
+  if (G.TermLife) G.TermLife.injectQueued();
   return { log: log, over: false, outcome: null };
 };
 
@@ -943,6 +952,8 @@ G._caretake = function (log) {
 };
 
 G._byElection = function (log) {
+  /* a by-election in one of YOUR named seats, when the term knows them */
+  if (G.TermLife && G.term && G.term.backbench && G.TermLife.byElection(log)) return;
   var t = G.term, geo = G.buildGeo ? G.buildGeo() : null;
   var name = "a marginal seat";
   if (geo && geo.constituencies.length) name = geo.constituencies[Math.floor(Math.random() * geo.constituencies.length)].name;
@@ -972,12 +983,15 @@ G._rebellion = function (log) {
   var grip = (G.ministerStat("whip", "partyMgmt") + G.ministerStat("leader", "partyMgmt")) / 2;
   var p = 0.35 + (grip - 50) / 100 * 0.8 + (t.seats - (t.majority || G.CONFIG.majority)) / 400;
   p = Math.max(0.1, Math.min(0.9, p));
+  var ring = G.TermLife && G.term.backbench ? G.TermLife.ringleader() : null;
+  var size = 8 + Math.floor(Math.random() * 30);
+  var who = ring ? (ring.sacked ? "Sacked minister " + ring.name : ring.name) + " leads " + size + " rebels" : null;
   if (Math.random() < p) {
     t.meters.unity = G._clampM(t.meters.unity + 6);
-    log.push({ text: "Rebellion brewing — the whips face it down.", cls: "good" });
+    log.push({ text: who ? who + " — the whips face them down." : "Rebellion brewing — the whips face it down.", cls: "good" });
   } else {
     G._apply({ a: -4, u: -8 }, true);
-    log.push({ text: "Open revolt on the benches; your authority takes a hit.", cls: "bad" });
+    log.push({ text: who ? who + " into the opposition lobby; the government's authority takes a hit." : "Open revolt on the benches; your authority takes a hit.", cls: "bad" });
     if (Math.random() < 0.4) G._caretake(log);
   }
 };
@@ -1313,6 +1327,7 @@ G.startOpposition = function (res) {
     over: false, outcome: null, fellSession: null,
     history: [], byElectionSeats: []
   };
+  if (G.TermLife) G.TermLife.start(res, null);
   G.govDrawTurn(2);
   return G.term;
 };

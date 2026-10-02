@@ -313,7 +313,7 @@
 
       <div class="panel" style="margin-top:18px">
         <p class="section-label" id="watchMapLabel">The results map <span class="board-note" id="watchMapNote">650 seats · hover to explore</span></p>
-        <div class="hexmap" id="mapWatch"></div>
+        <div class="map-wrap"><div class="watch-flash" id="watchFlash" style="display:none"></div><div class="hexmap" id="mapWatch"></div></div>
         <div class="board-key" id="mapWatchLegend"></div>
       </div>
 
@@ -351,6 +351,15 @@
       <div class="panel" id="breakdownPanel" style="margin-top:24px">
         <p class="section-label" id="breakdownLabel">The new House of Commons</p>
         <div class="standings" id="seatBreakdown"></div>
+      </div>
+
+      <div class="panel" id="nightPanel" style="margin-top:24px; display:none">
+        <p class="section-label">The night in numbers <span class="board-note" id="nightNote"></span></p>
+        <div class="night-grid">
+          <div class="night-votes"><div class="vs-bar" id="voteShareBar"></div><div class="vs-key" id="voteShareKey"></div></div>
+          <div class="swingo" id="swingometer" style="display:none"></div>
+        </div>
+        <div class="night-moments" id="nightMoments"></div>
       </div>
 
       <div class="panel" id="coalitionPanel" style="margin-top:24px; display:none">
@@ -595,6 +604,18 @@
       <div class="panel" id="electoratePanel" style="display:none">
         <p class="section-label">Coalition of voters</p>
         <div class="bloc-list" id="blocList"></div>
+      </div>
+      <div class="gov-twin">
+        <div class="panel" id="pollPanel" style="display:none">
+          <p class="section-label">The polls <span class="board-note">every session</span></p>
+          <div class="poll-chart" id="pollChart"></div>
+          <div class="poll-read" id="pollRead"></div>
+          <p class="poll-press" id="pollPress"></p>
+        </div>
+        <div class="panel" id="rivalPanel" style="display:none">
+          <p class="section-label" id="rivalHead">The Opposition</p>
+          <div id="rivalBody"></div>
+        </div>
       </div>
       <div class="panel opp-gov" id="oppGovPanel" style="display:none">
         <p class="section-label" id="oppGovName">The government</p>
@@ -921,10 +942,13 @@ fits: pm, chancellor"></textarea>
   <script src="js/govern.js"></script>
   <script src="js/coalition.js"></script>
   <script src="js/seatnight.js"></script>
+  <script src="js/nightfx.js"></script>
+  <script src="js/termlife.js"></script>
   <script src="js/govern.intl.js"></script>
   <script src="js/govern.events.js"></script>
   <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/ui.night.js"></script>
   <script src="js/country_hexmaps.js"></script>
   <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>

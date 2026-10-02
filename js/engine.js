@@ -850,6 +850,8 @@ G.careerRecordTerm = function (result, termVerdict) {
   /* held seats for incumbency in next election */
   if (result && result.campaign && result.campaign.results) {
     G.career.heldSeats = result.campaign.results.filter(function (r) { return r.won; }).map(function (r) { return r.gss; });
+    /* who held every seat — next parliament's GAIN / HOLD is judged against it */
+    if (G.NightFX) G.NightFX.recordWinners(result);
   }
 
   /* accumulate vote modifier from governing performance */

@@ -463,10 +463,14 @@ G.simulateCampaign = function (params) {
       _r.results = G.expandSeatResults(_r, _sys);
     /* name every seat's MP (the international per-seat list already flows by
        region, so no re-ordering) */
+    if (_r && _r.results && G.NightFX) _r.homes = G.NightFX.planHomes(_r.results, { blocLabel: _r.blocLabel,
+      intl: true, sys: _sys, cabinet: G.state && G.state.cabinet, opposition: params.opposition });
     if (_r && _r.results && G.assignSeatMPs) G.assignSeatMPs(_r.results, {
       blocLabel: _r.blocLabel, draftedNames: params.draftedNames,
-      cabinet: G.state && G.state.cabinet, oppositionField: params.opposition
+      cabinet: G.state && G.state.cabinet, oppositionField: params.opposition, homes: _r.homes,
+      country: _sys.country
     });
+    if (_r && _r.results && G.NightFX) G.NightFX.annotate(_r.results, { blocLabel: _r.blocLabel, intl: true, sys: _sys, opposition: params.opposition });
     /* per-region prior for the live-night nowcast: each region's player win rate.
        Deterministic (a read of this campaign's own regional outcome), so it lets
        the projection track THIS result as seats declare — parity with the UK
@@ -523,12 +527,18 @@ G.simulateCampaign = function (params) {
          the ones that actually move (mean-zero within the region). */
       var elecTex = (params.blocSupport && G.seatElectorateTexture) ? G.seatElectorateTexture(c, params.blocSupport, r.id) : 0;
       var logit = baseLogit + lean + nat + regSwing + G.seatBaseLean(c) + incumbBonus + elecTex + G.gaussR(rnd) * noise;
-      var won = rnd() < G.sigmoid(logit);
+      /* keep the uniform draw: its distance from the win probability is the
+         seat's MARGIN (a near-miss draw = a knife-edge count). Same RNG use. */
+      var pWin = G.sigmoid(logit), u = rnd();
+      var won = u < pWin;
+      /* the seat's pre-campaign safety (no swing / luck) — where ministers stand */
+      var safety = baseLogit + lean0 + tilt + G.seatBaseLean(c) + incumbBonus + elecTex;
       var winner;
       if (won) { rec.won++; seats++; winner = bloc.label; }
       else { winner = G._wpick(landscape, bloc.excl, opposition, rnd); }
       award(winner);
-      results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: won, winner: winner });
+      results.push({ id: c.id, gss: c.gss, name: c.name, region: r.id, won: won, winner: winner,
+                     p: pWin, u: u, safety: safety });
     });
     byRegion.push(rec);
   });
@@ -538,16 +548,21 @@ G.simulateCampaign = function (params) {
              isYou: label === bloc.label };
   }).sort(function (a, b) { return b.seats - a.seats; });
 
-  /* name every seat's MP (deterministic), then declare in realistic UK order */
+  /* every minister (and each rival leader) stands in a named seat; then name
+     every seat's MP, colour the night (margins, GAIN/HOLD, recounts) and
+     declare in realistic UK order — all deterministic, no RNG */
+  var homes = G.NightFX ? G.NightFX.planHomes(results, { blocLabel: bloc.label, intl: false,
+                cabinet: G.state && G.state.cabinet, opposition: opposition }) : null;
   if (G.assignSeatMPs) G.assignSeatMPs(results, {
     blocLabel: bloc.label, draftedNames: params.draftedNames, cabinet: G.state && G.state.cabinet,
-    oppositionField: opposition
+    oppositionField: opposition, homes: homes
   });
+  if (G.NightFX) G.NightFX.annotate(results, { blocLabel: bloc.label, intl: false, opposition: opposition });
   if (G.orderDeclarations) results = G.orderDeclarations(results, false);
 
   return { seats: seats, byRegion: byRegion, results: results,
            breakdown: breakdown, blocLabel: bloc.label, blocColour: bloc.colour,
-           opposition: opposition, regionExpected: regionExpected };
+           opposition: opposition, regionExpected: regionExpected, homes: homes };
 };
 
 /* ---- fast seat-total estimate for one campaign (for the odds loop) ------- */
