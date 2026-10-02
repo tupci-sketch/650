@@ -154,11 +154,16 @@ G.poolFor = function (opts) {
 
   /* country-aware filtering: active whenever an international electoral system is set
      OR when country is explicitly passed (e.g. dynasty draft before applyScenario runs) */
-  var activeSysKey = G.state && G.state._electoralSystemKey;
-  var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
-  var activeCountry = activeSys ? activeSys.country : null;
-  if (!activeCountry && opts.country && opts.country !== "uk") {
-    activeCountry = opts.country.toUpperCase();
+  /* an explicitly chosen country always wins: G.state may still hold the
+     PREVIOUS game's system here (newGame builds the pool before the new
+     scenario is applied), which would leak the old nation's pool */
+  var activeCountry = null;
+  if (opts.country) {
+    activeCountry = opts.country !== "uk" ? String(opts.country).toUpperCase() : null;
+  } else {
+    var activeSysKey = G.state && G.state._electoralSystemKey;
+    var activeSys = (activeSysKey && activeSysKey !== "fptp_uk" && G.ELECTORAL_SYSTEMS) ? G.ELECTORAL_SYSTEMS[activeSysKey] : null;
+    activeCountry = activeSys ? activeSys.country : null;
   }
   /* normalize full-name country strings to the 2-letter codes used in PARTY_COUNTRY */
   var _CNAME_TO_CODE = { "Japan": "JP", "China": "CN", "Germany": "DE", "France": "FR",
@@ -498,6 +503,7 @@ G.hold = function () {
     blocSupport = G.electorateInit(align, st.policy);
   }
 
+  var _bsBase = blocSupport ? JSON.parse(JSON.stringify(blocSupport)) : null;
   /* apply campaign outputs (bloc shifts + extra region tilt) if available */
   var campOut = st.campaignOutputs || null;
   if (campOut && campOut.blocDeltas && blocSupport && G.electorateShift) {
@@ -520,6 +526,14 @@ G.hold = function () {
                       "|" + blocSig + "|" + campaignSig +
                       "|" + (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"));
 
+  /* the full election context, so a run code can reproduce THIS night exactly
+     (manifesto, campaign trail, voter blocs, and a career's carried swing and
+     incumbent seats all move the result) */
+  var _ctx = { pol: st.policy || null, co: campOut ? { voteDelta: campOut.voteDelta || 0, regionTilt: campOut.regionTilt || null, blocDeltas: campOut.blocDeltas || null, sig: campOut.sig || "" } : null,
+               bs: _bsBase };
+  if (G.career && G.career.active) {
+    _ctx.car = { vm: G.career.voteModifier || 0, hs: G.Dynasty && G.Dynasty.packSeats ? G.Dynasty.packSeats(G.career.heldSeats) : "" };
+  }
   var res = G.runElection(st.cabinet, {
     mode: st.mode, lineage: st.lineage,
     difficulty: st.difficulty, govern: st.govern,
@@ -532,6 +546,7 @@ G.hold = function () {
     campaignVoteDelta: campaignVoteDelta
   });
   res.manifest = manifest;
+  res._ctx = _ctx;
   res.mode = st.mode;
   res.cabinetSize = st.cabinetSize;
   res.pmName = (st.cabinet && st.cabinet.pm) ? st.cabinet.pm.name : "—";
@@ -564,18 +579,34 @@ G.runFromCode = function (decoded) {
   else if (decoded.sy && decoded.sy !== "fptp_uk") G.state._electoralSystemKey = decoded.sy;
   /* resolve every seat's figure by name (roster overrides already merged) */
   var byName = {};
-  (G.POLITICIANS || []).forEach(function (p) { if (!byName[p.name]) byName[p.name] = p; });
+  (G.POLITICIANS || []).forEach(function (p) { (byName[p.name] = byName[p.name] || []).push(p); });
+  function statSig(p) { var x = p.stats || {}; return [x.appeal, x.experience, x.oratory, x.statecraft, x.partyMgmt].join("."); }
   var cabinet = {}, drafted = {}, missing = [];
   decoded.cab.forEach(function (c) {
-    var p = byName[c.n];
+    var list = byName[c.n] || [];
+    var p = (c.t && list.filter(function (x) { return x.party === c.p && statSig(x) === c.t; })[0]) ||
+            (c.p && list.filter(function (x) { return x.party === c.p; })[0]) || list[0];
+    /* a career minister plays as they were that parliament (aged / mentored) */
+    var ag = decoded.ag && decoded.ag[c.n];
+    if (p && ag && G.Dynasty) { var q = {}; for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) q[k] = p[k]; if (ag[1]) q._mentored = ag[1]; p = G.Dynasty.aged(q, ag[0] || 0); }
     if (p) { cabinet[c.k] = p; drafted[p.name] = c.k; } else missing.push(c.n);
   });
   if (missing.length) return { error: "missing", missing: missing };
   G.state.cabinet = cabinet;
   G.state.draftedNames = drafted;
   G.state._forcedSeed = (decoded.s >>> 0);
+  /* restore the night's context (older codes simply don't carry one) */
+  var x = decoded.x || null, saveCareer = G.career, saveTerm = G.term;
+  if (x) {
+    G.state.policy = x.pol || null;
+    G.state.campaignOutputs = x.co || null;
+    if (x.car) G.career = { active: true, parliament: 2, voteModifier: x.car.vm || 0, blocSupport: x.bs || {},
+                            heldSeats: G.Dynasty && G.Dynasty.unpackSeats ? G.Dynasty.unpackSeats(x.car.hs) : [] };
+    else G.career = null;
+    G.term = x.bs ? { blocSupport: x.bs } : null;
+  }
   var res;
-  try { res = G.hold(); } finally { G.state._forcedSeed = null; }
+  try { res = G.hold(); } finally { G.state._forcedSeed = null; if (x) { G.career = saveCareer; G.term = saveTerm; } }
   res._fromCode = true;
   return { res: res };
 };
@@ -670,6 +701,9 @@ G.deal = function () {
   if (!und.length) return null;
 
   var C = G.CONFIG;
+  /* the Daily Challenge (and head-to-head) deal from a SHARED seed: the n-th
+     deal of the day draws identically for everyone who has made the same picks */
+  var R = (st._dealSeed != null && G.makeRng) ? G.makeRng(G.hash32(st._dealSeed + "|deal|" + st.spinsTaken)) : Math.random;
   var boost = G._needsPity();
   if (boost) { st.pity.uses--; st.pity.used++; }
 
@@ -683,7 +717,7 @@ G.deal = function () {
     var tot = 0, w = keys.map(function (k) {
       var v = Math.pow(by[k].length, alpha) * (odds[k] || 1); tot += v; return v;
     });
-    var r = Math.random() * tot;
+    var r = R() * tot;
     for (var i = 0; i < keys.length; i++) { r -= w[i]; if (r <= 0) return keys[i]; }
     return keys[keys.length - 1];
   }
@@ -698,7 +732,7 @@ G.deal = function () {
       w[i] = Math.max(1, G.PROMINENCE(bucket[i]));
       total += w[i];
     }
-    var r = Math.random() * total;
+    var r = R() * total;
     for (i = 0; i < bucket.length; i++) { r -= w[i]; if (r <= 0) return bucket[i]; }
     return bucket[bucket.length - 1];
   }
@@ -850,6 +884,8 @@ G.careerRecordTerm = function (result, termVerdict) {
   /* held seats for incumbency in next election */
   if (result && result.campaign && result.campaign.results) {
     G.career.heldSeats = result.campaign.results.filter(function (r) { return r.won; }).map(function (r) { return r.gss; });
+    /* who held every seat — next parliament's GAIN / HOLD is judged against it */
+    if (G.NightFX) G.NightFX.recordWinners(result);
   }
 
   /* accumulate vote modifier from governing performance */

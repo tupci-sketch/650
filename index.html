@@ -48,6 +48,8 @@
       <div id="liveBanner" class="live-banner" style="display:none"></div>
       <div class="acct-bar"><span class="acct-who" id="acctWho">Not signed in</span><button class="link-btn" id="acctOpenBtn">Sign in / Register</button></div>
       <p class="records" id="recordsLine"></p>
+      <!-- the Daily Challenge -->
+      <div class="daily-card" id="dailyCard" style="display:none"></div>
       <!-- Session card: resume a live game or continue a saved one (local or cloud) -->
       <div class="continue-card" id="continueCard" style="display:none"></div>
       <!-- Save indicator (fixed bottom-right) -->
@@ -238,7 +240,9 @@
         <button class="btn btn-ghost" id="exploreBtn">Explore the map</button>
         <button class="btn btn-ghost" id="aboutBtn">How it works</button>
         <button class="btn btn-ghost" id="rankedPresetBtn">🏆 Set ranked mode</button>
+        <button class="btn btn-ghost" id="h2hBtn">⚔ Head-to-head</button>
         <button class="btn btn-ghost" id="leaderboardBtn">Leaderboard</button>
+        <button class="btn btn-ghost" id="hofBtn">🏛 Hall of Fame</button>
         <button class="btn btn-ghost" id="chatBtn">💬 Chat</button>
         <button class="btn btn-ghost" id="liveBtn">📺 Live</button>
         <button class="btn btn-ghost" id="adminBtn" style="display:none">🛠 Housekeeping</button>
@@ -295,6 +299,7 @@
           <div class="btn-row" style="margin-top:16px">
             <button class="btn btn-primary" id="holdBtn" style="flex:1" disabled>Hold the election</button>
           </div>
+          <button class="btn btn-ghost draft-card-btn" id="draftCardBtn" style="display:none;margin-top:8px;width:100%">🖼 Share your cabinet</button>
         </div>
       </div>
     </section>
@@ -313,7 +318,7 @@
 
       <div class="panel" style="margin-top:18px">
         <p class="section-label" id="watchMapLabel">The results map <span class="board-note" id="watchMapNote">650 seats · hover to explore</span></p>
-        <div class="hexmap" id="mapWatch"></div>
+        <div class="map-wrap"><div class="watch-flash" id="watchFlash" style="display:none"></div><div class="hexmap" id="mapWatch"></div></div>
         <div class="board-key" id="mapWatchLegend"></div>
       </div>
 
@@ -351,6 +356,28 @@
       <div class="panel" id="breakdownPanel" style="margin-top:24px">
         <p class="section-label" id="breakdownLabel">The new House of Commons</p>
         <div class="standings" id="seatBreakdown"></div>
+      </div>
+
+      <div class="panel h2h-panel" id="h2hPanel" style="margin-top:24px; display:none">
+        <p class="section-label">Head-to-head</p>
+        <div id="h2hResultLine"></div>
+        <div class="btn-row"><button class="btn btn-ghost" id="h2hBackToMatch">Back to the match</button></div>
+      </div>
+
+      <div class="panel daily-panel" id="dailyPanel" style="margin-top:24px; display:none">
+        <p class="section-label"><span id="dailyPanelHead">Daily Challenge</span> <span class="board-note" id="dailyStreak"></span></p>
+        <pre class="daily-share" id="dailyShareText"></pre>
+        <div class="btn-row"><button class="btn btn-primary" id="dailyCopyBtn">Copy &amp; share</button><button class="btn btn-ghost" id="dailyFullBtn">Full daily board</button></div>
+        <div class="dly-board" id="dailyBoardMini"></div>
+      </div>
+
+      <div class="panel" id="nightPanel" style="margin-top:24px; display:none">
+        <p class="section-label">The night in numbers <span class="board-note" id="nightNote"></span></p>
+        <div class="night-grid">
+          <div class="night-votes"><div class="vs-bar" id="voteShareBar"></div><div class="vs-key" id="voteShareKey"></div></div>
+          <div class="swingo" id="swingometer" style="display:none"></div>
+        </div>
+        <div class="night-moments" id="nightMoments"></div>
       </div>
 
       <div class="panel" id="coalitionPanel" style="margin-top:24px; display:none">
@@ -416,6 +443,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary" id="downloadBtn">⬇ Download result card</button>
+        <button class="btn btn-ghost" id="cabCardBtn">🖼 Cabinet card</button>
         <button class="btn btn-ghost" id="xShareBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="copyBtn">Copy result</button>
         <button class="btn btn-ghost" id="runCodeBtn" title="Copy a code others can load to replay this exact run">🔗 Copy run code</button>
@@ -424,6 +452,52 @@
         <button class="btn btn-ghost" id="resultLbBtn">★ Post to leaderboard</button>
         <button class="btn btn-ghost" id="menuBtn">Change game</button>
       </div>
+    </section>
+
+    <!-- ================================================= HEAD-TO-HEAD === -->
+    <section id="screen-h2h" class="screen">
+      <p class="section-label">Head-to-head <span class="board-note" id="h2hWho"></span></p>
+      <div class="panel" id="h2hLobby">
+        <p class="mini-help">Two players, one shared deal, alternating picks — then you fight the same election as rival parties. Create a match and send the code to a friend, or join theirs.</p>
+        <div class="h2h-form">
+          <label>Nation <select id="h2hNation" class="lb-input"></select></label>
+          <label>Game <select id="h2hMode" class="lb-input"><option value="unity">Greatest Cabinet</option><option value="wildcard">Global Wildcard</option></select></label>
+          <label>Difficulty <select id="h2hDiff" class="lb-input"><option value="normal">Normal</option><option value="hard">Hard</option><option value="brutal">Brutal</option><option value="easy">Easy</option></select></label>
+          <label>Cabinet <select id="h2hSize" class="lb-input"><option value="standard">Standard (12)</option><option value="expanded">Expanded (16)</option></select></label>
+        </div>
+        <div class="btn-row"><button class="btn btn-primary" id="h2hCreateBtn">Create match</button></div>
+        <div class="loadcode-row" style="margin-top:14px"><input id="h2hCodeInput" class="lb-input" maxlength="5" placeholder="Opponent's match code" autocomplete="off" /><button class="btn btn-ghost" id="h2hJoinBtn">Join</button></div>
+        <p class="acct-note" id="h2hLobbyMsg"></p>
+      </div>
+      <div id="h2hBody"></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="h2hBackBtn">← Menu</button></div>
+    </section>
+
+    <!-- ================================================== HALL OF FAME === -->
+    <section id="screen-hof" class="screen">
+      <p class="section-label">The Hall of Fame</p>
+      <div id="hofBody" class="hof-grid"><p class="muted">Loading the records…</p></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="hofBackBtn">← Menu</button></div>
+    </section>
+
+    <!-- ============================================== PUBLIC PROFILE ==== -->
+    <section id="screen-player" class="screen">
+      <div id="playerBody"><p class="muted">Loading…</p></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="playerBackBtn">← Back</button></div>
+    </section>
+
+    <!-- =============================================== HISTORY BOOK ==== -->
+    <section id="screen-book" class="screen">
+      <div class="panel book" id="bookBody"></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="bookCopyBtn">Copy the book</button><button class="btn btn-ghost" id="bookBackBtn">← Back</button></div>
+    </section>
+
+    <!-- ================================================ DAILY BOARD ==== -->
+    <section id="screen-daily" class="screen">
+      <p class="section-label" id="dailyBoardHead">Daily Challenge</p>
+      <div class="panel"><div id="dailyMine"></div><p class="acct-note" id="dailyStats"></p>
+        <div class="btn-row"><button class="btn btn-ghost" id="dailyShareBtn2">Copy share text</button><button class="btn btn-ghost" id="dailyBackBtn">← Back</button></div></div>
+      <div class="panel" style="margin-top:14px"><p class="section-label">Today's board</p><div class="dly-board" id="dailyBoardFull"></div></div>
     </section>
 
     <!-- ================================================= WIKI SCREEN ==== -->
@@ -492,6 +566,7 @@
         <p class="mini-help" id="retMiniHelp">The seats they leave vacant will be filled in a fresh draft. Your remaining ministers carry their portfolios into the next parliament.</p>
         <div class="btn-row">
           <button class="btn btn-primary" id="retContinueBtn">Draft replacements — <span id="retTermWord">Parliament</span> <span id="retParlNum">2</span> →</button>
+          <button class="btn btn-ghost" id="retBookBtn">📖 The party's history</button>
         </div>
       </div>
     </section>
@@ -596,6 +671,18 @@
         <p class="section-label">Coalition of voters</p>
         <div class="bloc-list" id="blocList"></div>
       </div>
+      <div class="gov-twin">
+        <div class="panel" id="pollPanel" style="display:none">
+          <p class="section-label">The polls <span class="board-note">every session</span></p>
+          <div class="poll-chart" id="pollChart"></div>
+          <div class="poll-read" id="pollRead"></div>
+          <p class="poll-press" id="pollPress"></p>
+        </div>
+        <div class="panel" id="rivalPanel" style="display:none">
+          <p class="section-label" id="rivalHead">The Opposition</p>
+          <div id="rivalBody"></div>
+        </div>
+      </div>
       <div class="panel opp-gov" id="oppGovPanel" style="display:none">
         <p class="section-label" id="oppGovName">The government</p>
         <div class="meter" id="govApprovalBar"><span class="meter-label">Their standing</span><span class="meter-bar"><span class="meter-fill"></span></span><span class="meter-num">0</span></div>
@@ -655,6 +742,7 @@
       <div id="legacyObjectivesStrip" class="objectives-strip" style="display:none"></div>
       <div class="btn-row">
         <button class="btn btn-primary" id="legacyAgainBtn">Play again</button>
+        <button class="btn btn-ghost" id="legacyBookBtn" style="display:none">📖 The party's history</button>
         <button class="btn btn-ghost" id="legacyXBtn">𝕏 Post on X</button>
         <button class="btn btn-ghost" id="legacyShareBtn">Copy result</button>
         <button class="btn btn-ghost" id="legacyWikiBtn">📜 Election record</button>
@@ -700,6 +788,7 @@
         </div>
         <div class="profile-stats" id="profileStats"></div>
         <div class="profile-nations" id="profileNations"></div>
+        <div class="profile-edit" id="profileEdit"></div>
       </div>
       <!-- Player's run history (shown when signed in) -->
       <div class="panel" id="runsPanel" style="display:none">
@@ -883,6 +972,7 @@ fits: pm, chancellor"></textarea>
         <a class="foot-link coffee" href="https://buymeacoffee.com/650game" target="_blank" rel="noopener noreferrer">☕ Buy me a coffee</a>
         <a class="foot-link x" href="https://x.com/650game" target="_blank" rel="noopener noreferrer">𝕏 @650game</a>
         <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle light/dark theme">☀ Light theme</button>
+        <button class="theme-toggle" id="soundToggleBtn" aria-label="Toggle sound">🔕 Sound off</button>
       </div>
       <p class="disclaimer">A satirical game for entertainment. Player ratings are an editorial abstraction applied by the same logic to every party and are not a judgement of any individual. Wildcard mode is satire, not endorsement. Not affiliated with any party, person, or institution. <button class="linkish" id="methodLink">See the methodology</button></p>
     </footer>
@@ -921,14 +1011,22 @@ fits: pm, chancellor"></textarea>
   <script src="js/govern.js"></script>
   <script src="js/coalition.js"></script>
   <script src="js/seatnight.js"></script>
+  <script src="js/nightfx.js"></script>
+  <script src="js/termlife.js"></script>
   <script src="js/govern.intl.js"></script>
   <script src="js/govern.events.js"></script>
   <script src="js/campaign.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/ui.night.js"></script>
+  <script src="js/polish.js"></script>
   <script src="js/country_hexmaps.js"></script>
   <script src="js/country_maps.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/platform.js"></script>
+  <script src="js/daily.js"></script>
+  <script src="js/h2h.js"></script>
+  <script src="js/dynasty.js"></script>
+  <script src="js/profiles.js"></script>
   <script src="js/sim650.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <script src="js/emoji.js"></script>

@@ -140,7 +140,9 @@ G.LB.cleanEntry = function (e) {
     pct: totalSeats > 0 ? seats / totalSeats * 100 : 0,
     ranked: !!e.ranked,
     runFp: String(e.runFp || "").slice(0, 24),
-    runCode: String(e.runCode || "").slice(0, 2000),
+    runCode: String(e.runCode || "").slice(0, 6000),
+    parl: Math.max(1, Math.min(99, parseInt(e.parl, 10) || 1)),
+    pm: String(e.pm || "").slice(0, 60),
     cabinet: G.LB._cabinet(e.cabinet), breakdown: G.LB._breakdown(e.breakdown), ts: Date.now()
   };
 };
@@ -190,7 +192,7 @@ G.LB.submit = function (raw, cb, opts) {
                   mode: e.mode, difficulty: e.difficulty, cabinetSize: e.cabinetSize,
                   runId: e.runId, runFp: e.runFp, runCode: e.runCode, ranked: e.ranked, partyName: e.partyName, partyAlign: e.partyAlign,
                   scenarioKey: e.scenarioKey, electoralSystem: e.electoralSystem, totalSeats: e.totalSeats,
-                  cabinet: e.cabinet, breakdown: e.breakdown };
+                  cabinet: e.cabinet, breakdown: e.breakdown, parl: e.parl, pm: e.pm };
   if (G.LB.URL) {
     G.LB._post(payload, function (d) {
       if (d && d.ownerToken) G.LB.setOwner(d.ownerToken);
@@ -266,7 +268,7 @@ G.LB.recordLocalRun = function (raw) {
                mode: e.mode, difficulty: e.difficulty, cabinetSize: e.cabinetSize, runId: e.runId,
                partyName: e.partyName, partyAlign: e.partyAlign,
                scenarioKey: e.scenarioKey, electoralSystem: e.electoralSystem, totalSeats: e.totalSeats,
-               cabinet: e.cabinet, breakdown: e.breakdown }, null);
+               cabinet: e.cabinet, breakdown: e.breakdown, parl: e.parl, pm: e.pm }, null);
   return e;
 };
 G.LB.localTop = function (n) { return G.LB._loadRuns().slice().sort(G.LB.rank).slice(0, n || 10); };

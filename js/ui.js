@@ -49,7 +49,7 @@ G.UI.partyBadge = function (label, colour) {
   var dom = G.PARTY_LOGO && G.PARTY_LOGO[label];
   if (dom) {
     return '<img class="party-logo" src="https://www.google.com/s2/favicons?domain=' + dom +
-           '&sz=64" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;party-dot&quot; style=&quot;background:' +
+           '&sz=64" alt="" loading="lazy" onerror="if(this.parentNode)this.outerHTML=\'<span class=&quot;party-dot&quot; style=&quot;background:' +
            (colour || "#999") + '&quot;></span>\'">';
   }
   return '<span class="party-dot" style="background:' + (colour || "#999") + '"></span>';
@@ -58,8 +58,11 @@ G.UI.partyBadge = function (label, colour) {
 var SCREENS = ["screen-menu", "screen-draft", "screen-watch", "screen-result", "screen-about", "screen-rng", "screen-explore", "screen-govern", "screen-legacy", "screen-policy", "screen-campaign", "screen-leaderboard", "screen-account", "screen-chat", "screen-admin", "screen-live", "screen-wiki", "screen-retirement"];
 
 G.UI.show = function (screenId) {
+  /* every <section class="screen"> — so new screens never need registering */
+  var all = document.querySelectorAll(".screen");
+  for (var i = 0; i < all.length; i++) all[i].classList.toggle("active", all[i].id === screenId);
   SCREENS.forEach(function (s) {
-    var el = $(s); if (el) el.classList.toggle("active", s === screenId);
+    var el = $(s); if (el && !el.classList.contains("screen")) el.classList.toggle("active", s === screenId);
   });
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
@@ -309,6 +312,7 @@ G.UI.refreshControls = function () {
   if ($("skipPartyBtn")) $("skipPartyBtn").style.display = "none";
 
   $("holdBtn").disabled = !complete;
+  if ($("draftCardBtn")) $("draftCardBtn").style.display = complete ? "" : "none";
   $("holdBtn").textContent = st.watch ? "Hold the election \u2192" : "Hold the election";
 };
 
@@ -598,6 +602,8 @@ G.UI.renderGovern = function () {
   G.UI.renderTurnEvents();
   G.UI.renderObjectiveBanner();
   G.UI.renderCabinetStrip();
+  if (G.UI.renderPolls) G.UI.renderPolls();
+  if (G.UI.renderRival) G.UI.renderRival();
   G.UI.show("screen-govern");
 };
 /* ---- coalition negotiation modal ---------------------------------------- */
@@ -753,6 +759,8 @@ G.UI.afterConfirm = function () {
   G.UI.renderSessionTrack();
   G.UI.renderElectorate(t && t.blocSupport);
   G.UI.renderCabinetStrip();
+  if (G.UI.renderPolls) G.UI.renderPolls();
+  if (G.UI.renderRival) G.UI.renderRival();
   if (!t.over) G.UI.renderTurnEvents();
 };
 G.UI.afterChoice = function () {
@@ -827,6 +835,8 @@ G.UI.legacyText = function (v) {
          "Build a cabinet and govern at 650-0.co.uk";
 };
 G.UI.renderLegacy = function (v) {
+  var bkb = document.getElementById("legacyBookBtn");
+  if (bkb && !(G.career && G.career.active)) bkb.style.display = "none";
   var opp = v.kind === "opp";
   var b = $("legacyBanner");
   var fell = v.outcome === "collapsed" || v.outcome === "ousted";
@@ -842,6 +852,16 @@ G.UI.renderLegacy = function (v) {
   G.UI.setMeter("legUnity", v.meters.unity);
   $("legSeats").innerHTML = "<b>" + v.seats + "</b> seats · " + v.sessionsServed + " of " + v.length +
     " sessions served" + (v.caretakers ? " · " + v.caretakers + " caretaker department" + (v.caretakers > 1 ? "s" : "") : "");
+  /* the living term: final poll, who you faced, who walked */
+  var tls = G.TermLife && G.TermLife.summary ? G.TermLife.summary() : null;
+  if (tls) {
+    var bits = [];
+    if (tls.finalPoll && G.term && !(G.term.tl && G.term.tl.despot)) bits.push("final poll <b>" + tls.finalPoll.you + "%</b>" + (G.term.rival ? " to " + G.UI._esc(G.term.rival.party) + "'s " + tls.finalPoll.rival + "%" : ""));
+    if (tls.rivalLeaders && tls.rivalLeaders.length) bits.push((G.term.kind === "opp" ? "faced " : "opposite you: ") + tls.rivalLeaders.map(G.UI._esc).join(" → "));
+    if (tls.defections) bits.push(tls.defections + " floor-crossing" + (tls.defections > 1 ? "s" : ""));
+    if (tls.byElections.length) bits.push(tls.byElections.length + " by-election" + (tls.byElections.length > 1 ? "s" : "") + " (" + tls.byElections.filter(function (x) { return x.result === "held"; }).length + " held)");
+    if (bits.length) $("legSeats").innerHTML += '<br><span class="leg-tl">' + bits.join(" · ") + '</span>';
+  }
   var pb = $("legacyPledges");
   if (pb) {
     if (v.pledges && v.pledges.length) {
@@ -1042,12 +1062,15 @@ G.UI.renderResultIntl = function (res) {
   G.UI.setOddsLabels(res);
   G.UI.renderResultElectorate(res);
 
+  if (G.UI.renderNight) G.UI.renderNight(res);
+
   /* — front bench — */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
   G.PORTFOLIOS.forEach(function (port) {
     var h = G.state.cabinet[port.key];
     var line = document.createElement("div"); line.className = "roll-line";
-    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? h.name : "—") + '</span>';
+    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? G.UI._esc(h.name) : "—") +
+      (h && G.UI.seatNote ? G.UI.seatNote(res, h.name) : "") + '</span>';
     roll.appendChild(line);
   });
 
@@ -1436,6 +1459,9 @@ G.UI.renderResult = function (res) {
   } else if (res.tier.role === "kingmaker") {
     banner.className = "govt-banner";
     banner.textContent = "You hold the balance of power";
+  } else if (res.tier.role === "largest") {
+    banner.className = "govt-banner";
+    banner.textContent = "The largest party — the first move is yours";
   } else {
     banner.className = "govt-banner lose";
     banner.textContent = "You lead the Opposition — the Shadow Cabinet";
@@ -1490,12 +1516,15 @@ G.UI.renderResult = function (res) {
   $("majKeyLabel").textContent = C.majority + " needed";
   setTimeout(function () { $("commonsFill").style.width = (res.seats / C.totalSeats * 100) + "%"; }, 80);
 
+  if (G.UI.renderNight) G.UI.renderNight(res);
+
   /* front bench */
   var roll = $("cabinetRoll"); roll.innerHTML = "";
   G.PORTFOLIOS.forEach(function (port) {
     var h = G.state.cabinet[port.key];
     var line = document.createElement("div"); line.className = "roll-line";
-    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? h.name : "—") + '</span>';
+    line.innerHTML = '<span class="r">' + port.name + '</span><span class="n">' + (h ? G.UI._esc(h.name) : "—") +
+      (h && G.UI.seatNote ? G.UI.seatNote(res, h.name) : "") + '</span>';
     roll.appendChild(line);
   });
 
@@ -1810,7 +1839,7 @@ G.UI._lbRowEl = function (e, rank) {
   }
   row.innerHTML =
     '<span class="lb-rk">' + rank + '</span>' +
-    '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '">' + G.UI._esc(e.name || "—") + '</span>' +
+    '<span class="lb-nm ' + G.UI.roleClass(e.level || 1) + '"' + (e.name && G.UI._lbView !== "personal" ? ' data-profile="' + G.UI._esc(e.name) + '" title="View profile"' : '') + '>' + G.UI._esc(e.name || "—") + '</span>' +
     '<span class="lb-md">' + G.UI._esc(tag) + '</span>' +
     '<span class="lb-seats">' + seatsDisplay + '</span>' +
     '<span class="lb-leg">' + leg + '</span>';
@@ -1943,7 +1972,8 @@ G.UI.renderLeaderboard = function (top, communal, error) {
         tile(best ? best.seats : "—", "Best seats") +
         tile(bestPct ? bestPct.pct.toFixed(1) + "%" : "—", "Best share") +
         tile(governed, "Governed terms") +
-        tile(rankedBest ? rankedBest.seats : "—", "Ranked best");
+        tile(rankedBest ? rankedBest.seats : "—", "Ranked best") +
+        (G.Daily ? tile(G.Daily.best().played, "Dailies played") + tile(G.Daily.streak() ? "🔥 " + G.Daily.streak() : "0", "Daily streak") : "");
     }
     var natEl = $("profileNations");
     if (natEl) {
@@ -2367,10 +2397,16 @@ G.UI.renderRetirements = function (retiring, career) {
             '<b>' + G.UI._esc(pol.name) + '</b>' +
             '<span class="ret-port">' + G.UI._esc(port.name) + '</span>' +
             '<span class="ret-served">' + served + ' parliament' + (served !== 1 ? 's' : '') + ' served</span>' +
+            (r.protege ? '<label class="ret-protege"><input type="checkbox" data-protege="' + G.UI._esc(r.portfolioKey) + '"' + (r.promote ? ' checked' : '') + '> Promote protégé <b>' +
+              G.UI._esc(r.protege.name) + '</b> <i>(' + G.UI._esc(r.protege.party) + ', mentored +3)</i></label>' : '<span class="ret-served">No heir — the post goes to the draft.</span>') +
           '</div>' +
         '</div>';
       }).join("");
       G.UI._hydratePortraits(listEl);
+      listEl.onchange = function (e) {
+        var k = e.target && e.target.getAttribute && e.target.getAttribute("data-protege"); if (!k) return;
+        (retiring || []).forEach(function (r) { if (r.portfolioKey === k) r.promote = !!e.target.checked; });
+      };
     }
   }
 
@@ -2582,6 +2618,7 @@ G.UI.renderScenarioPicker = function (chosen, countryFilter) {
     return '<div class="scenario-card' + (isSel ? " sel" : "") + '" data-scenario="' + s.key + '">' +
       '<h4>' + G.UI._esc(s.name) + '</h4>' +
       '<p>' + G.UI._esc(s.desc) + '</p>' +
+      (s.whatIf ? '<small class="sc-whatif">What-if · play as ' + G.UI._esc((G.LINEAGE_PARTY && G.LINEAGE_PARTY[s.lineage]) || s.lineage) + ' · par ' + s.par.seats + '</small>' : '') +
       (s.objective ? '<p class="sc-obj">🎯 ' + G.UI._esc(s.objective.label) + '</p>' : '') +
       lockInfo + despotTag +
       '</div>';

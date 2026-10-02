@@ -456,6 +456,7 @@
     wireRetirement();
     wireLegacyCareer();
     wirePlatform();
+    wireDaily();
     renderRecords();
     sel("homeLink").onclick = goMenu;
     if (G.buildGeo) G.buildGeo();
@@ -681,6 +682,13 @@
         if (G.SCENARIOS) {
           var sc = G.SCENARIOS.filter(function (s) { return s.key === key; })[0];
           if (sc && sc.mode) { choice.mode = sc.mode; setSel("modeRow", "data-mode", sc.mode); updateEligibility(); }
+          /* a historic what-if locks the tradition you play as */
+          if (sc && sc.lineage) {
+            choice.mode = "dynasty"; choice.lineage = sc.lineage;
+            setSel("modeRow", "data-mode", "dynasty");
+            if (sel("dynastyPick")) sel("dynastyPick").classList.add("show");
+            buildDynastyChips(); updateHint(); updateEligibility();
+          }
           if (sc && sc.difficulty) { choice.difficulty = sc.difficulty; setSel("diffRow", "data-diff", sc.difficulty); }
         }
       });
@@ -881,14 +889,24 @@
   function runPayloadFrom(res) {
     var cabinet = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
     var cab = [];
-    (G.PORTFOLIOS || []).forEach(function (port) { var p = cabinet[port.key]; if (p) cab.push({ k: port.key, n: p.name }); });
+    /* name + party pin the exact figure (the roster has a few same-named
+       entries); the stat line breaks any remaining tie */
+    (G.PORTFOLIOS || []).forEach(function (port) {
+      var p = cabinet[port.key]; if (!p) return;
+      var st0 = p.stats || {};
+      var dupes = (G.POLITICIANS || []).filter(function (x) { return x.name === p.name; }).length;
+      cab.push(dupes > 1 ? { k: port.key, n: p.name, p: p.party, t: [st0.appeal, st0.experience, st0.oratory, st0.statecraft, st0.partyMgmt].join(".") }
+                         : { k: port.key, n: p.name });
+    });
     return {
       v: 1, s: (res.seed >>> 0),
       m: G.state.mode, l: G.state.lineage || null, d: G.state.difficulty, z: G.state.cabinetSize,
       e: (G.state.eras || []).slice(), sc: G.state.scenarioKey || null, sy: G.state._electoralSystemKey || null,
       cty: choice.country || "uk",
       cu: G.state.custom ? { name: G.state.custom.name, align: G.state.custom.align, colour: G.state.custom.colour } : null,
-      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1")
+      cab: cab, mv: (G.SimCore ? G.SimCore.MODEL_VERSION : "mc1"),
+      ag: (G.Dynasty ? G.Dynasty.servedMap(cabinet) : null),
+      x: res._ctx || null
     };
   }
   function showResult(res) {
@@ -930,6 +948,8 @@
     try {
       if (G.LB && G.LB.recordLocalRun && !res._replay) G.LB.recordLocalRun(entryFrom(res));
     } catch (e) {}
+    afterDailyResult(res);
+    if (G.Profiles) G.Profiles.check();
   }
 
   /* load a shared run code from the menu and replay it exactly. A loaded replay
@@ -1001,6 +1021,7 @@
     /* seats per region — for the live nowcast projection */
     var regionTotals = {};
     results.forEach(function (r) { regionTotals[r.region] = (regionTotals[r.region] || 0) + 1; });
+    if (G.Sound) G.Sound.play("bong");          // the polls close
     watch = {
       res: res, intl: intl,
       byId: setup.byId, colour: setup.colour,
@@ -1046,8 +1067,19 @@
         var line = res.won
           ? res.name + " — " + (mp ? mp + " elected" : "won")
           : res.name + " — " + (mp ? mp + " (" + res.winner + ")" : "lost (" + res.winner + ")");
-        G.UI.pushFeed(line, res.won ? "win" : "");
+        /* GAIN / HOLD against the previous holder, and the majority */
+        if (res.change === "gain" && res.prev) line += " · " + (res.won ? "GAIN" : res.winner + " GAIN") + " from " + res.prev;
+        else if (res.change === "hold") line += " · HOLD";
+        if (res.marginVotes != null) line += " · maj " + res.marginVotes.toLocaleString();
+        if (res.recount) line = "After a recount: " + line;
+        G.UI.pushFeed(line, (res.won ? "win" : "") + (res.change === "gain" ? " gain" : "") + (res.recount ? " recount" : ""));
       }
+      /* the night's big moments: scalps, fallen ministers, narrow escapes */
+      if (!quiet && G.NightFX && w.res.campaign.homes) {
+        var big = G.NightFX.feedLine(res, w.res.campaign);
+        if (big) { res._bigShown = true; G.UI.pushFeed(big.text, "big " + big.cls); if (G.UI.flashMoment) G.UI.flashMoment(big); }
+      }
+      if (!quiet && G.Sound) G.Sound.seat(res);
       if (res.won) { w.won++; w.regWon++; w.wonByRegion[res.region] = (w.wonByRegion[res.region] || 0) + 1; }
       w.declaredByRegion[res.region] = (w.declaredByRegion[res.region] || 0) + 1;
       w.tally[res.winner] = (w.tally[res.winner] || 0) + 1;
@@ -1097,8 +1129,15 @@
       w.regIdx++; w.regWon = 0;
     }
     w.done = true;
+    /* a skipped count still gets its headlines */
+    if (G.NightFX && w.res.campaign.homes) w.results.forEach(function (r) {
+      if (r._bigShown) return;
+      var big = G.NightFX.feedLine(r, w.res.campaign);
+      if (big) { r._bigShown = true; G.UI.pushFeed(big.text, "big " + big.cls); }
+    });
     G.UI.setWatchTally(w.won, w.i);
     G.UI.pushFeed("All " + w.total + " seats declared.", "win");
+    if (G.Sound && w.res && w.res.tier && w.res.tier.govt) G.Sound.play("fanfare");
     sel("skipCountBtn").style.display = "none";
     sel("toResultBtn").style.display = "";
   }
@@ -1208,6 +1247,7 @@
     G.UI.show("screen-menu");
     goWizardStep(1);        /* always land on the first setup step */
     showSessionCard();
+    renderDailyCard();
   }
 
   /* --------------------------------------------------------- leaderboard -- */
@@ -1234,6 +1274,7 @@
     if (G.NET && G.NET.me) {
       toggleProfilePanels(G.NET.me);
       if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, []);
+      if (G.Profiles) G.Profiles.renderEditor();
       if (G.NET.playerRuns) G.NET.playerRuns().then(function (d) {
         var runs = (d && d.ok && d.runs) ? d.runs : [];
         if (G.UI.renderProfile) G.UI.renderProfile(G.NET.me, runs);
@@ -1315,11 +1356,15 @@
              totalSeats: _totalSeats,
              ranked: isRankedSetup(),
              runFp: res._runFp || "", runCode: res._runCode || "",
+             parl: (G.career && G.career.active && G.career.parliament) || 1,
+             pm: res.pmName && res.pmName !== "—" ? res.pmName : "",
              cabinet: res.manifest || (G.cabinetManifest ? G.cabinetManifest() : []),
              breakdown: (res.breakdown || []).map(function (b) { return { party: b.party, seats: b.seats }; }) };
   }
   function currentEntry() { return entryFrom(lastResult); }
   function submitToLeaderboard() {
+    if (lastResult && lastResult._daily) { postDaily(true); return; }
+    if (lastResult && lastResult._h2h) { setLbBtns(true, "Head-to-head — not ranked"); return; }
     if (!G.NET || !G.NET.me) {                       // the leaderboard is for signed-in players only
       setLbBtns(true, "Sign in to post");
       setAcctTab("login");
@@ -1683,6 +1728,9 @@
     }
     /* career: record this term and prepare retirement screen */
     if (G.career && G.career.active && G.careerRecordTerm) {
+      /* write this parliament into the party's history book */
+      if (G.Dynasty && lastResult) G.Dynasty.chapter(lastResult, currentVerdict);
+      if (sel("legacyBookBtn")) sel("legacyBookBtn").style.display = "";
       G.careerRecordTerm(lastResult, currentVerdict);
       /* push election history NOW (before legacy screen opens) so the wiki
          button on the legacy screen can show the correct prior-parliament data.
@@ -1717,7 +1765,10 @@
     btn.onclick = function () {
       if (!G.career || !G.career.active) { goMenu(); return; }
       /* compute retirements based on serve counts set in careerRecordTerm */
-      var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
+      var retiring = G.career._pendingRetire ||
+        (G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : []);
+      G.career._pendingRetire = null;
+      if (G.Dynasty) G.Dynasty.noteRetirements(retiring);
       /* add retiring names to retiredMinisters so pool excludes them */
       retiring.forEach(function (r) {
         if (G.career.retiredMinsters) G.career.retiredMinsters[r.politician.name] = true;
@@ -1730,7 +1781,15 @@
       Object.keys(cabinet).forEach(function (key) {
         var pol = cabinet[key]; if (!pol || pol.coalitionParty) return;
         var isRetiring = retiring.some(function (r) { return r.politician.name === pol.name; });
-        if (!isRetiring) carryOver[key] = pol;
+        /* survivors carry on — a parliament older (experience up, sparkle down) */
+        if (!isRetiring) carryOver[key] = G.Dynasty ? G.Dynasty.aged(pol, (G.career.ministerServeCount || {})[pol.name] || 0) : pol;
+      });
+      /* promoted protégés walk straight into their mentor's post, mentored */
+      retiring.forEach(function (r) {
+        if (!r.protege || !r.promote || carryOver[r.portfolioKey]) return;
+        var pr = {}; for (var k in r.protege) if (Object.prototype.hasOwnProperty.call(r.protege, k)) pr[k] = r.protege[k];
+        pr._mentor = r.politician.name; pr._mentored = 3;
+        carryOver[r.portfolioKey] = G.Dynasty.aged(pr, 0);
       });
       /* record election history entry for career (guard: endTerm() may have
          already pushed this parliament's entry when the legacy screen opened) */
@@ -1780,7 +1839,9 @@
     legEl.onclick = function () {
       if (G.career && G.career.active) {
         /* show retirement screen instead of new game */
-        var retiring = G.checkRetirements ? G.checkRetirements((G.state && (G.state._playerCabinet || G.state.cabinet)) || {}) : [];
+        /* decided ONCE, here — what the screen shows is what happens */
+        var cab0 = (G.state && (G.state._playerCabinet || G.state.cabinet)) || {};
+        var retiring = G.Dynasty ? G.Dynasty.planRetirements(cab0) : (G.checkRetirements ? G.checkRetirements(cab0) : []);
         G.UI.renderRetirements(retiring, G.career);
       } else {
         if (origOnclick) origOnclick.call(this);
@@ -1799,6 +1860,140 @@
   function wireExplore() {
     var s = sel("exploreSearch");
     if (s) s.addEventListener("input", function () { G.UI.filterExplore(s.value); });
+  }
+
+  /* ------------------------------------------------------ daily challenge -- */
+  function fmtCountdown(ms) { var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000); return h + "h " + m + "m"; }
+  function renderDailyCard() {
+    var card = sel("dailyCard"); if (!card || !G.Daily) return;
+    var sp = G.Daily.spec(), h = G.Daily.today(), streak = G.Daily.streak();
+    var started = !h ? null : (h.done ? null : h);
+    card.innerHTML =
+      '<div class="daily-body"><p class="daily-kicker">Daily Challenge #' + sp.num + (streak ? ' · <span class="daily-streak">🔥 ' + streak + '-day streak</span>' : '') + '</p>' +
+      '<p class="daily-spec">' + G.UI._esc(G.Daily.label(sp)) + '</p>' +
+      (h && h.done
+        ? '<p class="daily-done">Played: <b>' + h.seats + '</b>/' + h.total + ' seats · ' + G.UI._esc(h.tier || "") + ' · next in ' + fmtCountdown(G.Daily.msToNext()) + '</p>'
+        : '<p class="daily-sub">Same deals, same luck, one attempt. ' + (started ? 'You have a draft in progress.' : 'Who builds the best cabinet today?') + '</p>') +
+      '</div><div class="daily-btns">' +
+      (h && h.done
+        ? '<button class="btn btn-ghost" id="dailyShareBtn">Share</button><button class="btn btn-ghost" id="dailyBoardBtn">Today\'s board</button>'
+        : '<button class="btn btn-primary" id="dailyPlayBtn">' + (started ? 'Resume today\'s →' : 'Play today\'s →') + '</button><button class="btn btn-ghost" id="dailyBoardBtn">Board</button>') +
+      '</div>';
+    card.style.display = "";
+  }
+  function startDaily() {
+    if (!G.Daily) return;
+    var out = G.Daily.begin();
+    if (out.error === "played") { openDailyBoard(); return; }
+    var sp = out.spec;
+    cancelWatch();
+    currentVerdict = null; submitting = false;
+    setLbBtns(false, "\u2605 Post to the daily board");
+    choice.country = sp.country; choice.mode = sp.mode; choice.difficulty = sp.difficulty; choice.scenarioKey = sp.scenario;
+    G.UI.show("screen-draft");
+    G.UI.renderDraft();
+  }
+  function copyText(text, btn) {
+    var done = function () { if (btn) flashButton(btn, "Copied ✓"); };
+    if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent || "")) { navigator.share({ text: text }).catch(function () {}); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(function () { legacyCopy(text, done); });
+    else legacyCopy(text, done);
+  }
+  function afterDailyResult(res) {
+    var panel = sel("dailyPanel");
+    var isDaily = !!(G.state && G.state._daily) && !res._replay;
+    if (sel("againBtn")) sel("againBtn").style.display = (isDaily || res._h2h) ? "none" : "";
+    var hp = sel("h2hPanel");
+    if (hp) {
+      hp.style.display = res._h2h ? "" : "none";
+      if (res._h2h) {
+        var me = res.h2h.me, op = res.h2h.opp;
+        sel("h2hResultLine").innerHTML = '<div class="h2h-score"><span style="color:' + me.colour + '">' + me.seats + '</span> – <span style="color:' + op.colour + '">' + op.seats + '</span></div><p class="gov-line">' +
+          (me.seats > op.seats ? "You beat " + G.UI._esc(op.name) + " on the night." : me.seats < op.seats ? G.UI._esc(op.name) + " takes the night." : "A dead heat.") + '</p>';
+        setLbBtns(true, "Head-to-head — not ranked");
+      }
+    }
+    if (!panel) return;
+    if (!isDaily) { panel.style.display = "none"; return; }
+    res._daily = true;
+    var h = G.Daily.finish(res);
+    panel.style.display = "";
+    sel("dailyPanelHead").textContent = "Daily Challenge #" + h.num;
+    sel("dailyShareText").textContent = G.Daily.shareText(h);
+    sel("dailyStreak").textContent = G.Daily.streak() ? "🔥 " + G.Daily.streak() + "-day streak" : "";
+    setLbBtns(false, "\u2605 Post to the daily board");
+    if (G.NET && G.NET.me) postDaily(false); else loadDailyBoard("dailyBoardMini", 8);
+  }
+  function postDaily(open) {
+    var h = G.Daily && G.Daily.today();
+    if (!G.NET || !G.NET.me) {
+      setAcctTab("login"); G.UI.show("screen-account");
+      var msg = sel("acctMsg"); if (msg) msg.textContent = "Sign in (or register) to post to the daily board.";
+      return;
+    }
+    if (!h || !h.done) return;
+    setLbBtns(true, "Posting\u2026");
+    G.Daily.submit(h).then(function (d) {
+      setLbBtns(true, d && d.ok ? "Posted \u2713" : (d && d.error === "duplicate" ? "Already posted \u2713" : "Couldn't post"));
+      if (open) openDailyBoard(); else loadDailyBoard("dailyBoardMini", 8);
+    });
+  }
+  function loadDailyBoard(boxId, limit, key) {
+    var box = sel(boxId); if (!box || !G.Daily) return;
+    box.innerHTML = '<p class="muted">Loading today\'s board…</p>';
+    G.Daily.board(key).then(function (d) {
+      if (!d || !d.ok) { box.innerHTML = '<p class="muted">The daily board is unavailable right now.</p>'; return; }
+      var rows = (d.top || []).slice(0, limit || 50);
+      if (!rows.length) { box.innerHTML = '<p class="muted">No one has posted today yet — be the first.</p>'; return; }
+      box.innerHTML = '<div class="dly-meta">' + d.count + ' player' + (d.count === 1 ? '' : 's') + ' today' + (d.you ? ' · you are <b>#' + d.you.rank + '</b>' : '') + ' · median ' + d.median + ' seats</div>' +
+        rows.map(function (r, i) {
+          return '<div class="dly-row' + (d.you && d.you.name === r.name ? ' me' : '') + '"><span class="dly-rk">' + (i + 1) + '</span>' +
+            '<span class="dly-name" data-profile="' + G.UI._esc(r.name) + '">' + G.UI._esc(r.name) + '</span>' +
+            '<span class="dly-grid">' + G.UI._esc((r.grid || "").replace(/\n/g, "")) + '</span>' +
+            '<span class="dly-seats"><b>' + r.seats + '</b>/' + r.total + '</span></div>';
+        }).join("");
+    });
+  }
+  function openDailyBoard() {
+    G.UI.show("screen-daily");
+    var sp = G.Daily.spec(), h = G.Daily.today();
+    sel("dailyBoardHead").textContent = "Daily Challenge #" + sp.num + " — " + G.Daily.label(sp);
+    sel("dailyMine").innerHTML = h && h.done
+      ? '<pre class="daily-share">' + G.UI._esc(G.Daily.shareText(h)) + '</pre>'
+      : '<p class="muted">You haven\'t played today\'s challenge yet.</p>';
+    var bst = G.Daily.best();
+    sel("dailyStats").textContent = bst.played ? ("Played " + bst.played + " · best " + bst.best + " seats · streak " + G.Daily.streak()) : "";
+    loadDailyBoard("dailyBoardFull", 100);
+  }
+  function wireDaily() {
+    renderDailyCard();
+    var card = sel("dailyCard");
+    if (card) card.addEventListener("click", function (e) {
+      var id = e.target && e.target.id;
+      if (id === "dailyPlayBtn") startDaily();
+      else if (id === "dailyBoardBtn") openDailyBoard();
+      else if (id === "dailyShareBtn") copyText(G.Daily.shareText(), e.target);
+    });
+    if (sel("dailyCopyBtn")) sel("dailyCopyBtn").onclick = function () { copyText(G.Daily.shareText(), sel("dailyCopyBtn")); };
+    if (sel("dailyFullBtn")) sel("dailyFullBtn").onclick = openDailyBoard;
+    if (sel("dailyBackBtn")) sel("dailyBackBtn").onclick = goMenu;
+    if (sel("h2hBtn")) sel("h2hBtn").onclick = function () { if (G.H2H) G.H2H.open(); };
+    if (sel("h2hBackBtn")) sel("h2hBackBtn").onclick = goMenu;
+    if (sel("h2hBackToMatch")) sel("h2hBackToMatch").onclick = function () { cancelWatch(); if (G.H2H) G.H2H.open(); };
+    if (G.H2H) G.H2H.wire();
+    if (sel("draftCardBtn")) sel("draftCardBtn").onclick = function () { G.UI.downloadCabinetCard(); };
+    if (sel("cabCardBtn")) sel("cabCardBtn").onclick = function () { G.UI.downloadCabinetCard(); };
+    if (sel("soundToggleBtn")) { sel("soundToggleBtn").textContent = G.Sound && G.Sound.on ? "🔔 Sound on" : "🔕 Sound off";
+      sel("soundToggleBtn").onclick = function () { if (G.Sound) G.Sound.set(!G.Sound.on); }; }
+    if (sel("hofBtn")) sel("hofBtn").onclick = function () { if (G.Profiles) G.Profiles.openHof(); };
+    if (sel("hofBackBtn")) sel("hofBackBtn").onclick = goMenu;
+    if (sel("playerBackBtn")) sel("playerBackBtn").onclick = function () { G.UI.show((G.Profiles && G.Profiles._back) || "screen-menu"); };
+    if (sel("retBookBtn")) sel("retBookBtn").onclick = function () { if (G.Dynasty) G.Dynasty.renderBook("screen-retirement"); };
+    if (sel("legacyBookBtn")) sel("legacyBookBtn").onclick = function () { if (G.Dynasty) G.Dynasty.renderBook("screen-legacy"); };
+    if (sel("bookBackBtn")) sel("bookBackBtn").onclick = function () { G.UI.show((G.Dynasty && G.Dynasty._back) || "screen-menu"); };
+    if (sel("bookCopyBtn")) sel("bookCopyBtn").onclick = function () { copyText(G.Dynasty.bookText(), sel("bookCopyBtn")); };
+    if (sel("dailyShareBtn2")) sel("dailyShareBtn2").onclick = function () { copyText(G.Daily.shareText(), sel("dailyShareBtn2")); };
+    setInterval(function () { if (sel("screen-menu") && sel("screen-menu").classList.contains("active")) renderDailyCard(); }, 60000);
   }
 
   /* ----------------------------------------------------------- records ---- */
@@ -2334,4 +2529,6 @@
       loadLeaderboard();
     });
   }
+  /* a narrow hook for automated checks and the daily/H2H flows */
+  G._flow = { startWatch: function (r) { lastResult = r; startWatch(r); }, showResult: function (r) { lastResult = r; showResult(r); } };
 })();
